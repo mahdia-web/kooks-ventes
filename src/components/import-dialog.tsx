@@ -1,7 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Loader2, AlertCircle, CheckCircle2, RefreshCw, Info } from 'lucide-react';
+import {
+  Upload,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCw,
+  Info,
+  Wand2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,12 +21,48 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface ImportDialogProps {
   onImported: () => void;
 }
+
+interface DetectedMapping {
+  date: string | null;
+  bl: string | null;
+  enseigne: string | null;
+  type: string | null;
+  agent: string | null;
+  ht: string | null;
+  ttc: string | null;
+  taux: string | null;
+  commission: string | null;
+  mois: string | null;
+  annee: string | null;
+}
+
+const EMPTY_MAPPING: DetectedMapping = {
+  date: null, bl: null, enseigne: null, type: null,
+  agent: null, ht: null, ttc: null, taux: null,
+  commission: null, mois: null, annee: null,
+};
+
+const FIELDS: { key: keyof DetectedMapping; label: string; required?: boolean; hint: string }[] = [
+  { key: 'date', label: 'Date', required: true, hint: 'Date de la vente' },
+  { key: 'enseigne', label: 'Enseigne / Client', required: true, hint: 'Nom du client' },
+  { key: 'agent', label: 'Agent commercial', hint: 'Nom du commercial' },
+  { key: 'type', label: 'Type (Direct/Centrale)', hint: 'Type de vente' },
+  { key: 'ht', label: 'Montant HT', hint: 'Chiffre d\'affaires HT' },
+  { key: 'ttc', label: 'Montant TTC', hint: 'Chiffre d\'affaires TTC' },
+  { key: 'taux', label: 'Taux commission', hint: '7% Direct / 5% Centrale' },
+  { key: 'commission', label: 'Commission', hint: 'Calculée si absente' },
+  { key: 'bl', label: 'N° BL (optionnel)', hint: 'Si absent, dédoublonnage par date+enseigne+montant' },
+  { key: 'mois', label: 'Mois', hint: 'Si absent, déduit de la date' },
+  { key: 'annee', label: 'Année', hint: 'Si absent, déduit de la date' },
+];
 
 export function ImportDialog({ onImported }: ImportDialogProps) {
   const [open, setOpen] = useState(false);
@@ -28,10 +72,11 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
   const [result, setResult] = useState<{
     inserted: number;
     skipped: number;
-    total: number;
     detail?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
+  const [mapping, setMapping] = useState<DetectedMapping>(EMPTY_MAPPING);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -39,6 +84,8 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
       setFile(f);
       setResult(null);
       setError(null);
+      // Lance la détection
+      detectMapping(f);
     }
   };
 
@@ -52,6 +99,37 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
       setFile(f);
       setResult(null);
       setError(null);
+      detectMapping(f);
+    }
+  };
+
+  // Étape 1 : détecte les colonnes en envoyant le fichier à /api/import avec detectOnly=true
+  // Le serveur renvoie detectedColumns et detectedMapping sans rien insérer
+  const detectMapping = async (selectedFile: File) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('detectOnly', 'true');
+      // On force un mapping vide pour déclencher l'auto-détection
+      formData.append('mapping', JSON.stringify(EMPTY_MAPPING));
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.detectedColumns) {
+        setDetectedColumns(data.detectedColumns);
+      }
+      if (data.detectedMapping) {
+        setMapping(data.detectedMapping as DetectedMapping);
+      }
+      // Pas de result ici car on est en mode détection seule
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,6 +141,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('mapping', JSON.stringify(mapping));
       const res = await fetch('/api/import', {
         method: 'POST',
         body: formData,
@@ -91,12 +170,20 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
     }
   };
 
+  const autoDetect = () => {
+    // Reset le mapping pour déclencher auto-détection
+    setMapping(EMPTY_MAPPING);
+    if (file) detectMapping(file);
+  };
+
   const handleClose = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (!nextOpen) {
       setFile(null);
       setResult(null);
       setError(null);
+      setDetectedColumns([]);
+      setMapping(EMPTY_MAPPING);
     }
   };
 
@@ -107,11 +194,12 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
           <Upload className="h-4 w-4 mr-2" /> Importer mise à jour
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Importer le fichier mensuel</DialogTitle>
           <DialogDescription>
-            Téléversez votre fichier Excel mis à jour. Seules les nouvelles ventes (basées sur le N° BL unique) seront ajoutées.
+            Téléversez votre fichier Excel. La détection des colonnes est automatique.
+            Les ventes déjà présentes sont ignorées (par N° BL si présent, sinon par date+enseigne+montant).
           </DialogDescription>
         </DialogHeader>
 
@@ -129,7 +217,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             className={cn(
-              'border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer',
+              'border-2 border-dashed rounded-lg p-5 text-center transition-colors cursor-pointer',
               isDragging
                 ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
                 : 'border-slate-300 dark:border-slate-700 hover:border-emerald-400'
@@ -148,9 +236,64 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
               {file ? file.name : 'Cliquez ou déposez le fichier ici'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Format : .xlsx, .xls, .ods, .csv
+              Formats : .xlsx, .xls, .ods, .csv
             </p>
           </div>
+
+          {/* Mapping détecté */}
+          {file && detectedColumns.length > 0 && (
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="h-4 w-4 text-emerald-600" />
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Correspondance des colonnes
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={autoDetect} disabled={loading}>
+                  <Wand2 className="h-3.5 w-3.5 mr-1" /> Auto-détection
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {detectedColumns.length} colonnes détectées : {detectedColumns.join(', ')}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {FIELDS.map((field) => {
+                  const value = mapping[field.key];
+                  return (
+                    <div key={field.key} className="space-y-1">
+                      <Label htmlFor={`map-${field.key}`} className="text-xs font-medium">
+                        {field.label}
+                        {field.required && <span className="text-rose-500 ml-0.5">*</span>}
+                      </Label>
+                      <Select
+                        value={value ?? '__none__'}
+                        onValueChange={(v) =>
+                          setMapping({
+                            ...mapping,
+                            [field.key]: v === '__none__' ? null : v,
+                          })
+                        }
+                      >
+                        <SelectTrigger id={`map-${field.key}`} className="h-8 text-xs">
+                          <SelectValue placeholder="— Aucune —" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Aucune —</SelectItem>
+                          {detectedColumns.map((col) => (
+                            <SelectItem key={col} value={col} className="text-xs">
+                              {col}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-slate-400">{field.hint}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {error && (
             <Alert variant="destructive">
@@ -182,13 +325,8 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
               >
                 {result.inserted > 0 ? 'Import terminé' : 'Aucune nouvelle vente détectée'}
               </AlertTitle>
-              <AlertDescription className="text-sm space-y-1">
-                {result.detail && <p>{result.detail}</p>}
-                {result.errors && result.errors.length > 0 && (
-                  <p className="text-xs text-rose-600">
-                    Erreurs : {result.errors.join(' | ')}
-                  </p>
-                )}
+              <AlertDescription className="text-sm">
+                {result.detail}
               </AlertDescription>
             </Alert>
           )}
@@ -199,40 +337,27 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
               Format attendu
             </summary>
             <div className="mt-2 space-y-1 pl-2">
-              <p>• Feuille nommée <strong>VENTES</strong> (ou toute feuille si non trouvée)</p>
-              <p>• Colonnes attendues (ordre indifférent) :</p>
-              <ul className="list-disc list-inside pl-2 space-y-0.5">
-                <li><strong>DATE</strong> — date de la vente (obligatoire)</li>
-                <li><strong>N° BL</strong> — numéro unique du bon de livraison (obligatoire)</li>
-                <li><strong>ENSEIGNE</strong> — nom du client</li>
-                <li><strong>TYPE</strong> — Direct ou Centrale</li>
-                <li><strong>AGENT</strong> — nom du commercial</li>
-                <li><strong>MT HT</strong>, <strong>MT TTC</strong> — montants</li>
-                <li><strong>TAUX</strong>, <strong>COMMISSION</strong></li>
-                <li><strong>MOIS</strong>, <strong>ANNÉE</strong></li>
-              </ul>
-              <p>• Les en-têtes sont détectés automatiquement (ligne 1 à 5)</p>
-              <p>• Les ventes déjà en base (N° BL identique) sont ignorées</p>
+              <p>• Une feuille (n'importe quel nom) avec des en-têtes</p>
+              <p>• Colonnes obligatoires : <strong>DATE</strong>, <strong>ENSEIGNE/CLIENT</strong>, <strong>HT ou TTC</strong></p>
+              <p>• Colonnes optionnelles : TYPE (Direct/Centrale), AGENT, TAUX, COMMISSION, N° BL, MOIS, ANNÉE</p>
+              <p>• Sans N° BL : dédoublonnage par (date + enseigne + type + montant HT)</p>
+              <p>• En-têtes détectés automatiquement (ligne 1 à 5)</p>
             </div>
           </details>
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => handleClose(false)}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={() => handleClose(false)} disabled={loading}>
             Fermer
           </Button>
           <Button
             onClick={handleImport}
-            disabled={!file || loading}
+            disabled={!file || loading || !mapping.date || !mapping.enseigne || (!mapping.ht && !mapping.ttc)}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Import...
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Traitement...
               </>
             ) : (
               <>

@@ -13,8 +13,10 @@ datasource db {
 // Vente individuelle - ligne d'un bon de livraison (BL)
 model Sale {
   id           String   @id @default(cuid())
-  // N° BL unique - sert de clé d'import pour éviter les doublons
-  blNumber     String
+  // N° BL optionnel (nouvel ERP peut ne pas l'avoir)
+  blNumber     String?
+  // Clé de dédoublonnage générée : = blNumber si présent, sinon hash de (date+enseigne+type+amountHT)
+  deduplicationKey String @unique
   date         DateTime
   enseigne     String
   type         String   // "Direct" ou "Centrale"
@@ -27,8 +29,6 @@ model Sale {
   year         Int     // ex 2025
   createdAt    DateTime @default(now())
 
-  // Un N° BL ne devrait apparaître qu'une fois par agent/enseigne
-  @@unique([blNumber])
   @@index([year, month])
   @@index([agent])
   @@index([enseigne])

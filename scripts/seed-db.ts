@@ -42,41 +42,47 @@ async function main() {
   console.log('\n--- Import des enseignes ---');
   let enseigneCount = 0;
   for (const e of seed.enseignes) {
-    await db.enseigne.upsert({
-      where: { name: e.name },
-      update: { type: e.type, agent: e.agent },
-      create: { name: e.name, type: e.type, agent: e.agent },
-    });
-    enseigneCount++;
+    try {
+      await db.enseigne.upsert({
+        where: { name: e.name },
+        update: { type: e.type, agent: e.agent },
+        create: { name: e.name, type: e.type, agent: e.agent },
+      });
+      enseigneCount++;
+    } catch (e2) {
+      // Doublon : ignore
+    }
   }
   console.log(`  ${enseigneCount} enseignes importées`);
 
-  // 2. Upsert des ventes (détection de doublons par N° BL)
+  // 2. Upsert des ventes (détection de doublons par deduplicationKey)
   console.log('\n--- Import des ventes ---');
   let ventesCreated = 0;
   let ventesSkipped = 0;
   for (const v of seed.ventes) {
-    const existing = await db.sale.findUnique({ where: { blNumber: v.blNumber } });
-    if (existing) {
+    // deduplicationKey = blNumber si présent, sinon hash
+    const deduplicationKey = v.blNumber || `${v.date}|${v.enseigne}|${v.type}|${v.amountHT}`;
+    try {
+      await db.sale.create({
+        data: {
+          blNumber: v.blNumber || null,
+          deduplicationKey,
+          date: new Date(v.date),
+          enseigne: v.enseigne,
+          type: v.type,
+          agent: v.agent,
+          amountHT: v.amountHT,
+          amountTTC: v.amountTTC,
+          rate: v.rate,
+          commission: v.commission,
+          month: v.month,
+          year: v.year,
+        },
+      });
+      ventesCreated++;
+    } catch (e) {
       ventesSkipped++;
-      continue;
     }
-    await db.sale.create({
-      data: {
-        blNumber: v.blNumber,
-        date: new Date(v.date),
-        enseigne: v.enseigne,
-        type: v.type,
-        agent: v.agent,
-        amountHT: v.amountHT,
-        amountTTC: v.amountTTC,
-        rate: v.rate,
-        commission: v.commission,
-        month: v.month,
-        year: v.year,
-      },
-    });
-    ventesCreated++;
   }
   console.log(`  ${ventesCreated} ventes créées, ${ventesSkipped} déjà existantes`);
 

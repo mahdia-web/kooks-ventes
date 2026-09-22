@@ -120,7 +120,7 @@ export default function Home() {
     if (!data) return;
     setGeneratingPdf(true);
     try {
-      generateBilanPdf({ data, agentFilter });
+      await generateBilanPdf({ data, agentFilter });
       toast.success('Bilan PDF généré', {
         description: agentFilter ? `Rapport de ${agentFilter}` : 'Bilan global',
       });
