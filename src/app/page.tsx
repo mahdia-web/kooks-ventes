@@ -1,345 +1,312 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { FileSpreadsheet, BarChart3, RefreshCw } from 'lucide-react';
-import { FileUpload } from '@/components/file-upload';
-import { ColumnMappingCard } from '@/components/column-mapping';
-import { KpiCards } from '@/components/kpi-cards';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  SalesByAgentChart,
-  SalesByCategoryChart,
-  SalesOverTimeChart,
-  TopProductsChart,
-} from '@/components/charts';
-import { SalesTable } from '@/components/sales-table';
-import { AgentRanking } from '@/components/agent-ranking';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  BarChart3,
+  LayoutDashboard,
+  Building2,
+  HeartHandshake,
+  Table2,
+  RefreshCw,
+  Calendar,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
-import { Toaster } from '@/components/ui/toaster';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Toaster, toast } from 'sonner';
+import { KpiGrid } from '@/components/kpi-grid';
+import { ChartsGrid, TopEnseignesCard } from '@/components/charts-followup';
+import { AgentTable, CustomerFollowupTable, EnseigneTable } from '@/components/followup-tables';
+import { SalesDetailTable } from '@/components/sales-detail-table';
+import { ImportDialog } from '@/components/import-dialog';
+import { PeriodSelector } from '@/components/period-selector';
 import {
-  analyzeSales,
-  buildSalesRows,
-  guessMapping,
-  parseExcelFile,
-} from '@/lib/analyzer';
+  formatEuro,
+  formatNumber,
+  monthLabel,
+  shortMonth,
+} from '@/lib/dashboard-service';
 import type {
-  AnalysisResult,
-  ColumnMapping,
-  ParsedSheet,
-} from '@/lib/types';
-import { EMPTY_MAPPING } from '@/lib/types';
+  DashboardData,
+  SaleRow,
+} from '@/lib/dashboard-types';
 
 export default function Home() {
-  const [file, setFile] = useState<File | null>(null);
-  const [sheets, setSheets] = useState<ParsedSheet[]>([]);
-  const [activeSheetIdx, setActiveSheetIdx] = useState(0);
-  const [mapping, setMapping] = useState<ColumnMapping>(EMPTY_MAPPING);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [salesRows, setSalesRows] = useState<SaleRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [year, setYear] = useState<number | null>(null);
+  const [month, setMonth] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
-  const handleFileSelected = useCallback(async (selectedFile: File) => {
-    setFile(selectedFile);
+  // Chargement initial : récupère la période courante
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/period');
+        const json = await res.json();
+        if (json.ok) {
+          setYear(json.data.year);
+          setMonth(json.data.month);
+        } else {
+          // Fallback à la date du jour
+          const now = new Date();
+          setYear(now.getFullYear());
+          setMonth(now.getMonth() + 1);
+        }
+      } catch (e) {
+        const now = new Date();
+        setYear(now.getFullYear());
+        setMonth(now.getMonth() + 1);
+      }
+    })();
+  }, []);
+
+  // Chargement des données du dashboard quand la période change
+  const loadDashboard = useCallback(async (y: number, m: number) => {
     setLoading(true);
     setError(null);
-    setAnalysis(null);
-    setSheets([]);
-    setMapping(EMPTY_MAPPING);
     try {
-      const parsed = await parseExcelFile(selectedFile);
-      if (parsed.length === 0 || parsed[0].rows.length === 0) {
-        throw new Error("Le fichier ne contient aucune donnée exploitable.");
-      }
-      setSheets(parsed);
-      setActiveSheetIdx(0);
-      const firstSheet = parsed[0];
-      const guessed = guessMapping(firstSheet.columns);
-      setMapping(guessed);
-      // Lancer automatiquement l'analyse sur la première feuille
-      const rows = buildSalesRows(firstSheet.rows, guessed);
-      const result = analyzeSales(rows);
-      setAnalysis(result);
-      toast({
-        title: 'Fichier chargé avec succès',
-        description: `${firstSheet.rows.length} lignes détectées dans la feuille "${firstSheet.sheetName}".`,
-      });
+      const res = await fetch(`/api/dashboard?year=${y}&month=${m}`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error);
+      setData(json.data);
     } catch (e) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : 'Erreur inconnue';
-      setError(`Impossible de lire le fichier : ${msg}`);
+      setError(e instanceof Error ? e.message : 'Erreur');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const runAnalysis = useCallback(() => {
-    if (!sheets[activeSheetIdx]) return;
-    const sheet = sheets[activeSheetIdx];
-    if (!mapping.agent || !mapping.amount) {
-      setError("Veuillez sélectionner au minimum une colonne 'Agent' et une colonne 'Montant'.");
-      return;
+  useEffect(() => {
+    if (year !== null && month !== null) {
+      loadDashboard(year, month);
     }
-    setError(null);
+  }, [year, month, loadDashboard]);
+
+  // Charge les ventes détaillées (au changement d'onglet ou par défaut)
+  const loadSales = useCallback(async () => {
+    if (year === null || month === null) return;
+    setLoadingSales(true);
     try {
-      const rows = buildSalesRows(sheet.rows, mapping);
-      const result = analyzeSales(rows);
-      setAnalysis(result);
-      toast({
-        title: 'Analyse terminée',
-        description: `${rows.length} ventes analysées sur ${result.agents.length} agents.`,
-      });
+      const res = await fetch(`/api/sales?year=${year}&month=${month}`);
+      const json = await res.json();
+      if (json.ok) setSalesRows(json.data);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Erreur inconnue';
-      setError(`Erreur lors de l'analyse : ${msg}`);
+      console.error(e);
+    } finally {
+      setLoadingSales(false);
     }
-  }, [sheets, activeSheetIdx, mapping]);
+  }, [year, month]);
 
-  const handleAutoDetect = useCallback(() => {
-    if (!sheets[activeSheetIdx]) return;
-    const guessed = guessMapping(sheets[activeSheetIdx].columns);
-    setMapping(guessed);
-    toast({
-      title: 'Détection automatique',
-      description: 'Les colonnes ont été réaffectées automatiquement.',
-    });
-  }, [sheets, activeSheetIdx]);
+  const handlePeriodChange = (y: number, m: number) => {
+    setYear(y);
+    setMonth(m);
+  };
 
-  const resetAll = useCallback(() => {
-    setFile(null);
-    setSheets([]);
-    setMapping(EMPTY_MAPPING);
-    setAnalysis(null);
-    setError(null);
-    setActiveSheetIdx(0);
-  }, []);
+  const handleImported = () => {
+    if (year && month) loadDashboard(year, month);
+    // Recharge aussi les ventes
+    setTimeout(loadSales, 100);
+    toast.success('Données rafraîchies après import');
+  };
 
-  const activeSheet = sheets[activeSheetIdx];
+  const currentPeriodLabel = year && month ? `${monthLabel(month)} ${year}` : 'Chargement...';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <BarChart3 className="h-5 w-5" />
+      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white shrink-0">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+                  Suivi Ventes Agents Commerciaux
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+                  CA total :{' '}
+                  <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                    {data ? formatEuro(data.global.totalCaHT) : '—'}
+                  </span>{' '}
+                  • {data ? data.global.totalNbBl : 0} BL au total •{' '}
+                  {data ? data.global.totalEnseignes : 0} enseignes
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-                Analyseur de Ventes — Agents Commerciaux
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-                Importez votre fichier Excel et obtenez une analyse complète
-              </p>
-            </div>
-          </div>
-          {file && (
-            <Button variant="ghost" size="sm" onClick={resetAll} className="text-slate-600">
-              <RefreshCw className="h-4 w-4 mr-1" /> Recommencer
-            </Button>
-          )}
-        </div>
-      </header>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        {/* Étape 1 : Upload */}
-        <FileUpload onFileSelected={handleFileSelected} fileName={file?.name} disabled={loading} />
-
-        {loading && (
-          <Card className="border-emerald-200 dark:border-emerald-900">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
-              <p className="text-sm text-slate-700 dark:text-slate-300">
-                Lecture du fichier en cours...
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Étape 2 : Mapping (si feuille chargée) */}
-        {activeSheet && (
-          <div className="space-y-4">
-            {sheets.length > 1 && (
-              <Tabs
-                value={String(activeSheetIdx)}
-                onValueChange={(v) => {
-                  const idx = parseInt(v, 10);
-                  setActiveSheetIdx(idx);
-                  const guessed = guessMapping(sheets[idx].columns);
-                  setMapping(guessed);
-                }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Feuilles détectées :
-                  </span>
-                </div>
-                <TabsList className="flex flex-wrap h-auto bg-slate-100 dark:bg-slate-900">
-                  {sheets.map((s, idx) => (
-                    <TabsTrigger
-                      key={s.sheetName}
-                      value={String(idx)}
-                      className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-                    >
-                      {s.sheetName} ({s.rows.length})
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {sheets.map((s, idx) => (
-                  <TabsContent key={idx} value={String(idx)} className="hidden" />
-                ))}
-              </Tabs>
-            )}
-
-            <ColumnMappingCard
-              columns={activeSheet.columns}
-              mapping={mapping}
-              onMappingChange={setMapping}
-              onAutoDetect={handleAutoDetect}
-            />
-
-            <div className="flex justify-end">
+            <div className="flex items-center gap-2 flex-wrap">
+              {data && (
+                <PeriodSelector
+                  periods={data.availablePeriods}
+                  currentYear={year!}
+                  currentMonth={month!}
+                  onPeriodChange={handlePeriodChange}
+                />
+              )}
+              <ImportDialog onImported={handleImported} />
               <Button
-                onClick={runAnalysis}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={!mapping.agent || !mapping.amount}
+                variant="outline"
+                size="icon"
+                onClick={() => year && month && loadDashboard(year, month)}
+                title="Rafraîchir"
               >
-                <BarChart3 className="h-4 w-4 mr-2" /> Lancer l'analyse
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex-1">
+        {/* Bandeau période */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <Calendar className="h-4 w-4 text-emerald-600" />
+            <span>
+              Période analysée : <strong className="text-slate-900 dark:text-white">{currentPeriodLabel}</strong>
+              {data && data.kpis.previous && (
+                <span className="ml-2">
+                  • vs {data.kpis.previous.label} :{' '}
+                  <span className={
+                    data.kpis.evolution.caHT >= 0
+                      ? 'text-emerald-700 dark:text-emerald-400 font-medium'
+                      : 'text-rose-700 dark:text-rose-400 font-medium'
+                  }>
+                    {data.kpis.evolution.caHT >= 0 ? '+' : ''}
+                    {formatEuro(data.kpis.evolution.caHT)}
+                  </span>
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        {error && (
+          <Card className="border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/20 mb-6">
+            <CardContent className="p-4">
+              <p className="text-sm text-rose-700 dark:text-rose-400">
+                Erreur : {error}
+              </p>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Étape 3 : Résultats */}
-        {analysis && (
-          <div className="space-y-6 animate-in fade-in-50 duration-500">
-            <div className="border-b border-slate-200 dark:border-slate-800 pb-2">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                Tableau de bord d'analyse
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Synthèse de l'activité commerciale sur {analysis.totalSalesCount} ventes
-              </p>
-            </div>
-
-            <KpiCards result={analysis} />
-
-            <Tabs defaultValue="charts" className="space-y-4">
-              <TabsList className="bg-slate-100 dark:bg-slate-900">
-                <TabsTrigger
-                  value="charts"
-                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-                >
-                  Graphiques
-                </TabsTrigger>
-                <TabsTrigger
-                  value="ranking"
-                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-                >
-                  Classement
-                </TabsTrigger>
-                <TabsTrigger
-                  value="data"
-                  className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-                >
-                  Données détaillées
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="charts" className="space-y-4">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <SalesByAgentChart result={analysis} />
-                  <SalesByCategoryChart result={analysis} />
-                </div>
-                <SalesOverTimeChart result={analysis} />
-                <TopProductsChart result={analysis} />
-              </TabsContent>
-
-              <TabsContent value="ranking" className="space-y-4">
-                <AgentRanking agents={analysis.agents} />
-              </TabsContent>
-
-              <TabsContent value="data" className="space-y-4">
-                <SalesTable rows={analysis.rows} />
-              </TabsContent>
-            </Tabs>
+        {/* KPIs */}
+        {loading || !data ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="mb-6">
+            <KpiGrid kpis={data.kpis} />
           </div>
         )}
 
-        {!file && !loading && (
-          <Card className="border-dashed border-slate-300 dark:border-slate-700">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-                  Comment ça marche ?
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold dark:bg-emerald-900/30 dark:text-emerald-400">
-                        1
-                      </span>
-                      <span className="font-medium text-sm">Importez</span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Téléversez un fichier Excel (.xlsx, .xls, .csv, .ods) contenant vos ventes par agent.
-                    </p>
-                  </div>
-                  <div className="space-y-1 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold dark:bg-emerald-900/30 dark:text-emerald-400">
-                        2
-                      </span>
-                      <span className="font-medium text-sm">Affectez les colonnes</span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      L'outil détecte automatiquement les colonnes Agent, Date, Produit, Montant, etc. Ajustez si besoin.
-                    </p>
-                  </div>
-                  <div className="space-y-1 p-3 rounded-lg bg-slate-50 dark:bg-slate-900">
-                    <div className="flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold dark:bg-emerald-900/30 dark:text-emerald-400">
-                        3
-                      </span>
-                      <span className="font-medium text-sm">Analysez</span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">
-                      Visualisez les KPI, graphiques, classements et exportez les données en CSV.
-                    </p>
-                  </div>
-                </div>
-                <Alert>
-                  <AlertTitle className="text-sm">Conseil</AlertTitle>
-                  <AlertDescription className="text-xs">
-                    Pour de meilleurs résultats, votre fichier devrait contenir au minimum une colonne pour
-                    le nom de l'agent commercial et une colonne pour le montant des ventes. Les colonnes
-                    Date, Produit, Catégorie et Quantité enrichiront l'analyse.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Tabs principaux */}
+        {!loading && data && (
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList className="bg-slate-100 dark:bg-slate-900 flex flex-wrap h-auto">
+              <TabsTrigger
+                value="overview"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
+              >
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Vue d'ensemble
+              </TabsTrigger>
+              <TabsTrigger
+                value="agents"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Agents
+              </TabsTrigger>
+              <TabsTrigger
+                value="enseignes"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                Enseignes
+              </TabsTrigger>
+              <TabsTrigger
+                value="clients"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
+              >
+                <HeartHandshake className="h-4 w-4 mr-2" />
+                Suivi clients
+              </TabsTrigger>
+              <TabsTrigger
+                value="data"
+                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
+                onClick={loadSales}
+              >
+                <Table2 className="h-4 w-4 mr-2" />
+                Détail ventes
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <ChartsGrid
+                kpis={data.kpis}
+                monthlySeries={data.monthlySeries}
+                agents={data.agents}
+                enseignes={data.enseignes}
+              />
+              <TopEnseignesCard enseignes={data.enseignes} />
+            </TabsContent>
+
+            <TabsContent value="agents" className="space-y-4">
+              <AgentTable agents={data.agents} />
+              <Card className="border-slate-200 dark:border-slate-800">
+                <CardContent className="p-4">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Performance des commerciaux sur la période sélectionnée. Les KPIs incluent le CA HT, la commission, le nombre de BL par type (Direct/Centrale), le panier moyen (AOV), le nombre d'enseignes actives et la part de marché.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="enseignes" className="space-y-4">
+              <EnseigneTable enseignes={data.enseignes} />
+            </TabsContent>
+
+            <TabsContent value="clients" className="space-y-4">
+              <CustomerFollowupTable customers={data.customerFollowup} />
+              <Card className="border-slate-200 dark:border-slate-800">
+                <CardContent className="p-4">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Suivi de fidélisation calculé sur toute la période disponible. Statut <strong>OK</strong> = commande dans le mois courant ou précédent • <strong>À relancer</strong> = 2 à 3 mois sans commande • <strong>Inactif</strong> = plus de 3 mois sans commande. La récurrence indique le pourcentage de mois avec commande depuis la 1ère commande.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="data" className="space-y-4">
+              {loadingSales ? (
+                <Skeleton className="h-96 rounded-xl" />
+              ) : (
+                <SalesDetailTable rows={salesRows} />
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </main>
 
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mt-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 text-center text-xs text-slate-500 dark:text-slate-400">
-          Analyse 100% locale — vos données ne quittent jamais votre navigateur.
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
+          Données persistées en SQLite • {data ? `${formatNumber(data.global.totalNbBl)} ventes historiques` : 'Chargement...'} •
+          {' '}Période : {data ? `${data.global.dateRange.start} → ${data.global.dateRange.end}` : '—'}
         </div>
       </footer>
 
-      <Toaster />
+      <Toaster richColors position="top-right" />
     </div>
   );
 }

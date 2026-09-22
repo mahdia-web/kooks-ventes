@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,23 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Analyseur de Ventes — Agents Commerciaux",
-  description: "Importez un fichier Excel de ventes et obtenez une analyse complète : KPI, graphiques, classements et export CSV.",
-  keywords: ["ventes", "analyse", "agents commerciaux", "Excel", "dashboard"],
-  authors: [{ name: "Analyseur de Ventes" }],
+  title: "Suivi Ventes Agents Commerciaux",
+  description: "Tableau de bord de suivi mensuel des ventes et commissions des agents commerciaux.",
+  keywords: ["ventes", "commissions", "agents commerciaux", "suivi mensuel", "dashboard"],
+  authors: [{ name: "Suivi Ventes" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
-  openGraph: {
-    title: "Analyseur de Ventes",
-    description: "Analysez vos ventes par agent commercial",
-    siteName: "Analyseur de Ventes",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Analyseur de Ventes",
-    description: "Analysez vos ventes par agent commercial",
   },
 };
 
@@ -40,12 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
-        <Toaster />
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );
