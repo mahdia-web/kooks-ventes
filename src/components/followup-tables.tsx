@@ -10,9 +10,11 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatEuro, formatNumber, formatPercent } from '@/lib/dashboard-service';
 import type { AgentStat, CustomerFollowup, EnseigneStat } from '@/lib/dashboard-types';
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Trophy, Medal, Award, Download, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 
 const RANK_ICONS = [
   <Trophy key="0" className="h-4 w-4 text-amber-500" />,
@@ -177,20 +179,103 @@ interface CustomerFollowupTableProps {
   customers: CustomerFollowup[];
 }
 
+function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+  const lines = [
+    headers.join(','),
+    ...rows.map((r) =>
+      r
+        .map((cell) => {
+          const s = String(cell);
+          if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+            return `"${s.replace(/"/g, '""')}"`;
+          }
+          return s;
+        })
+        .join(',')
+    ),
+  ];
+  const csv = '\uFEFF' + lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function CustomerFollowupTable({ customers }: CustomerFollowupTableProps) {
-  const toRelance = customers.filter((c) => c.status === 'A RELANCER').length;
-  const inactive = customers.filter((c) => c.status === 'INACTIF').length;
-  const ok = customers.filter((c) => c.status === 'OK').length;
+  const toRelance = customers.filter((c) => c.status === 'A RELANCER');
+  const inactive = customers.filter((c) => c.status === 'INACTIF');
+  const ok = customers.filter((c) => c.status === 'OK');
+
+  const exportRelance = () => {
+    const rows = toRelance.map((c) => [
+      c.enseigne,
+      c.type,
+      c.agent,
+      c.nbBlTotal,
+      c.caTotal.toFixed(2),
+      c.lastOrder ?? '',
+      c.monthsSinceLastOrder === 999 ? '' : c.monthsSinceLastOrder,
+      (c.recurrence * 100).toFixed(1) + '%',
+    ]);
+    downloadCsv(
+      'clients-a-relancer.csv',
+      ['Enseigne', 'Type', 'Agent', 'NB BL Total', 'CA Total', 'Dern. cmd', 'Mois écoulés', 'Récurrence'],
+      rows
+    );
+    toast.success(`${toRelance.length} clients à relancer exportés`, {
+      description: 'Le fichier CSV a été téléchargé.',
+    });
+  };
+
+  const exportAll = () => {
+    const rows = customers.map((c) => [
+      c.enseigne,
+      c.type,
+      c.agent,
+      c.nbBlTotal,
+      c.caTotal.toFixed(2),
+      c.lastOrder ?? '',
+      c.monthsSinceLastOrder === 999 ? '' : c.monthsSinceLastOrder,
+      (c.recurrence * 100).toFixed(1) + '%',
+      c.status,
+    ]);
+    downloadCsv(
+      'suivi-clients.csv',
+      ['Enseigne', 'Type', 'Agent', 'NB BL Total', 'CA Total', 'Dern. cmd', 'Mois écoulés', 'Récurrence', 'Statut'],
+      rows
+    );
+    toast.success(`${customers.length} clients exportés`, {
+      description: 'Le fichier CSV a été téléchargé.',
+    });
+  };
 
   return (
     <Card className="border-slate-200 dark:border-slate-800">
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <CardTitle>Suivi fidélisation clients</CardTitle>
             <CardDescription>
-              {customers.length} enseignes au total • {ok} actives • {toRelance} à relancer • {inactive} inactives
+              {customers.length} enseignes au total • {ok.length} actives • {toRelance.length} à relancer • {inactive.length} inactives
             </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportRelance}
+              disabled={toRelance.length === 0}
+              className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Exporter à relancer ({toRelance.length})
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportAll}>
+              <Download className="h-4 w-4 mr-2" /> Tout exporter
+            </Button>
           </div>
         </div>
       </CardHeader>

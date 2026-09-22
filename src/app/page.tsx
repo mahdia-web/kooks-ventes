@@ -9,6 +9,7 @@ import {
   Table2,
   RefreshCw,
   Calendar,
+  FileDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,27 +17,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster, toast } from 'sonner';
 import { KpiGrid } from '@/components/kpi-grid';
-import { ChartsGrid, TopEnseignesCard } from '@/components/charts-followup';
+import { ChartsGrid } from '@/components/charts-followup';
+import { TopEnseignesCard } from '@/components/top-enseignes';
 import { AgentTable, CustomerFollowupTable, EnseigneTable } from '@/components/followup-tables';
 import { SalesDetailTable } from '@/components/sales-detail-table';
 import { ImportDialog } from '@/components/import-dialog';
 import { PeriodSelector } from '@/components/period-selector';
-import {
-  formatEuro,
-  formatNumber,
-  monthLabel,
-  shortMonth,
-} from '@/lib/dashboard-service';
-import type {
-  DashboardData,
-  SaleRow,
-} from '@/lib/dashboard-types';
+import { generateBilanPdf } from '@/components/bilan-pdf';
+import { formatEuro, formatNumber, monthLabel } from '@/lib/dashboard-service';
+import type { DashboardData, SaleRow } from '@/lib/dashboard-types';
 
 export default function Home() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [salesRows, setSalesRows] = useState<SaleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSales, setLoadingSales] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [year, setYear] = useState<number | null>(null);
   const [month, setMonth] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,12 +47,11 @@ export default function Home() {
           setYear(json.data.year);
           setMonth(json.data.month);
         } else {
-          // Fallback à la date du jour
           const now = new Date();
           setYear(now.getFullYear());
           setMonth(now.getMonth() + 1);
         }
-      } catch (e) {
+      } catch {
         const now = new Date();
         setYear(now.getFullYear());
         setMonth(now.getMonth() + 1);
@@ -64,7 +59,6 @@ export default function Home() {
     })();
   }, []);
 
-  // Chargement des données du dashboard quand la période change
   const loadDashboard = useCallback(async (y: number, m: number) => {
     setLoading(true);
     setError(null);
@@ -86,7 +80,6 @@ export default function Home() {
     }
   }, [year, month, loadDashboard]);
 
-  // Charge les ventes détaillées (au changement d'onglet ou par défaut)
   const loadSales = useCallback(async () => {
     if (year === null || month === null) return;
     setLoadingSales(true);
@@ -106,18 +99,43 @@ export default function Home() {
     setMonth(m);
   };
 
-  const handleImported = () => {
-    if (year && month) loadDashboard(year, month);
-    // Recharge aussi les ventes
-    setTimeout(loadSales, 100);
+  const handleImported = async () => {
+    // Re-fetch la période courante (mise à jour par l'import)
+    try {
+      const res = await fetch('/api/period');
+      const json = await res.json();
+      if (json.ok) {
+        setYear(json.data.year);
+        setMonth(json.data.month);
+      }
+    } catch {
+      // Fallback : recharge avec la période actuelle
+      if (year && month) loadDashboard(year, month);
+    }
+    setTimeout(loadSales, 200);
     toast.success('Données rafraîchies après import');
+  };
+
+  const handleGeneratePdf = async (agentFilter: string | null) => {
+    if (!data) return;
+    setGeneratingPdf(true);
+    try {
+      generateBilanPdf({ data, agentFilter });
+      toast.success('Bilan PDF généré', {
+        description: agentFilter ? `Rapport de ${agentFilter}` : 'Bilan global',
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Erreur';
+      toast.error('Erreur génération PDF', { description: msg });
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const currentPeriodLabel = year && month ? `${monthLabel(month)} ${year}` : 'Chargement...';
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      {/* Header */}
       <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -149,6 +167,17 @@ export default function Home() {
                   onPeriodChange={handlePeriodChange}
                 />
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleGeneratePdf(null)}
+                disabled={!data || generatingPdf}
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                title="Générer un bilan PDF global"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Bilan PDF
+              </Button>
               <ImportDialog onImported={handleImported} />
               <Button
                 variant="outline"
@@ -164,20 +193,22 @@ export default function Home() {
       </header>
 
       <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex-1">
-        {/* Bandeau période */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <Calendar className="h-4 w-4 text-emerald-600" />
             <span>
-              Période analysée : <strong className="text-slate-900 dark:text-white">{currentPeriodLabel}</strong>
+              Période analysée :{' '}
+              <strong className="text-slate-900 dark:text-white">{currentPeriodLabel}</strong>
               {data && data.kpis.previous && (
                 <span className="ml-2">
                   • vs {data.kpis.previous.label} :{' '}
-                  <span className={
-                    data.kpis.evolution.caHT >= 0
-                      ? 'text-emerald-700 dark:text-emerald-400 font-medium'
-                      : 'text-rose-700 dark:text-rose-400 font-medium'
-                  }>
+                  <span
+                    className={
+                      data.kpis.evolution.caHT >= 0
+                        ? 'text-emerald-700 dark:text-emerald-400 font-medium'
+                        : 'text-rose-700 dark:text-rose-400 font-medium'
+                    }
+                  >
                     {data.kpis.evolution.caHT >= 0 ? '+' : ''}
                     {formatEuro(data.kpis.evolution.caHT)}
                   </span>
@@ -190,14 +221,11 @@ export default function Home() {
         {error && (
           <Card className="border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/20 mb-6">
             <CardContent className="p-4">
-              <p className="text-sm text-rose-700 dark:text-rose-400">
-                Erreur : {error}
-              </p>
+              <p className="text-sm text-rose-700 dark:text-rose-400">Erreur : {error}</p>
             </CardContent>
           </Card>
         )}
 
-        {/* KPIs */}
         {loading || !data ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -210,7 +238,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Tabs principaux */}
         {!loading && data && (
           <Tabs defaultValue="overview" className="space-y-4">
             <TabsList className="bg-slate-100 dark:bg-slate-900 flex flex-wrap h-auto">
@@ -263,11 +290,26 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="agents" className="space-y-4">
+              <div className="flex justify-end gap-2 flex-wrap">
+                {data.agents.map((a) => (
+                  <Button
+                    key={a.agent}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGeneratePdf(a.agent)}
+                    disabled={generatingPdf}
+                    className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400"
+                  >
+                    <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                    Bilan {a.agent}
+                  </Button>
+                ))}
+              </div>
               <AgentTable agents={data.agents} />
               <Card className="border-slate-200 dark:border-slate-800">
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Performance des commerciaux sur la période sélectionnée. Les KPIs incluent le CA HT, la commission, le nombre de BL par type (Direct/Centrale), le panier moyen (AOV), le nombre d'enseignes actives et la part de marché.
+                    Performance des commerciaux sur la période sélectionnée. Cliquez sur « Bilan &lt;agent&gt; » pour générer un rapport PDF individuel à lui envoyer.
                   </p>
                 </CardContent>
               </Card>
@@ -301,7 +343,8 @@ export default function Home() {
 
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mt-auto">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
-          Données persistées en SQLite • {data ? `${formatNumber(data.global.totalNbBl)} ventes historiques` : 'Chargement...'} •
+          Données persistées en SQLite •{' '}
+          {data ? `${formatNumber(data.global.totalNbBl)} ventes historiques` : 'Chargement...'} •
           {' '}Période : {data ? `${data.global.dateRange.start} → ${data.global.dateRange.end}` : '—'}
         </div>
       </footer>

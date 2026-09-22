@@ -1,67 +1,154 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
-import { getCurrentPeriod, setCurrentPeriod } from '@/lib/dashboard-service';
+import { setCurrentPeriod } from '@/lib/dashboard-service';
 import type { ImportResult } from '@/lib/dashboard-types';
 
 // POST /api/import
 // Body: multipart/form-data avec un champ "file" contenant le fichier Excel
-// Le fichier est le SUIVI_AGENTS_FINAL_V2.xlsx mis à jour
+// Le fichier est le SUIVI_AGENTS_FINAL_V2.xlsx mis à jour (ou un fichier mensuel plus simple)
 // La fonction insère uniquement les nouvelles ventes (basé sur le N° BL unique)
 export async function POST(req: NextRequest) {
+  console.log('=== POST /api/import ===');
   try {
     const formData = await req.formData();
     const file = formData.get('file');
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { ok: false, error: 'Fichier manquant' },
+        { ok: false, error: 'Aucun fichier reçu.' },
         { status: 400 }
       );
     }
 
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    console.log(`Fichier reçu : ${file.name} (${file.size} octets, type: ${file.type})`);
 
-    // Vérifie que la feuille VENTES existe
-    if (!workbook.SheetNames.includes('VENTES')) {
+    let buffer: ArrayBuffer;
+    try {
+      buffer = await file.arrayBuffer();
+    } catch (e) {
       return NextResponse.json(
-        { ok: false, error: `Feuille VENTES non trouvée. Feuilles disponibles : ${workbook.SheetNames.join(', ')}` },
+        { ok: false, error: 'Impossible de lire le fichier. Vérifiez que le fichier n\'est pas corrompu.' },
         { status: 400 }
       );
     }
 
-    const sheet = workbook.Sheets['VENTES'];
+    let workbook: XLSX.WorkBook;
+    try {
+      workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return NextResponse.json(
+        { ok: false, error: `Format Excel non reconnu. Détails : ${msg}. Formats supportés : .xlsx, .xls, .ods, .csv` },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Feuilles détectées : ${workbook.SheetNames.join(', ')}`);
+
+    // Cherche la feuille VENTES, sinon prend la première qui ressemble à des ventes
+    let sheetName: string | null = null;
+    if (workbook.SheetNames.includes('VENTES')) {
+      sheetName = 'VENTES';
+    } else {
+      // Cherche une feuille dont le nom contient VENTES ou VENTE
+      sheetName = workbook.SheetNames.find((n) =>
+        /vente/i.test(n)
+      ) ?? null;
+      // Sinon prend la première feuille
+      if (!sheetName) sheetName = workbook.SheetNames[0] ?? null;
+    }
+
+    if (!sheetName) {
+      return NextResponse.json(
+        { ok: false, error: `Aucune feuille trouvée. Feuilles disponibles : ${workbook.SheetNames.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Feuille utilisée : ${sheetName}`);
+    const sheet = workbook.Sheets[sheetName];
+
+    // Détecte où sont les en-têtes en scannant les 5 premières lignes
+    let headerRowIdx = 0;
+    let headers: string[] = [];
+    for (let tryRow = 0; tryRow < 5; tryRow++) {
+      // sheet_to_json avec range:tryRow prend cette ligne comme en-têtes
+      try {
+        const testRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+          raw: true,
+          defval: null,
+          range: tryRow,
+        });
+        if (testRows.length === 0) continue;
+        const testHeaders = Object.keys(testRows[0]).map((h) => h.toLowerCase());
+        // Cherche DATE + (BL ou ENSEIGNE)
+        const hasDate = testHeaders.some((h) => h.includes('date'));
+        const hasBlOrEnseigne = testHeaders.some((h) =>
+          h.includes('bl') || h.includes('enseigne') || h.includes('n°')
+        );
+        if (hasDate && hasBlOrEnseigne) {
+          headerRowIdx = tryRow;
+          headers = Object.keys(testRows[0]);
+          console.log(`En-têtes détectés à la ligne ${tryRow + 1} : ${headers.join(', ')}`);
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (headers.length === 0) {
+      // Tente quand même avec range 0 (première ligne)
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+        raw: true,
+        defval: null,
+      });
+      if (rows.length === 0) {
+        return NextResponse.json(
+          { ok: false, error: `La feuille "${sheetName}" ne contient aucune donnée.` },
+          { status: 400 }
+        );
+      }
+      headers = Object.keys(rows[0]);
+      headerRowIdx = 0;
+      console.log(`En-têtes par défaut (ligne 1) : ${headers.join(', ')}`);
+    }
+
+    // Re-lit les données en partant de la bonne ligne d'en-têtes
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
       raw: true,
       defval: null,
-      range: 1, // Skip ligne 1 (légende couleurs), en-têtes en ligne 2
+      range: headerRowIdx,
     });
+
+    console.log(`Nombre de lignes lues : ${rows.length}`);
 
     if (rows.length === 0) {
       return NextResponse.json(
-        { ok: false, error: 'Aucune donnée dans la feuille VENTES' },
+        { ok: false, error: 'Aucune donnée trouvée dans la feuille.' },
         { status: 400 }
       );
     }
 
-    // Identifie les en-têtes réels
-    const headers = Object.keys(rows[0]);
-    console.log('En-têtes détectés :', headers);
-
+    // Mapping flexible des colonnes
     const findCol = (patterns: string[]): string | null => {
       for (const p of patterns) {
-        const found = headers.find((h) => h.toLowerCase().includes(p.toLowerCase()));
+        const pl = p.toLowerCase();
+        const found = headers.find((h) => {
+          const hl = h.toLowerCase().trim();
+          return hl === pl || hl.includes(pl);
+        });
         if (found) return found;
       }
       return null;
     };
 
     const colDate = findCol(['DATE']);
-    const colBl = findCol(['BL', 'N°']);
-    const colEnseigne = findCol(['ENSEIGNE']);
+    const colBl = findCol(['N° BL', 'BL', 'NUMERO BL', 'N BL', 'BON']);
+    const colEnseigne = findCol(['ENSEIGNE', 'CLIENT']);
     const colType = findCol(['TYPE']);
-    const colAgent = findCol(['AGENT']);
+    const colAgent = findCol(['AGENT', 'COMMERCIAL', 'REPRESENTANT']);
     const colHT = findCol(['HT']);
     const colTTC = findCol(['TTC']);
     const colTaux = findCol(['TAUX']);
@@ -69,21 +156,37 @@ export async function POST(req: NextRequest) {
     const colMois = findCol(['MOIS']);
     const colAnnee = findCol(['ANN']);
 
-    if (!colDate || !colBl) {
+    console.log('Colonnes mappées :', {
+      date: colDate, bl: colBl, enseigne: colEnseigne, type: colType,
+      agent: colAgent, ht: colHT, ttc: colTTC, taux: colTaux,
+      commission: colCommission, mois: colMois, annee: colAnnee,
+    });
+
+    if (!colDate) {
       return NextResponse.json(
-        { ok: false, error: `Colonnes DATE et N° BL obligatoires. Trouvé : DATE=${colDate}, BL=${colBl}` },
+        {
+          ok: false,
+          error: `Colonne "DATE" introuvable. Colonnes détectées : ${headers.join(', ')}`,
+        },
         { status: 400 }
       );
     }
 
-    // Récupère les N° BL déjà en base (pour détecter les doublons en masse)
+    if (!colBl) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Colonne "N° BL" introuvable. Colonnes détectées : ${headers.join(', ')}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Récupère les N° BL déjà en base
     const existingBl = new Set(
       (await db.sale.findMany({ select: { blNumber: true } })).map((s) => s.blNumber)
     );
-
-    // Récupère la liste des enseignes de référence
-    const existingEnseignes = await db.enseigne.findMany();
-    const enseigneMap = new Map(existingEnseignes.map((e) => [e.name, e]));
+    console.log(`N° BL déjà en base : ${existingBl.size}`);
 
     // Prépare les ventes à insérer
     const toInsert: Array<{
@@ -100,7 +203,10 @@ export async function POST(req: NextRequest) {
       year: number;
     }> = [];
     const newEnseignes = new Map<string, { name: string; type: string; agent: string }>();
-    let skipped = 0;
+    let skippedNoDate = 0;
+    let skippedNoBl = 0;
+    let skippedDuplicate = 0;
+    let skippedInvalid = 0;
     const errors: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
@@ -109,15 +215,14 @@ export async function POST(req: NextRequest) {
       const dateRaw = colDate ? row[colDate] : null;
 
       // Skip lignes vides ou sans N° BL
-      if (!blRaw || !dateRaw) {
-        skipped++;
+      if (!blRaw) {
+        skippedNoBl++;
         continue;
       }
 
       const blNumber = String(blRaw).trim();
-      if (!blNumber || !blNumber.startsWith('BDL')) {
-        // Pas un vrai BL de vente
-        skipped++;
+      if (!blNumber) {
+        skippedNoBl++;
         continue;
       }
 
@@ -129,22 +234,48 @@ export async function POST(req: NextRequest) {
         // Numéro de série Excel
         const epoch = new Date(Date.UTC(1899, 11, 30));
         date = new Date(epoch.getTime() + dateRaw * 86400000);
-      } else if (typeof dateRaw === 'string') {
-        const parsed = new Date(dateRaw);
-        if (isNaN(parsed.getTime())) {
-          errors.push(`Ligne ${i + 2}: date invalide "${dateRaw}"`);
-          skipped++;
-          continue;
+      } else if (typeof dateRaw === 'string' && dateRaw.trim()) {
+        // Tente plusieurs formats : DD/MM/YYYY, YYYY-MM-DD, etc.
+        const trimmed = dateRaw.trim();
+        const dmy = trimmed.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+        if (dmy) {
+          const day = parseInt(dmy[1], 10);
+          const month = parseInt(dmy[2], 10);
+          let year = parseInt(dmy[3], 10);
+          if (year < 100) year += 2000;
+          date = new Date(year, month - 1, day);
+        } else {
+          const parsed = new Date(trimmed);
+          if (isNaN(parsed.getTime())) {
+            if (errors.length < 5) {
+              errors.push(`Ligne ${i + headerRowIdx + 2}: date invalide "${dateRaw}"`);
+            }
+            skippedNoDate++;
+            continue;
+          }
+          date = parsed;
         }
-        date = parsed;
       } else {
-        skipped++;
+        // Pas de date
+        skippedNoDate++;
         continue;
       }
 
-      // Si déjà en base → on skip
+      // Vérifie que la date est valide (au moins l'année 2020+)
+      if (isNaN(date.getTime()) || date.getFullYear() < 2020) {
+        skippedInvalid++;
+        continue;
+      }
+
+      // Si déjà en base ou déjà dans le batch courant → on skip
       if (existingBl.has(blNumber)) {
-        skipped++;
+        skippedDuplicate++;
+        continue;
+      }
+
+      // Vérifie aussi les doublons intra-batch
+      if (toInsert.some((v) => v.blNumber === blNumber)) {
+        skippedDuplicate++;
         continue;
       }
 
@@ -176,65 +307,112 @@ export async function POST(req: NextRequest) {
         amountHT, amountTTC, rate, commission, month, year,
       });
 
-      // Prépare aussi l'enseigne de référence si elle n'existe pas
-      if (!enseigneMap.has(enseigne) && !newEnseignes.has(enseigne) && enseigne !== 'Inconnu') {
+      // Prépare l'enseigne de référence
+      if (!newEnseignes.has(enseigne) && enseigne !== 'Inconnu') {
         newEnseignes.set(enseigne, { name: enseigne, type, agent });
       }
     }
 
-    // Insère en masse les nouvelles ventes
+    console.log(`Bilan pré-import : ${toInsert.length} à insérer, doublons=${skippedDuplicate}, sans BL=${skippedNoBl}, sans date=${skippedNoDate}, invalides=${skippedInvalid}`);
+
+    // Insère en masse (SQLite ne supporte pas skipDuplicates dans createMany,
+    // mais on a déjà filtré les doublons existants via existingBl)
     let inserted = 0;
     if (toInsert.length > 0) {
-      const result = await db.sale.createMany({
-        data: toInsert.map((v) => ({
-          blNumber: v.blNumber,
-          date: v.date,
-          enseigne: v.enseigne,
-          type: v.type,
-          agent: v.agent,
-          amountHT: v.amountHT,
-          amountTTC: v.amountTTC,
-          rate: v.rate,
-          commission: v.commission,
-          month: v.month,
-          year: v.year,
-        })),
-        skipDuplicates: true,
-      });
-      inserted = result.count;
+      try {
+        const result = await db.sale.createMany({
+          data: toInsert.map((v) => ({
+            blNumber: v.blNumber,
+            date: v.date,
+            enseigne: v.enseigne,
+            type: v.type,
+            agent: v.agent,
+            amountHT: v.amountHT,
+            amountTTC: v.amountTTC,
+            rate: v.rate,
+            commission: v.commission,
+            month: v.month,
+            year: v.year,
+          })),
+        });
+        inserted = result.count;
+        console.log(`createMany : ${inserted} ventes insérées`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error('Erreur createMany :', msg);
+        // Si erreur de doublon, tente l'insertion individuelle
+        if (msg.includes('unique') || msg.includes('UNIQUE')) {
+          console.log('Tentative d\'insertion individuelle...');
+          for (const v of toInsert) {
+            try {
+              await db.sale.create({ data: v });
+              inserted++;
+            } catch (e2) {
+              // Doublon : ignore
+            }
+          }
+          console.log(`Insertion individuelle : ${inserted} ventes insérées`);
+        } else {
+          return NextResponse.json(
+            { ok: false, error: `Erreur base de données : ${msg}` },
+            { status: 500 }
+          );
+        }
+      }
     }
 
-    // Insère les nouvelles enseignes de référence
+    // Insère les nouvelles enseignes (sans skipDuplicates)
     if (newEnseignes.size > 0) {
-      await db.enseigne.createMany({
-        data: Array.from(newEnseignes.values()),
-        skipDuplicates: true,
-      });
+      for (const e of Array.from(newEnseignes.values())) {
+        try {
+          await db.enseigne.create({ data: e });
+        } catch (e2) {
+          // Doublon : ignore
+        }
+      }
     }
 
-    // Met à jour la période courante en se basant sur la dernière vente importée
-    if (toInsert.length > 0) {
+    // Met à jour la période courante si on a importé
+    if (inserted > 0) {
       const lastDate = toInsert.reduce((max, v) =>
         v.date > max ? v.date : max, toInsert[0].date);
       const lastYear = lastDate.getFullYear();
       const lastMonth = lastDate.getMonth() + 1;
       await setCurrentPeriod(lastYear, lastMonth);
+      console.log(`Période courante mise à jour : ${lastMonth}/${lastYear}`);
     }
 
+    const totalSkipped = skippedNoDate + skippedNoBl + skippedDuplicate + skippedInvalid;
     const result: ImportResult = {
       inserted,
-      skipped,
+      skipped: totalSkipped,
       errors,
       total: toInsert.length,
     };
 
-    console.log(`Import terminé : ${inserted} nouvelles ventes, ${skipped} ignorées`);
+    // Construit un message détaillé
+    const detail = [
+      `${inserted} nouvelle(s) vente(s) ajoutée(s)`,
+      `${skippedDuplicate} doublon(s) ignoré(s)`,
+      skippedNoBl > 0 ? `${skippedNoBl} ligne(s) sans N° BL` : null,
+      skippedNoDate > 0 ? `${skippedNoDate} ligne(s) sans date valide` : null,
+      skippedInvalid > 0 ? `${skippedInvalid} ligne(s) invalides` : null,
+    ].filter(Boolean);
 
-    return NextResponse.json({ ok: true, result });
+    console.log(`Import terminé : ${detail.join(', ')}`);
+
+    return NextResponse.json({
+      ok: true,
+      result,
+      detail: detail.join(', '),
+    });
   } catch (e) {
-    console.error('Erreur /api/import:', e);
+    console.error('Erreur non gérée /api/import:', e);
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : 'Erreur serveur' },
+      {
+        ok: false,
+        error: e instanceof Error ? e.message : 'Erreur serveur inattendue',
+      },
       { status: 500 }
     );
   }

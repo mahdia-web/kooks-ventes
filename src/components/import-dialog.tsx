@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, CheckCircle2, RefreshCw, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,6 +29,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
     inserted: number;
     skipped: number;
     total: number;
+    detail?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +46,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
     e.preventDefault();
     setIsDragging(false);
     const f = Array.from(e.dataTransfer.files).find((f) =>
-      /\.(xlsx|xls)$/i.test(f.name)
+      /\.(xlsx|xls|ods|csv)$/i.test(f.name)
     );
     if (f) {
       setFile(f);
@@ -70,15 +71,21 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `Erreur HTTP ${res.status}`);
       }
-      setResult(data.result);
-      toast.success('Import réussi', {
-        description: `${data.result.inserted} nouvelles ventes ajoutées (${data.result.skipped} doublons ignorés).`,
-      });
-      onImported();
+      setResult({ ...data.result, detail: data.detail });
+      if (data.result.inserted > 0) {
+        toast.success('Import réussi', {
+          description: data.detail || `${data.result.inserted} nouvelles ventes.`,
+        });
+        onImported();
+      } else {
+        toast.info('Aucune nouvelle vente', {
+          description: data.detail || 'Toutes les ventes étaient déjà en base.',
+        });
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Erreur inconnue';
       setError(msg);
-      toast.error('Erreur', { description: msg });
+      toast.error('Erreur d\'import', { description: msg });
     } finally {
       setLoading(false);
     }
@@ -87,7 +94,6 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
   const handleClose = (nextOpen: boolean) => {
     setOpen(nextOpen);
     if (!nextOpen) {
-      // Reset state après fermeture
       setFile(null);
       setResult(null);
       setError(null);
@@ -105,7 +111,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
         <DialogHeader>
           <DialogTitle>Importer le fichier mensuel</DialogTitle>
           <DialogDescription>
-            Téléversez votre fichier <code className="text-emerald-700 dark:text-emerald-400">SUIVI_AGENTS_FINAL_V2.xlsx</code> mis à jour. Seules les nouvelles ventes (basées sur le N° BL unique) seront ajoutées.
+            Téléversez votre fichier Excel mis à jour. Seules les nouvelles ventes (basées sur le N° BL unique) seront ajoutées.
           </DialogDescription>
         </DialogHeader>
 
@@ -133,7 +139,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
             <input
               id="import-input"
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.ods,.csv"
               className="hidden"
               onChange={handleFileInput}
             />
@@ -142,30 +148,73 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
               {file ? file.name : 'Cliquez ou déposez le fichier ici'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Format : .xlsx
+              Format : .xlsx, .xls, .ods, .csv
             </p>
           </div>
 
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Erreur</AlertTitle>
+              <AlertTitle>Erreur lors de l'import</AlertTitle>
               <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
 
           {result && (
-            <Alert className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-              <AlertTitle className="text-emerald-700 dark:text-emerald-400">
-                Import terminé
+            <Alert
+              className={
+                result.inserted > 0
+                  ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20'
+                  : 'border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/20'
+              }
+            >
+              {result.inserted > 0 ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <Info className="h-4 w-4 text-sky-600" />
+              )}
+              <AlertTitle
+                className={
+                  result.inserted > 0
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-sky-700 dark:text-sky-400'
+                }
+              >
+                {result.inserted > 0 ? 'Import terminé' : 'Aucune nouvelle vente détectée'}
               </AlertTitle>
-              <AlertDescription className="text-sm">
-                <strong>{result.inserted}</strong> nouvelles ventes ajoutées.{' '}
-                <strong>{result.skipped}</strong> ventes déjà présentes ignorées (doublons N° BL).
+              <AlertDescription className="text-sm space-y-1">
+                {result.detail && <p>{result.detail}</p>}
+                {result.errors && result.errors.length > 0 && (
+                  <p className="text-xs text-rose-600">
+                    Erreurs : {result.errors.join(' | ')}
+                  </p>
+                )}
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Aide */}
+          <details className="text-xs text-slate-500 dark:text-slate-400">
+            <summary className="cursor-pointer hover:text-slate-700 dark:hover:text-slate-300">
+              Format attendu
+            </summary>
+            <div className="mt-2 space-y-1 pl-2">
+              <p>• Feuille nommée <strong>VENTES</strong> (ou toute feuille si non trouvée)</p>
+              <p>• Colonnes attendues (ordre indifférent) :</p>
+              <ul className="list-disc list-inside pl-2 space-y-0.5">
+                <li><strong>DATE</strong> — date de la vente (obligatoire)</li>
+                <li><strong>N° BL</strong> — numéro unique du bon de livraison (obligatoire)</li>
+                <li><strong>ENSEIGNE</strong> — nom du client</li>
+                <li><strong>TYPE</strong> — Direct ou Centrale</li>
+                <li><strong>AGENT</strong> — nom du commercial</li>
+                <li><strong>MT HT</strong>, <strong>MT TTC</strong> — montants</li>
+                <li><strong>TAUX</strong>, <strong>COMMISSION</strong></li>
+                <li><strong>MOIS</strong>, <strong>ANNÉE</strong></li>
+              </ul>
+              <p>• Les en-têtes sont détectés automatiquement (ligne 1 à 5)</p>
+              <p>• Les ventes déjà en base (N° BL identique) sont ignorées</p>
+            </div>
+          </details>
         </div>
 
         <DialogFooter>
