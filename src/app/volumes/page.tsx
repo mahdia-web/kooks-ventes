@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Package, TrendingUp, Upload, Loader2, Trophy, Target, Calendar } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import type { DashboardData } from '@/lib/dashboard-types';
-import { formatNumber, formatDate } from '@/lib/dashboard-service';
+import { formatNumber, formatDate, shortMonth } from '@/lib/dashboard-service';
 import { toast } from 'sonner';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -48,13 +48,17 @@ interface VolumeStats {
   monthlySeries: Array<{ year: number; month: number; totalQty: number; totalPots: number; label: string; }>;
   totalRecords: number; filteredEnseigne: string | null;
 }
-interface Enseigne { id: string; name: string; type: string; agent: string; isActive: boolean; }
+
+const ALL_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 export default function VolumesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [stats, setStats] = useState<VolumeStats | null>(null);
-  const [enseignes, setEnseignes] = useState<Enseigne[]>([]);
+  const [volumeClients, setVolumeClients] = useState<string[]>([]);
   const [selectedEnseigne, setSelectedEnseigne] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
@@ -68,23 +72,44 @@ export default function VolumesPage() {
     } catch {}
   }, []);
 
-  const loadEnseignes = useCallback(async () => {
-    try { const res = await fetch('/api/enseignes'); const json = await res.json(); if (json.ok) setEnseignes(json.data.filter((e: Enseigne) => e.isActive)); } catch {}
+  const loadVolumeClients = useCallback(async () => {
+    try {
+      // Récupère les noms de clients distincts depuis VolumeSale (pas Enseigne!)
+      const res = await fetch('/api/volumes/stats');
+      const json = await res.json();
+      if (json.ok) {
+        const names = json.data.topEnseignes.map((e: { enseigne: string }) => e.enseigne).sort();
+        setVolumeClients(names);
+      }
+    } catch {}
   }, []);
 
   const loadStats = useCallback(async () => {
     try {
-      const url = selectedEnseigne ? `/api/volumes/stats?enseigne=${encodeURIComponent(selectedEnseigne)}` : '/api/volumes/stats';
-      const res = await fetch(url); const json = await res.json(); if (json.ok) setStats(json.data);
-    } catch {} setLoading(false);
-  }, [selectedEnseigne]);
+      const params = new URLSearchParams();
+      if (selectedEnseigne) params.set('enseigne', selectedEnseigne);
+      if (selectedYear !== 'all') params.set('year', selectedYear);
+      if (selectedMonth !== 'all') params.set('month', selectedMonth);
+      const url = `/api/volumes/stats${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.ok) setStats(json.data);
+    } catch {}
+    setLoading(false);
+  }, [selectedEnseigne, selectedYear, selectedMonth]);
 
-  useEffect(() => { loadDashboard(); loadEnseignes(); }, [loadDashboard, loadEnseignes]);
+  useEffect(() => { loadDashboard(); loadVolumeClients(); }, [loadDashboard, loadVolumeClients]);
   useEffect(() => { loadStats(); }, [loadStats]);
+
   const handleHome = () => { window.location.href = '/'; };
 
   if (loading) {
-    return (<div className="min-h-screen bg-background flex"><AppSidebar data={data} agentFilter="all" onHome={handleHome} /><div className="flex-1 ml-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></div>);
+    return (
+      <div className="min-h-screen bg-background flex">
+        <AppSidebar data={data} agentFilter="all" onHome={handleHome} />
+        <div className="flex-1 ml-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+      </div>
+    );
   }
 
   return (
@@ -102,54 +127,76 @@ export default function VolumesPage() {
         </header>
 
         <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Card className="border-primary/30 bg-primary/5"><CardContent className="p-3 flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground"><strong>Import mensuel.</strong> Importez le fichier "Analyse Factures Clients".</p>
-              <VolumesImportButton onImported={loadStats} />
-            </CardContent></Card>
-            <Card className="border-border"><CardContent className="p-3 flex items-center gap-3">
-              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Filtrer par client :</span>
+          {/* Barre de filtres */}
+          <Card className="border-border">
+            <CardContent className="p-3 flex items-center gap-2 flex-wrap">
+              {/* Import */}
+              <VolumesImportButton onImported={() => { loadStats(); loadVolumeClients(); }} />
+
+              {/* Filtre client */}
               <Select value={selectedEnseigne || 'all'} onValueChange={(v) => setSelectedEnseigne(v === 'all' ? '' : v)}>
-                <SelectTrigger className="h-8 text-sm flex-1"><SelectValue placeholder="Tous les clients" /></SelectTrigger>
+                <SelectTrigger className="h-8 text-sm w-[200px]"><SelectValue placeholder="Tous les clients" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les clients</SelectItem>
-                  {enseignes.map((e) => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
+                  {volumeClients.map((name) => <SelectItem key={name} value={name}>{name.length > 40 ? name.slice(0, 40) + '...' : name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </CardContent></Card>
-          </div>
+
+              {/* Filtre mois */}
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="h-8 text-sm w-[100px]"><SelectValue placeholder="Mois" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  {ALL_MONTHS.map(m => <SelectItem key={m} value={String(m)}>{shortMonth(m)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              {/* Filtre année */}
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="h-8 text-sm w-[80px]"><SelectValue placeholder="Année" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes</SelectItem>
+                  {ALL_YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 
           {stats && stats.totalQuantity > 0 ? (
             <>
+              {/* Période */}
               {stats.dateRange.start && (
                 <Card className="border-border bg-muted/30"><CardContent className="p-2 flex items-center gap-2 text-xs text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5 text-primary" />
-                  <span>Période des données : <strong>{formatDate(stats.dateRange.start)} → {formatDate(stats.dateRange.end)}</strong></span>
-                  {stats.filteredEnseigne && <span className="ml-2 text-primary">• Client : {stats.filteredEnseigne}</span>}
+                  <span>Période : <strong>{formatDate(stats.dateRange.start)} → {formatDate(stats.dateRange.end)}</strong></span>
+                  {stats.filteredEnseigne && <span className="ml-2 text-primary">• {stats.filteredEnseigne}</span>}
+                  {selectedYear !== 'all' && <span className="ml-2 text-primary">• {selectedYear}</span>}
+                  {selectedMonth !== 'all' && <span className="ml-2 text-primary">• {shortMonth(parseInt(selectedMonth))}</span>}
                 </CardContent></Card>
               )}
 
-              {!stats.filteredEnseigne && stats.objective > 0 && (
+              {/* Objectif 3M */}
+              {!stats.filteredEnseigne && selectedYear === 'all' && selectedMonth === 'all' && stats.objective > 0 && (
                 <Card className="border-primary/40 bg-primary/10"><CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3"><Target className="h-6 w-6 text-primary" /><div><h3 className="font-title text-base font-bold">Objectif annuel : 3 000 000 pots</h3><p className="text-xs text-muted-foreground">Année démarrée le 01/10/2026</p></div></div>
                   <div className="grid gap-3 sm:grid-cols-4">
                     <div><p className="text-xs text-muted-foreground uppercase">Pots vendus</p><p className="text-xl font-title font-bold text-primary">{formatNumber(stats.potsSinceOct)}</p></div>
-                    <div><p className="text-xs text-muted-foreground uppercase">Reste à écrouler</p><p className="text-xl font-title font-bold">{formatNumber(stats.remaining)}</p></div>
+                    <div><p className="text-xs text-muted-foreground uppercase">Reste</p><p className="text-xl font-title font-bold">{formatNumber(stats.remaining)}</p></div>
                     <div><p className="text-xs text-muted-foreground uppercase">Progression</p><p className="text-xl font-title font-bold text-emerald-600">{stats.progressPct.toFixed(1)}%</p></div>
                     <div className="flex items-center"><div className="w-full h-3 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(stats.progressPct, 100)}%` }} /></div></div>
                   </div>
                 </CardContent></Card>
               )}
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* KPIs : colis + pots seulement */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
                 <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Colis vendus</p><p className="text-2xl font-title font-bold text-primary">{formatNumber(stats.totalQuantity)}</p><p className="text-[10px] text-muted-foreground">{stats.dateRange.start ? `${formatDate(stats.dateRange.start)} → ${formatDate(stats.dateRange.end)}` : ''}</p></CardContent></Card>
-                <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Pots vendus</p><p className="text-2xl font-title font-bold">{formatNumber(stats.totalPots)}</p><p className="text-[10px] text-muted-foreground">calculé automatiquement</p></CardContent></Card>
-                <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Produits</p><p className="text-2xl font-title font-bold">{stats.topProducts.length}</p><p className="text-[10px] text-muted-foreground">références distinctes</p></CardContent></Card>
-                <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Lignes</p><p className="text-2xl font-title font-bold">{formatNumber(stats.totalRecords)}</p><p className="text-[10px] text-muted-foreground">lignes de facture</p></CardContent></Card>
+                <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Pots vendus</p><p className="text-2xl font-title font-bold">{formatNumber(stats.totalPots)}</p><p className="text-[10px] text-muted-foreground">colis × pots/colis</p></CardContent></Card>
               </div>
 
+              {/* Évolution mensuelle */}
               {stats.monthlySeries.length > 0 && (
-                <Card className="border-border"><CardHeader><CardTitle className="font-title flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Évolution mensuelle</CardTitle><CardDescription>Colis et pots vendus par mois</CardDescription></CardHeader>
+                <Card className="border-border"><CardHeader><CardTitle className="font-title flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Évolution mensuelle</CardTitle><CardDescription>Colis et pots par mois</CardDescription></CardHeader>
                   <CardContent><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.monthlySeries} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" /><XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#7a654a" angle={-45} textAnchor="end" height={60} /><YAxis tick={{ fontSize: 10 }} stroke="#7a654a" tickFormatter={(v) => formatNumber(v)} />
                     <Tooltip contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number, name: string) => name === 'totalPots' ? [formatNumber(v) + ' pots', 'Pots'] : [formatNumber(v) + ' colis', 'Colis']} />
@@ -159,6 +206,7 @@ export default function VolumesPage() {
               )}
 
               <div className="grid gap-4 lg:grid-cols-2">
+                {/* Top produits */}
                 <Card className="border-border"><CardHeader><CardTitle className="font-title flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> Top produits</CardTitle></CardHeader>
                   <CardContent><div className="space-y-2 max-h-80 overflow-y-auto">
                     {stats.topProducts.map((p, idx) => { const maxQty = stats.topProducts[0]?.totalQty || 1; return (
@@ -168,7 +216,9 @@ export default function VolumesPage() {
                       </div> ); })}
                   </div></CardContent>
                 </Card>
-                <Card className="border-border"><CardHeader><CardTitle className="font-title">Répartition par parfum</CardTitle></CardHeader>
+
+                {/* Parfum */}
+                <Card className="border-border"><CardHeader><CardTitle className="font-title">Par parfum</CardTitle></CardHeader>
                   <CardContent><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><PieChart>
                     <Pie data={stats.topParfums.map(p => ({ name: p.parfum, value: p.totalQty }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={2}>
                       {stats.topParfums.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
@@ -179,7 +229,8 @@ export default function VolumesPage() {
                 </Card>
               </div>
 
-              <Card className="border-border"><CardHeader><CardTitle className="font-title">Volume par format — détails</CardTitle></CardHeader>
+              {/* Format détaillé */}
+              <Card className="border-border"><CardHeader><CardTitle className="font-title">Volume par format</CardTitle></CardHeader>
                 <CardContent><div className="space-y-3">
                   {stats.topFormats.map((f) => { const max = stats.topFormats[0]?.totalQty || 1; const pct = stats.totalQuantity > 0 ? (f.totalQty / stats.totalQuantity) * 100 : 0; return (
                     <div key={f.format} className="space-y-1">
@@ -191,6 +242,7 @@ export default function VolumesPage() {
                 </div></CardContent>
               </Card>
 
+              {/* Top clients (global only) */}
               {!stats.filteredEnseigne && stats.topEnseignes.length > 0 && (
                 <Card className="border-border"><CardHeader><CardTitle className="font-title">Top clients par volume</CardTitle></CardHeader>
                   <CardContent><div className="space-y-2 max-h-60 overflow-y-auto">
@@ -206,7 +258,7 @@ export default function VolumesPage() {
               )}
             </>
           ) : (
-            <Card className="border-border"><CardContent className="p-12 text-center"><Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" /><p className="text-sm text-muted-foreground mb-2">Aucune donnée de volume disponible.</p><p className="text-xs text-muted-foreground">Importez le fichier "Analyse Factures Clients" pour voir les stats.</p></CardContent></Card>
+            <Card className="border-border"><CardContent className="p-12 text-center"><Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" /><p className="text-sm text-muted-foreground mb-2">Aucune donnée pour ce filtre.</p><p className="text-xs text-muted-foreground">Essayez « Tous les clients » et « Toutes » les années.</p></CardContent></Card>
           )}
         </main>
       </div>
@@ -218,9 +270,9 @@ function VolumesImportButton({ onImported }: { onImported: () => void }) {
   const [loading, setLoading] = useState(false);
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return; setLoading(true);
-    try { const formData = new FormData(); formData.append('file', file); const res = await fetch('/api/volumes/import', { method: 'POST', body: formData }); const json = await res.json(); if (!json.ok) throw new Error(json.error); toast.success('Import réussi', { description: json.detail }); onImported(); }
+    try { const formData = new FormData(); formData.append('file', file); const res = await fetch('/api/volumes/import', { method: 'POST', body: formData }); const json = await res.json(); if (!json.ok) throw new Error(json.error || 'Erreur serveur'); toast.success('Import réussi', { description: json.detail }); onImported(); }
     catch (e: any) { toast.error('Erreur d\'import', { description: e.message }); } finally { setLoading(false); }
   };
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
-  return (<><Button size="sm" onClick={() => document.getElementById('volumes-import-input')?.click()} className="bg-primary text-primary-foreground hover:bg-primary/90"><Upload className="h-4 w-4 mr-2" /> Importer</Button><input id="volumes-import-input" type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} /></>);
+  return (<><Button size="sm" onClick={() => document.getElementById('volumes-import-input')?.click()} className="bg-primary text-primary-foreground hover:bg-primary/90"><Upload className="h-4 w-4 mr-2" /> Importer volumes</Button><input id="volumes-import-input" type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} /></>);
 }

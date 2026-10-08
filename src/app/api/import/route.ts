@@ -3,6 +3,9 @@ import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
 import { setCurrentPeriod } from '@/lib/dashboard-service';
 
+// Augmente le timeout Vercel à 60s (au lieu de 10s par défaut)
+export const maxDuration = 60;
+
 // POST /api/import
 // Body: multipart/form-data avec champs "file" (Excel), "forceType", "forceAgent", "replaceDuplicates", "detectOnly"
 export async function POST(req: NextRequest) {
@@ -409,23 +412,45 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Insertion (avec update si replaceDuplicates)
+    // Insertion en lots (batch) pour éviter le timeout Vercel
     let inserted = 0, updated = 0;
-    for (const v of toInsert) {
-      try {
-        if (replaceDuplicates && existingKeys.has(v.deduplicationKey)) {
-          const { deduplicationKey, ...ud } = v;
-          await db.sale.updateMany({
-            where: { deduplicationKey: v.deduplicationKey },
-            data: ud,
+    const BATCH_SIZE = 100;
+    
+    if (!replaceDuplicates) {
+      // Mode simple : batch insert sans replaceDuplicates
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const batch = toInsert.slice(i, i + BATCH_SIZE);
+        try {
+          const result = await db.sale.createMany({
+            data: batch.map(v => {
+              const { deduplicationKey, ...rest } = v;
+              return { ...v }; // garde tout y compris deduplicationKey
+            }),
+            skipDuplicates: true,
           });
-          updated++;
-        } else {
-          await db.sale.create({ data: v });
-          inserted++;
+          inserted += result.count;
+        } catch (e) {
+          // Si le batch échoue, essaie un par un
+          for (const v of batch) {
+            try { await db.sale.create({ data: v }); inserted++; } catch {}
+          }
         }
-      } catch (e) {
-        // Doublon (race condition) : ignore
+      }
+    } else {
+      // Mode replaceDuplicates : un par un (nécessite update)
+      for (const v of toInsert) {
+        try {
+          if (replaceDuplicates && existingKeys.has(v.deduplicationKey)) {
+            const { deduplicationKey, ...ud } = v;
+            await db.sale.updateMany({ where: { deduplicationKey: v.deduplicationKey }, data: ud });
+            updated++;
+          } else {
+            await db.sale.create({ data: v });
+            inserted++;
+          }
+        } catch {
+          // Doublon : ignore
+        }
       }
     }
 
