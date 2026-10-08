@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSales } from '@/lib/dashboard-service';
 
-// GET /api/sales?year=2026&month=8
+// GET /api/sales?year=2026&month=8&agent=CAP%20FRAIS
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const year = parseInt(searchParams.get('year') ?? '0', 10);
     const month = parseInt(searchParams.get('month') ?? '0', 10);
+    const agentParam = searchParams.get('agent') ?? '';
 
     if (!year || !month) {
       return NextResponse.json(
@@ -15,7 +16,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const sales = await getSales(year, month);
+    const agentFilter =
+      agentParam && agentParam !== 'all' && agentParam !== 'Tous les agents'
+        ? agentParam
+        : null;
+
+    const sales = await getSales(year, month, agentFilter);
     return NextResponse.json({ ok: true, data: sales });
   } catch (e) {
     console.error('Erreur /api/sales:', e);

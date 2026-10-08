@@ -78,6 +78,7 @@ export interface EnseigneStat {
   nbBl: number;
   share: number;
   lastOrder: string | null;
+  prixVenteMoyen: number; // CA HT / nbBL — prix de vente moyen observé
 }
 
 export interface CustomerFollowup {
@@ -88,6 +89,7 @@ export interface CustomerFollowup {
   caTotal: number;
   lastOrder: string | null;
   monthsSinceLastOrder: number;
+  daysSinceLastOrder: number;
   recurrence: number;
   status: 'OK' | 'A RELANCER' | 'INACTIF';
 }
@@ -107,19 +109,59 @@ export interface SaleRow {
   year: number;
 }
 
+// Performance d'un agent sur TOUTE la période (pas seulement le mois sélectionné)
+export interface AgentPeriodTotal {
+  agent: string;
+  caHT: number;
+  commission: number;
+  nbBl: number;
+  nbBlDirect: number;
+  nbBlCentrale: number;
+  caDirect: number;
+  caCentrale: number;
+  enseignesActives: number;
+  share: number;
+  firstOrder: string | null;
+  lastOrder: string | null;
+  totalColis: number;
+  totalPots: number;
+}
+
+// Top enseigne sur TOUTE la période
+export interface EnseignePeriodStat {
+  enseigne: string;
+  type: string;
+  agent: string;
+  caHT: number;
+  nbBl: number;
+  share: number;
+  lastOrder: string | null;
+}
+
 export interface DashboardData {
   kpis: KpiData;
   monthlySeries: MonthlyStat[];
-  agents: AgentStat[];
-  enseignes: EnseigneStat[];
+  agents: AgentStat[];              // Stats du mois sélectionné
+  agentPeriodTotals: AgentPeriodTotal[];  // Stats sur TOUTE la période
+  enseignes: EnseigneStat[];        // Top enseignes du mois
+  topEnseignesPeriod: EnseignePeriodStat[]; // Top enseignes sur TOUTE la période
   customerFollowup: CustomerFollowup[];
   availablePeriods: { year: number; months: number[] }[];
   currentPeriod: { year: number; month: number };
+  agentFilter?: string | null;
   global: {
     totalCaHT: number;
     totalCommission: number;
     totalNbBl: number;
     totalEnseignes: number;
+    totalCaDirect: number;
+    totalCaCentrale: number;
+    totalBlDirect: number;
+    totalBlCentrale: number;
+    totalCommissionDirect: number;
+    totalCommissionCentrale: number;
+    totalColis: number;
+    totalPots: number;
     dateRange: { start: string | null; end: string | null };
   };
 }

@@ -1,0 +1,18 @@
+'use client';
+import { Card, CardContent } from '@/components/ui/card';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { formatEuro, formatNumber, formatPercent } from '@/lib/dashboard-service';
+import type { KpiData } from '@/lib/dashboard-types';
+export function KpiComparisonCard({ kpis }: { kpis: KpiData }) {
+  if (!kpis?.current) return null;
+  const c = kpis.current, prev = kpis.previous, yAg = kpis.yearAgo, e = kpis.evolution || { caHT:0, caHTPercent:0, commission:0, commissionPercent:0, nbBl:0, nbBlPercent:0 }, eYoY = kpis.evolutionYoY || { caHT:0, caHTPercent:0, commission:0, commissionPercent:0, nbBl:0, nbBlPercent:0 };
+  const Delta = ({ value, percent }: { value: number; percent: number }) => { const isUp = percent >= 0; return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${isUp ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400' : 'text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400'}`}>{isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}{value >= 0 ? '+' : ''}{formatEuro(value)} ({formatPercent(percent)})</span>); };
+  const rows = [
+    { label: 'CA HT total', val: formatEuro(c.caHT), prev: prev ? formatEuro(prev.caHT) : '—', delta: e.caHT, dpct: e.caHTPercent, yVal: yAg ? formatEuro(yAg.caHT) : '—', yDelta: eYoY.caHT, yPct: eYoY.caHTPercent },
+    { label: 'CA Direct', val: formatEuro(c.caDirect), prev: '—', delta: 0, dpct: 0, yVal: yAg ? formatEuro(yAg.caDirect) : '—', yDelta: yAg ? c.caDirect - yAg.caDirect : 0, yPct: yAg && yAg.caDirect > 0 ? (c.caDirect - yAg.caDirect) / yAg.caDirect : 0 },
+    { label: 'CA Centrale', val: formatEuro(c.caCentrale), prev: '—', delta: 0, dpct: 0, yVal: yAg ? formatEuro(yAg.caCentrale) : '—', yDelta: yAg ? c.caCentrale - yAg.caCentrale : 0, yPct: yAg && yAg.caCentrale > 0 ? (c.caCentrale - yAg.caCentrale) / yAg.caCentrale : 0 },
+    { label: 'Commission', val: formatEuro(c.commission), prev: prev ? formatEuro(prev.commission) : '—', delta: e.commission, dpct: e.commissionPercent, yVal: yAg ? formatEuro(yAg.commission) : '—', yDelta: eYoY.commission, yPct: eYoY.commissionPercent },
+    { label: 'Nombre de BL', val: formatNumber(c.nbBl), prev: prev ? formatNumber(prev.nbBl) : '—', delta: e.nbBl, dpct: e.nbBlPercent, yVal: yAg ? formatNumber(yAg.nbBl) : '—', yDelta: eYoY.nbBl, yPct: eYoY.nbBlPercent },
+  ];
+  return (<Card className="border-slate-200 dark:border-slate-800"><CardContent className="p-4 overflow-x-auto"><h3 className="text-lg font-bold mb-3">Comparatif CA N vs N-1</h3><table className="w-full text-sm"><thead><tr className="text-xs text-slate-500 border-b border-slate-200 dark:border-slate-700"><th className="text-left py-2">Indicateur</th><th className="text-right py-2">Mois courant</th><th className="text-right py-2 hidden sm:table-cell">Mois préc.</th><th className="text-right py-2">Δ vs préc.</th><th className="text-right py-2 hidden sm:table-cell">N-1</th><th className="text-right py-2">Δ vs N-1</th></tr></thead><tbody>{rows.map(r => (<tr key={r.label} className="border-b border-slate-100 dark:border-slate-800"><td className="font-medium py-2">{r.label}</td><td className="text-right font-bold text-emerald-700 dark:text-emerald-400">{r.val}</td><td className="text-right text-slate-500 hidden sm:table-cell">{r.prev}</td><td className="text-right">{r.label !== 'CA Direct' && r.label !== 'CA Centrale' ? <Delta value={r.delta} percent={r.dpct} /> : '—'}</td><td className="text-right text-slate-500 hidden sm:table-cell">{r.yVal}</td><td className="text-right">{r.yVal !== '—' ? <Delta value={r.yDelta} percent={r.yPct} /> : '—'}</td></tr>))}</tbody></table></CardContent></Card>);
+}

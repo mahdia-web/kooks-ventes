@@ -10,19 +10,35 @@ import {
   RefreshCw,
   Calendar,
   FileDown,
+  Users,
+  TrendingUp,
+  Package,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster, toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { KpiGrid } from '@/components/kpi-grid';
 import { ChartsGrid } from '@/components/charts-followup';
 import { TopEnseignesCard } from '@/components/top-enseignes';
+import { TopEnseignesPeriodCard } from '@/components/top-enseignes-period';
+import { AgentPeriodPerformance } from '@/components/agent-period-performance';
+import { SyntheseGlobale } from '@/components/synthese-globale';
+import { EvolutionCaCentrale } from '@/components/evolution-ca-centrale';
 import { AgentTable, CustomerFollowupTable, EnseigneTable } from '@/components/followup-tables';
 import { SalesDetailTable } from '@/components/sales-detail-table';
 import { ImportDialog } from '@/components/import-dialog';
 import { PeriodSelector } from '@/components/period-selector';
+import { AppSidebar } from '@/components/app-sidebar';
 import { generateBilanPdf } from '@/components/bilan-pdf';
 import { formatEuro, formatNumber, monthLabel } from '@/lib/dashboard-service';
 import type { DashboardData, SaleRow } from '@/lib/dashboard-types';
@@ -35,9 +51,12 @@ export default function Home() {
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [year, setYear] = useState<number | null>(null);
   const [month, setMonth] = useState<number | null>(null);
+  const [agentFilter, setAgentFilter] = useState<string>('all');
+  const [availableAgents, setAvailableAgents] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'month' | 'global'>('month');
   const [error, setError] = useState<string | null>(null);
 
-  // Chargement initial : récupère la période courante
+  // Chargement initial : période courante + agents
   useEffect(() => {
     (async () => {
       try {
@@ -56,14 +75,28 @@ export default function Home() {
         setYear(now.getFullYear());
         setMonth(now.getMonth() + 1);
       }
+      try {
+        const res = await fetch('/api/agents');
+        const json = await res.json();
+        if (json.ok && Array.isArray(json.data)) {
+          setAvailableAgents(
+            json.data
+              .map((a: { name: string; isActive: boolean }) => a.name)
+              .filter((n: string) => n)
+          );
+        }
+      } catch {
+        // ignore
+      }
     })();
   }, []);
 
-  const loadDashboard = useCallback(async (y: number, m: number) => {
+  const loadDashboard = useCallback(async (y: number, m: number, agent: string) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/dashboard?year=${y}&month=${m}`);
+      const url = `/api/dashboard?year=${y}&month=${m}&agent=${encodeURIComponent(agent)}`;
+      const res = await fetch(url);
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
       setData(json.data);
@@ -76,15 +109,17 @@ export default function Home() {
 
   useEffect(() => {
     if (year !== null && month !== null) {
-      loadDashboard(year, month);
+      loadDashboard(year, month, agentFilter);
     }
-  }, [year, month, loadDashboard]);
+  }, [year, month, agentFilter, loadDashboard]);
 
   const loadSales = useCallback(async () => {
     if (year === null || month === null) return;
     setLoadingSales(true);
     try {
-      const res = await fetch(`/api/sales?year=${year}&month=${month}`);
+      const res = await fetch(
+        `/api/sales?year=${year}&month=${month}&agent=${encodeURIComponent(agentFilter)}`
+      );
       const json = await res.json();
       if (json.ok) setSalesRows(json.data);
     } catch (e) {
@@ -92,15 +127,40 @@ export default function Home() {
     } finally {
       setLoadingSales(false);
     }
-  }, [year, month]);
+  }, [year, month, agentFilter]);
 
   const handlePeriodChange = (y: number, m: number) => {
     setYear(y);
     setMonth(m);
   };
 
+  const handleAgentChange = (agent: string) => {
+    setAgentFilter(agent);
+  };
+
+  // Bouton Accueil : retour à la période courante + agent "Tous"
+  const handleHome = async () => {
+    setAgentFilter('all');
+    try {
+      const res = await fetch('/api/period');
+      const json = await res.json();
+      if (json.ok) {
+        setYear(json.data.year);
+        setMonth(json.data.month);
+      } else {
+        const now = new Date();
+        setYear(now.getFullYear());
+        setMonth(now.getMonth() + 1);
+      }
+    } catch {
+      const now = new Date();
+      setYear(now.getFullYear());
+      setMonth(now.getMonth() + 1);
+    }
+    toast.success('Retour à l\'accueil');
+  };
+
   const handleImported = async () => {
-    // Re-fetch la période courante (mise à jour par l'import)
     try {
       const res = await fetch('/api/period');
       const json = await res.json();
@@ -109,20 +169,32 @@ export default function Home() {
         setMonth(json.data.month);
       }
     } catch {
-      // Fallback : recharge avec la période actuelle
-      if (year && month) loadDashboard(year, month);
+      if (year && month) loadDashboard(year, month, agentFilter);
+    }
+    try {
+      const res = await fetch('/api/agents');
+      const json = await res.json();
+      if (json.ok && Array.isArray(json.data)) {
+        setAvailableAgents(
+          json.data
+            .map((a: { name: string; isActive: boolean }) => a.name)
+            .filter((n: string) => n)
+        );
+      }
+    } catch {
+      // ignore
     }
     setTimeout(loadSales, 200);
     toast.success('Données rafraîchies après import');
   };
 
-  const handleGeneratePdf = async (agentFilter: string | null) => {
+  const handleGeneratePdf = async (agentFilterForPdf: string | null) => {
     if (!data) return;
     setGeneratingPdf(true);
     try {
-      await generateBilanPdf({ data, agentFilter });
+      await generateBilanPdf({ data, agentFilter: agentFilterForPdf });
       toast.success('Bilan PDF généré', {
-        description: agentFilter ? `Rapport de ${agentFilter}` : 'Bilan global',
+        description: agentFilterForPdf ? `Rapport de ${agentFilterForPdf}` : 'Bilan global',
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Erreur';
@@ -135,219 +207,300 @@ export default function Home() {
   const currentPeriodLabel = year && month ? `${monthLabel(month)} ${year}` : 'Chargement...';
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-30">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white shrink-0">
-                <BarChart3 className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                  Suivi Ventes Agents Commerciaux
-                </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-                  CA total :{' '}
-                  <span className="font-medium text-emerald-700 dark:text-emerald-400">
-                    {data ? formatEuro(data.global.totalCaHT) : '—'}
-                  </span>{' '}
-                  • {data ? data.global.totalNbBl : 0} BL au total •{' '}
-                  {data ? data.global.totalEnseignes : 0} enseignes
-                </p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-background flex">
+      <AppSidebar data={data} agentFilter={agentFilter} onHome={handleHome} />
 
-            <div className="flex items-center gap-2 flex-wrap">
-              {data && (
-                <PeriodSelector
-                  periods={data.availablePeriods}
-                  currentYear={year!}
-                  currentMonth={month!}
-                  onPeriodChange={handlePeriodChange}
-                />
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleGeneratePdf(null)}
-                disabled={!data || generatingPdf}
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
-                title="Générer un bilan PDF global"
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Bilan PDF
-              </Button>
-              <ImportDialog onImported={handleImported} />
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => year && month && loadDashboard(year, month)}
-                title="Rafraîchir"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex-1">
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Calendar className="h-4 w-4 text-emerald-600" />
-            <span>
-              Période analysée :{' '}
-              <strong className="text-slate-900 dark:text-white">{currentPeriodLabel}</strong>
-              {data && data.kpis.previous && (
-                <span className="ml-2">
-                  • vs {data.kpis.previous.label} :{' '}
-                  <span
-                    className={
-                      data.kpis.evolution.caHT >= 0
-                        ? 'text-emerald-700 dark:text-emerald-400 font-medium'
-                        : 'text-rose-700 dark:text-rose-400 font-medium'
-                    }
-                  >
-                    {data.kpis.evolution.caHT >= 0 ? '+' : ''}
-                    {formatEuro(data.kpis.evolution.caHT)}
+      {/* Contenu principal décalé à droite du sidebar (w-64 = 16rem) */}
+      <div className="flex-1 ml-64 flex flex-col min-h-screen">
+        {/* === TOP BAR : uniquement Période + Agent + Bilan + Import === */}
+        <header className="border-b border-border bg-card sticky top-0 z-30">
+          <div className="px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {/* Titre période à gauche */}
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="h-4 w-4 text-primary" />
+                {viewMode === 'month' ? (
+                  <span className="text-muted-foreground">Période analysée :</span>
+                ) : (
+                  <span className="text-muted-foreground">Vue globale période :</span>
+                )}
+                <strong className="font-title text-foreground">
+                  {viewMode === 'month' ? currentPeriodLabel : 'Toute la période'}
+                </strong>
+                {viewMode === 'month' && data && data.kpis.previous && (
+                  <span className="ml-2 text-xs">
+                    <span className="text-muted-foreground">vs {data.kpis.previous.label} :</span>{' '}
+                    <span className={data.kpis.evolution.caHT >= 0 ? 'text-primary font-medium' : 'text-destructive font-medium'}>
+                      {data.kpis.evolution.caHT >= 0 ? '+' : ''}
+                      {formatEuro(data.kpis.evolution.caHT)}
+                    </span>
                   </span>
-                </span>
-              )}
-            </span>
-          </div>
-        </div>
-
-        {error && (
-          <Card className="border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/20 mb-6">
-            <CardContent className="p-4">
-              <p className="text-sm text-rose-700 dark:text-rose-400">Erreur : {error}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {loading || !data ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="mb-6">
-            <KpiGrid kpis={data.kpis} />
-          </div>
-        )}
-
-        {!loading && data && (
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="bg-slate-100 dark:bg-slate-900 flex flex-wrap h-auto">
-              <TabsTrigger
-                value="overview"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-              >
-                <LayoutDashboard className="h-4 w-4 mr-2" />
-                Vue d'ensemble
-              </TabsTrigger>
-              <TabsTrigger
-                value="agents"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Agents
-              </TabsTrigger>
-              <TabsTrigger
-                value="enseignes"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-              >
-                <Building2 className="h-4 w-4 mr-2" />
-                Enseignes
-              </TabsTrigger>
-              <TabsTrigger
-                value="clients"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-              >
-                <HeartHandshake className="h-4 w-4 mr-2" />
-                Suivi clients
-              </TabsTrigger>
-              <TabsTrigger
-                value="data"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-emerald-700"
-                onClick={loadSales}
-              >
-                <Table2 className="h-4 w-4 mr-2" />
-                Détail ventes
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-4">
-              <ChartsGrid
-                kpis={data.kpis}
-                monthlySeries={data.monthlySeries}
-                agents={data.agents}
-                enseignes={data.enseignes}
-              />
-              <TopEnseignesCard enseignes={data.enseignes} />
-            </TabsContent>
-
-            <TabsContent value="agents" className="space-y-4">
-              <div className="flex justify-end gap-2 flex-wrap">
-                {data.agents.map((a) => (
-                  <Button
-                    key={a.agent}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleGeneratePdf(a.agent)}
-                    disabled={generatingPdf}
-                    className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400"
-                  >
-                    <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                    Bilan {a.agent}
-                  </Button>
-                ))}
+                )}
               </div>
-              <AgentTable agents={data.agents} />
-              <Card className="border-slate-200 dark:border-slate-800">
-                <CardContent className="p-4">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Performance des commerciaux sur la période sélectionnée. Cliquez sur « Bilan &lt;agent&gt; » pour générer un rapport PDF individuel à lui envoyer.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="enseignes" className="space-y-4">
-              <EnseigneTable enseignes={data.enseignes} />
-            </TabsContent>
+              {/* Toggle Global / Mensuel */}
+              <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                <button
+                  onClick={() => setViewMode('month')}
+                  className={`px-3 py-1 text-xs font-medium rounded ${viewMode === 'month' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
+                >
+                  Mensuel
+                </button>
+                <button
+                  onClick={() => setViewMode('global')}
+                  className={`px-3 py-1 text-xs font-medium rounded ${viewMode === 'global' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
+                >
+                  <Globe className="h-3 w-3 inline mr-1" />Global
+                </button>
+              </div>
 
-            <TabsContent value="clients" className="space-y-4">
-              <CustomerFollowupTable customers={data.customerFollowup} />
-              <Card className="border-slate-200 dark:border-slate-800">
-                <CardContent className="p-4">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Suivi de fidélisation calculé sur toute la période disponible. Statut <strong>OK</strong> = commande dans le mois courant ou précédent • <strong>À relancer</strong> = 2 à 3 mois sans commande • <strong>Inactif</strong> = plus de 3 mois sans commande. La récurrence indique le pourcentage de mois avec commande depuis la 1ère commande.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              {/* Sélecteurs à droite */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {data && (
+                  <PeriodSelector
+                    periods={data.availablePeriods}
+                    currentYear={year!}
+                    currentMonth={month!}
+                    onPeriodChange={handlePeriodChange}
+                  />
+                )}
 
-            <TabsContent value="data" className="space-y-4">
-              {loadingSales ? (
-                <Skeleton className="h-96 rounded-xl" />
-              ) : (
-                <SalesDetailTable rows={salesRows} />
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-      </main>
+                {/* Sélecteur d'agent commercial */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted">
+                  <Users className="h-4 w-4 text-primary" />
+                  <Select value={agentFilter} onValueChange={handleAgentChange}>
+                    <SelectTrigger className="border-0 bg-transparent shadow-none p-0 h-auto focus:ring-0 font-medium w-[150px]">
+                      <SelectValue placeholder="Tous les agents" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les agents</SelectItem>
+                      {availableAgents.map((a) => (
+                        <SelectItem key={a} value={a}>
+                          {a}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mt-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
-          Données persistées en SQLite •{' '}
-          {data ? `${formatNumber(data.global.totalNbBl)} ventes historiques` : 'Chargement...'} •
-          {' '}Période : {data ? `${data.global.dateRange.start} → ${data.global.dateRange.end}` : '—'}
-        </div>
-      </footer>
+                <Button
+                  size="sm"
+                  onClick={() => handleGeneratePdf(agentFilter === 'all' ? null : agentFilter)}
+                  disabled={!data || generatingPdf}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  title="Générer un bilan PDF (agent sélectionné ou global)"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Bilan PDF
+                </Button>
+
+                <ImportDialog onImported={handleImported} />
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => year && month && loadDashboard(year, month, agentFilter)}
+                  title="Rafraîchir"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* === CONTENU PRINCIPAL === */}
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-6 flex-1">
+          {error && (
+            <Card className="border-destructive/30 bg-destructive/5 mb-6">
+              <CardContent className="p-4">
+                <p className="text-sm text-destructive">Erreur : {error}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {loading || !data ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-28 rounded-xl" />
+              ))}
+            </div>
+          ) : viewMode === 'global' ? (
+            <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              <Card className="border-primary/30 bg-primary/5"><CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase">CA Total HT</p>
+                <p className="text-xl font-title font-bold text-primary">{formatEuro(data.global.totalCaHT)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase">BL Total</p>
+                <p className="text-xl font-title font-bold">{formatNumber(data.global.totalNbBl)}</p>
+                <p className="text-[10px] text-muted-foreground">{data.global.totalBlDirect} D / {data.global.totalBlCentrale} C</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase">Commission</p>
+                <p className="text-xl font-title font-bold text-destructive">{formatEuro(data.global.totalCommission)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase">Colis vendus</p>
+                <p className="text-xl font-title font-bold">{formatNumber(data.global.totalColis ?? 0)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase">Pots vendus</p>
+                <p className="text-xl font-title font-bold">{formatNumber(data.global.totalPots ?? 0)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4">
+                <p className="text-xs text-muted-foreground uppercase">Enseignes</p>
+                <p className="text-xl font-title font-bold">{formatNumber(data.global.totalEnseignes)}</p>
+              </CardContent></Card>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <KpiGrid kpis={data.kpis} agentFilter={agentFilter} />
+            </div>
+          )}
+
+          {!loading && data && (
+            <Tabs defaultValue="overview" className="space-y-4">
+              <TabsList className="bg-muted flex flex-wrap h-auto">
+                <TabsTrigger
+                  value="overview"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary"
+                >
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  Vue d'ensemble
+                </TabsTrigger>
+                <TabsTrigger
+                  value="agents"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Agents
+                </TabsTrigger>
+                <TabsTrigger
+                  value="centrale-evolution"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary"
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Évolution CA
+                </TabsTrigger>
+                <TabsTrigger
+                  value="enseignes"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary"
+                >
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Enseignes
+                </TabsTrigger>
+                <TabsTrigger
+                  value="clients"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary"
+                >
+                  <HeartHandshake className="h-4 w-4 mr-2" />
+                  Clients à relancer
+                </TabsTrigger>
+                <TabsTrigger
+                  value="data"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary"
+                  onClick={loadSales}
+                >
+                  <Table2 className="h-4 w-4 mr-2" />
+                  Détail ventes
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="space-y-4">
+                {/* Synthèse globale CA Direct/Centrale sur la période */}
+                <SyntheseGlobale data={data} />
+
+                {/* Charts (pie + barres) */}
+                <ChartsGrid
+                  kpis={data.kpis}
+                  monthlySeries={data.monthlySeries}
+                  agents={data.agents}
+                  enseignes={data.enseignes}
+                />
+
+                {/* Performances des commerciaux sur TOUTE la période */}
+                <AgentPeriodPerformance agents={data.agentPeriodTotals} />
+
+                {/* Top enseignes du mois + top enseignes sur la période */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <TopEnseignesCard enseignes={data.enseignes} />
+                  <TopEnseignesPeriodCard enseignes={data.topEnseignesPeriod} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="agents" className="space-y-4">
+                <div className="flex justify-end gap-2 flex-wrap">
+                  {data.agents.map((a) => (
+                    <Button
+                      key={a.agent}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleGeneratePdf(a.agent)}
+                      disabled={generatingPdf}
+                      className="border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                      Bilan {a.agent}
+                    </Button>
+                  ))}
+                </div>
+                <AgentTable agents={data.agents} />
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">
+                      Performance des commerciaux sur la période sélectionnée. Cliquez sur
+                      « Bilan &lt;agent&gt; » pour générer un rapport PDF individuel à envoyer.
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="centrale-evolution" className="space-y-4">
+                <EvolutionCaCentrale monthlySeries={data.monthlySeries} />
+              </TabsContent>
+
+              <TabsContent value="enseignes" className="space-y-4">
+                <EnseigneTable enseignes={data.enseignes} />
+              </TabsContent>
+
+              <TabsContent value="clients" className="space-y-4">
+                <CustomerFollowupTable 
+                  customers={data.customerFollowup} 
+                  availableAgents={availableAgents}
+                />
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Règle de relance :</strong> un client est « à relancer » si sa dernière commande
+                      remonte à <strong>plus de 30 jours</strong> (délai de prise de commande = 1 mois), et « inactif »
+                      si elle remonte à <strong>plus de 90 jours</strong>. Les coopératives (SCAOUEST, SCACHAP,
+                      ALDOUEST, OTERA, SCAPEST) ne sont jamais marquées inactives car ce sont des structures
+                      récurrentes. La colonne <strong>« Dern. cmd »</strong> indique la date à appeler pour relancer.
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="data" className="space-y-4">
+                {loadingSales ? (
+                  <Skeleton className="h-96 rounded-xl" />
+                ) : (
+                  <SalesDetailTable rows={salesRows} />
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </main>
+
+        <footer className="border-t border-border bg-card mt-auto">
+          <div className="px-4 sm:px-6 lg:px-8 py-3 text-center text-xs text-muted-foreground">
+            {data ? `${formatNumber(data.global.totalNbBl)} ventes historiques` : 'Chargement...'} •
+            {' '}Période : {data ? `${data.global.dateRange.start} → ${data.global.dateRange.end}` : '—'}
+            {agentFilter !== 'all' ? ` • Commercial : ${agentFilter}` : ''}
+          </div>
+        </footer>
+      </div>
 
       <Toaster richColors position="top-right" />
     </div>

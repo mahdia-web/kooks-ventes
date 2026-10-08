@@ -1,56 +1,191 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// Vente individuelle - ligne d'un bon de livraison (BL)
 model Sale {
-  id           String   @id @default(cuid())
-  // N° BL optionnel (nouvel ERP peut ne pas l'avoir)
-  blNumber     String?
-  // Clé de dédoublonnage générée : = blNumber si présent, sinon hash de (date+enseigne+type+amountHT)
-  deduplicationKey String @unique
-  date         DateTime
-  enseigne     String
-  type         String   // "Direct" ou "Centrale"
-  agent        String
-  amountHT     Float
-  amountTTC    Float
-  rate         Float    // taux de commission (0.07 ou 0.05)
-  commission   Float
-  month        Int     // 1-12
-  year         Int     // ex 2025
-  createdAt    DateTime @default(now())
-
+  id               String   @id @default(cuid())
+  blNumber         String?
+  deduplicationKey String   @unique
+  date             DateTime
+  enseigne         String
+  type             String
+  agent            String
+  amountHT         Float
+  amountTTC        Float
+  rate             Float
+  commission       Float
+  month            Int
+  year             Int
+  createdAt        DateTime @default(now())
   @@index([year, month])
   @@index([agent])
   @@index([enseigne])
   @@index([date])
 }
 
-// Enseigne / client - liste de référence (cache de la table ENSEIGNES)
 model Enseigne {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  type         String   // "Direct" ou "Centrale"
-  agent        String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String
+  agent           String
+  commissionRate  Float?
+  isActive        Boolean  @default(true)
+  oteraLocation   String?
+  lastManualUpdate DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   @@index([agent])
   @@index([type])
 }
 
-// Paramètre global (mois courant, année courante, taux par défaut)
+model Agent {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  defaultDirectRate   Float    @default(0.07)
+  defaultCentraleRate Float    @default(0.05)
+  isActive            Boolean  @default(true)
+  endedAt             DateTime?
+  email               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
 model Parameter {
-  key    String   @id
-  value  String
+  key      String   @id
+  value    String
   updatedAt DateTime @updatedAt
+}
+
+// === Parfums (6 références Kooks) ===
+// Original, Peanut butter, Caramel, Crispy choco, Spec, Coco
+model Parfum {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+// === Formats / Conditionnements (4 références Kooks) ===
+// Lot de 2, Indiv Fouro, Indiv PAV 8, Box de 9
+// Le packaging (pots/colis, colis/palette, etc.) est attaché au Format
+model Format {
+  id                   String   @id @default(cuid())
+  name                 String   @unique
+  potsPerColis         Int      @default(1)
+  potsPerFormat        Int?                        // 2 pour Lot de 2, 9 pour Box de 9, null pour Indiv
+  unitesFormatPerColis Int?                        // 6 pour Lot de 2, 4 pour Box de 9, 8 pour Indiv
+  colisPerPalette      Int?                        // 320 pour Lot de 2, 140 pour Box de 9
+  potsPerPalette       Int?                        // 3840 pour Lot de 2, 5040 pour Box de 9
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  products Product[]
+}
+
+// === Catalogue de produits ===
+// Un Product = une combinaison (parfum × format)
+// Exemple: "Original - Lot de 2", "Coco - Box de 9", etc.
+// Chaque combinaison a ses propres prix d'achat et prix de vente par enseigne.
+model Product {
+  id                   String   @id @default(cuid())
+  name                 String   @unique              // "Original - Lot de 2" etc.
+  parfumId             String?
+  formatId             String?
+  parfum               Parfum?  @relation(fields: [parfumId], references: [id], onDelete: Cascade)
+  format               Format?  @relation(fields: [formatId], references: [id], onDelete: Cascade)
+  // Anciens champs (dépréciés — gardés temporairement pour ne pas casser db push)
+  description          String?
+  formatType           String?  @map("format")  // ancien nom "format"
+  potsPerColis         Int?
+  potsPerFormat        Int?
+  unitesFormatParColis Int?
+  colisParPalette      Int?
+  potsPerPalette       Int?
+  unit                 String?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  purchasePrices ProductPurchasePrice[]
+  salesPrices    ProductSalesPrice[]
+
+  @@unique([parfumId, formatId])
+}
+
+// === Prix d'achat ===
+// Historisé : endDate null = prix courant
+// Le parfum est maintenant sur le Product (parfumId), donc pas besoin de champ parfum ici.
+model ProductPurchasePrice {
+  id             String    @id @default(cuid())
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  parfum         String?   // @deprecated — migré vers Product.parfumId (gardé temporairement)
+  variant        String?   // @deprecated — gardé temporairement
+  pricePerPot    Float     // prix d'achat au pot
+  pricePerFormat Float?    // prix d'achat au format (lot de 2, boîte de 9) — null si pas de format
+  pricePerColis  Float     // prix d'achat au colis
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([productId])
+}
+
+// === Prix de vente par produit × enseigne ===
+// Chaque entrée = une combinaison (parfum × format) pour une enseigne
+// Tarif départ + remise% → prix final = tarif × (1 - remise%)
+// Permet aussi de savoir quels produits une enseigne achète
+// (si une enseigne a un tarif pour un produit, elle l'achète)
+model ProductSalesPrice {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  enseigne      String   // nom de l'enseigne (lié à Enseigne.name)
+  tarifDepart  Float     // tarif de départ (avant remise)
+  remisePercent Float    @default(0) // remise en %
+  finalPrice    Float     // = tarifDepart × (1 - remisePercent/100), auto-calculé
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([productId, enseigne])
+  @@index([productId])
+  @@index([enseigne])
+}
+
+// === Volumes vendus (quantités par produit) ===
+// Importé depuis l'étude "Analyse Factures Clients" (feuille DÉTAIL FACTURES)
+// Permet de tracker les VOLUMES (nb de colis) et les produits les plus vendus
+// SANS additionner le CA (qui est déjà dans la table Sale)
+model VolumeSale {
+  id           String   @id @default(cuid())
+  date         DateTime
+  month        Int
+  year         Int
+  enseigne     String   // nom du client
+  productLabel String   // libellé complet (ex: "ORIGINAL COOKIE (LOT 2)")
+  parfum       String?  // extrait: "Original", "Crispy Choco", etc.
+  format       String?  // extrait: "LOT 2", "BOX 9", etc.
+  quantity     Int      // quantité vendue (nb de colis)
+  unitPrice    Float?   // PU HT (prix unitaire)
+  factureRef   String?  // numéro de facture
+  createdAt    DateTime @default(now())
+
+  @@index([year, month])
+  @@index([enseigne])
+  @@index([parfum])
+  @@index([format])
+  @@index([date])
 }

@@ -6,6 +6,7 @@ import {
   formatEuro,
   formatNumber,
   formatPercent,
+  formatDate,
   monthLabel,
 } from '@/lib/dashboard-service';
 import type {
@@ -124,16 +125,26 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     { align: 'right' }
   );
 
-  // Cartes KPI (4 cartes synthétiques)
+  // Cartes KPI (6 cartes synthétiques : CA Total, CA Direct, CA Centrale, Commission, BL Total, BL Direct/Centrale)
   const kpiCardsY = bandeY + 32;
-  const cardW = (contentWidth - 9) / 4; // 4 cartes avec 3mm gaps
+  const cardW = (contentWidth - 15) / 6; // 6 cartes avec 5mm gaps (3mm entre)
   const cardH = 28;
 
+  // Palette Kooks — couleurs contrastées Direct vs Centrale
+  const kooksOrange: [number, number, number] = [247, 169, 65];   // #f7a941 primaire
+  const kooksCobalt: [number, number, number] = [54, 116, 181];   // #3674b5 Direct (bleu)
+  const kooksMint: [number, number, number] = [166, 214, 201];     // #a6d6c9 (alternative)
+  const kooksRed: [number, number, number] = [227, 6, 19];        // #e30613 commission
+  const kooksCaramel: [number, number, number] = [187, 126, 64];   // #bb7e40 (alternative)
+  const kooksYellow: [number, number, number] = [255, 225, 17];   // #ffe111 BL D/C
+
   const kpiCards = [
-    { label: 'CA HT', value: formatEuro(c.caHT), color: [5, 150, 105] },
-    { label: 'Commission', value: formatEuro(c.commission), color: [13, 148, 136] },
-    { label: 'Nb BL', value: formatNumber(c.nbBl), color: [8, 145, 178] },
-    { label: 'AOV', value: formatEuro(c.aovGlobal), color: [124, 58, 237] },
+    { label: 'CA Total HT', value: formatEuro(c.caHT), color: kooksOrange },
+    { label: 'CA Direct (7%)', value: formatEuro(c.caDirect), color: kooksCobalt },
+    { label: 'CA Centrale (5%)', value: formatEuro(c.caCentrale), color: kooksOrange },
+    { label: 'Commission', value: formatEuro(c.commission), color: kooksRed },
+    { label: 'BL Total', value: formatNumber(c.nbBl), color: kooksCaramel },
+    { label: 'BL D / C', value: `${c.nbBlDirect} / ${c.nbBlCentrale}`, color: kooksYellow },
   ];
 
   kpiCards.forEach((kpi, idx) => {
@@ -145,11 +156,11 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
     doc.rect(x, kpiCardsY, cardW, 1.5, 'F');
     // Texte
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
     doc.setFont('helvetica', 'bold');
     doc.text(kpi.label.toUpperCase(), x + cardW / 2, kpiCardsY + 9, { align: 'center' });
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
     doc.text(kpi.value, x + cardW / 2, kpiCardsY + 18, { align: 'center' });
   });
@@ -196,9 +207,9 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   const partDirect = c.partCaDirect;
   const partCentrale = c.partCaCentrale;
 
-  doc.setFillColor(5, 150, 105); // Direct = emerald
+  doc.setFillColor(54, 116, 181); // Direct = cobalt Kooks (très distinct de l'orange Centrale)
   doc.rect(margin + 6, barY, barW * partDirect, barH, 'F');
-  doc.setFillColor(13, 148, 136); // Centrale = teal
+  doc.setFillColor(247, 169, 65); // Centrale = orange Kooks
   doc.rect(margin + 6 + barW * partDirect, barY, barW * partCentrale, barH, 'F');
 
   // Légendes
@@ -259,7 +270,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         isAgentSpecific ? 'Cet agent' : `${data.global.totalEnseignes} au total`],
     ],
     theme: 'grid',
-    headStyles: { fillColor: [5, 150, 105], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+    headStyles: { fillColor: [247, 169, 65], textColor: 255, fontStyle: 'bold', fontSize: 10 }, // Kooks orange
     bodyStyles: { textColor: [15, 23, 42], fontSize: 9 },
     columnStyles: {
       0: { cellWidth: 55, fontStyle: 'bold' },
@@ -294,25 +305,27 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
 
   autoTable(doc, {
     startY: yPos,
-    head: [['#', 'Enseigne', 'Type', 'BL', 'CA HT', 'Part']],
+    head: [['#', 'Enseigne', 'Type', 'BL', 'CA HT', 'Prix moy.', 'Part']],
     body: top10.map((e, idx) => [
       String(idx + 1),
       e.enseigne,
       e.type,
       String(e.nbBl),
       formatEuro(e.caHT),
+      formatEuro(e.prixVenteMoyen),
       formatPercent(e.share / 100),
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [13, 148, 136], textColor: 255, fontSize: 9 },
+    headStyles: { fillColor: [187, 126, 64], textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 8, cellPadding: 2 },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 18, halign: 'center' },
       3: { cellWidth: 12, halign: 'right' },
-      4: { cellWidth: 28, halign: 'right' },
-      5: { cellWidth: 18, halign: 'right' },
+      4: { cellWidth: 26, halign: 'right' },
+      5: { cellWidth: 24, halign: 'right' },
+      6: { cellWidth: 18, halign: 'right' },
     },
     styles: { overflow: 'linebreak' },
     margin: { left: margin, right: margin },
@@ -340,7 +353,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       head: [['Enseigne', 'BL', 'CA HT']],
       body: directTop.map((e) => [e.enseigne, String(e.nbBl), formatEuro(e.caHT)]),
       theme: 'striped',
-      headStyles: { fillColor: [5, 150, 105], textColor: 255, fontSize: 8 },
+      headStyles: { fillColor: [247, 169, 65], textColor: 255, fontSize: 8 },
       bodyStyles: { fontSize: 8, cellPadding: 1.8 },
       columnStyles: {
         0: { cellWidth: 'auto' },
@@ -369,7 +382,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       head: [['Enseigne', 'BL', 'CA HT']],
       body: centraleTop.map((e) => [e.enseigne, String(e.nbBl), formatEuro(e.caHT)]),
       theme: 'striped',
-      headStyles: { fillColor: [13, 148, 136], textColor: 255, fontSize: 8 },
+      headStyles: { fillColor: [187, 126, 64], textColor: 255, fontSize: 8 },
       bodyStyles: { fontSize: 8, cellPadding: 1.8 },
       columnStyles: {
         0: { cellWidth: 'auto' },
@@ -420,7 +433,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         cu.type,
         String(cu.nbBlTotal),
         formatEuro(cu.caTotal),
-        cu.lastOrder ?? '—',
+        formatDate(cu.lastOrder),
         String(cu.monthsSinceLastOrder),
         formatPercent(cu.recurrence),
       ]),
@@ -462,7 +475,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         cu.enseigne,
         cu.type,
         formatEuro(cu.caTotal),
-        cu.lastOrder ?? '—',
+        formatDate(cu.lastOrder),
         String(cu.monthsSinceLastOrder),
       ]),
       theme: 'striped',
@@ -503,7 +516,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         formatPercent(a.share / 100),
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [5, 150, 105], textColor: 255, fontSize: 9 },
+      headStyles: { fillColor: [247, 169, 65], textColor: 255, fontSize: 9 },
       bodyStyles: { fontSize: 9, cellPadding: 2.5 },
       columnStyles: {
         0: { cellWidth: 8, halign: 'center' },
@@ -549,10 +562,10 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       String(e.nbBl),
       formatEuro(e.caHT),
       formatPercent(e.share / 100),
-      e.lastOrder ?? '—',
+      formatDate(e.lastOrder),
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [5, 150, 105], textColor: 255, fontSize: 8 },
+    headStyles: { fillColor: [247, 169, 65], textColor: 255, fontSize: 8 },
     bodyStyles: { fontSize: 8, cellPadding: 1.8 },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
@@ -583,10 +596,10 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       String(e.nbBl),
       formatEuro(e.caHT),
       formatPercent(e.share / 100),
-      e.lastOrder ?? '—',
+      formatDate(e.lastOrder),
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [13, 148, 136], textColor: 255, fontSize: 8 },
+    headStyles: { fillColor: [187, 126, 64], textColor: 255, fontSize: 8 },
     bodyStyles: { fontSize: 8, cellPadding: 1.8 },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },

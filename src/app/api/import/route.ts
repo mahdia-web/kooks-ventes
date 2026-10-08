@@ -4,9 +4,7 @@ import { db } from '@/lib/db';
 import { setCurrentPeriod } from '@/lib/dashboard-service';
 
 // POST /api/import
-// Body: multipart/form-data avec un champ "file" (Excel) et optionnellement "mapping" (JSON string)
-// Le fichier peut être SUIVI_AGENTS_FINAL_V2.xlsx complet OU un fichier mensuel du nouvel ERP sans N° BL.
-// Détection automatique des colonnes + mapping utilisateur optionnel.
+// Body: multipart/form-data avec champs "file" (Excel), "forceType", "forceAgent", "replaceDuplicates", "detectOnly"
 export async function POST(req: NextRequest) {
   console.log('=== POST /api/import ===');
   try {
@@ -14,6 +12,9 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file');
     const mappingRaw = formData.get('mapping') as string | null;
     const detectOnly = formData.get('detectOnly') === 'true';
+    const forceType = (formData.get('forceType') as string | null) ?? 'auto';
+    const forceAgent = (formData.get('forceAgent') as string | null) ?? '';
+    const replaceDuplicates = formData.get('replaceDuplicates') === 'true';
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`Fichier reçu : ${file.name} (${file.size} octets) detectOnly=${detectOnly}`);
+    console.log(`Fichier reçu : ${file.name} (${file.size} octets) detectOnly=${detectOnly} forceType=${forceType} forceAgent=${forceAgent} replaceDuplicates=${replaceDuplicates}`);
 
     let buffer: ArrayBuffer;
     try {
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     for (let tryRow = 0; tryRow < 5; tryRow++) {
       try {
         const testRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-          raw: true,
+          raw: false,
           defval: null,
           range: tryRow,
         });
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
         const testHeaders = Object.keys(testRows[0]).map((h) => h.toLowerCase());
         const hasDate = testHeaders.some((h) => h.includes('date'));
         const hasOther = testHeaders.some((h) =>
-          h.includes('enseigne') || h.includes('client') || h.includes('agent') || h.includes('commercial') || h.includes('montant') || h.includes('ca') || h.includes('bl')
+          h.includes('enseigne') || h.includes('client') || h.includes('montant') || h.includes('ca') || h.includes('ht')
         );
         if (hasDate && hasOther) {
           headerRowIdx = tryRow;
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     if (headers.length === 0) {
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-        raw: true,
+        raw: false,
         defval: null,
       });
       if (rows.length === 0) {
@@ -101,48 +102,25 @@ export async function POST(req: NextRequest) {
 
     console.log(`En-têtes détectés (ligne ${headerRowIdx + 1}) : ${headers.join(', ')}`);
 
+    // Lit les lignes en raw=false (texte) pour bien gérer les décimales françaises (436,16 vs 43616)
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-      raw: true,
+      raw: false,
       defval: null,
       range: headerRowIdx,
     });
 
-    // Mapping des colonnes : soit fourni par l'utilisateur, soit auto-détecté
+    // Helper de normalisation (gère les accents et apostrophes)
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[''`]/g, '').trim();
+
+    // Auto-détection des colonnes (avec unicité)
+    const usedCols = new Set<string>();
     const findCol = (patterns: string[]): string | null => {
       for (const p of patterns) {
-        const pl = p.toLowerCase();
+        const pl = normalize(p);
         const found = headers.find((h) => {
-          const hl = h.toLowerCase().trim();
-          return hl === pl || hl.includes(pl);
-        });
-        if (found) return found;
-      }
-      return null;
-    };
-
-    let mapping: {
-      date: string | null;
-      bl: string | null;
-      enseigne: string | null;
-      type: string | null;
-      agent: string | null;
-      ht: string | null;
-      ttc: string | null;
-      taux: string | null;
-      commission: string | null;
-      mois: string | null;
-      annee: string | null;
-    };
-
-    // Auto-détection de base (sera surchargée par le mapping utilisateur si fourni)
-    // On utilise un Set des colonnes déjà assignées pour éviter les conflits
-    const usedCols = new Set<string>();
-    const findColUnique = (patterns: string[]): string | null => {
-      for (const p of patterns) {
-        const pl = p.toLowerCase();
-        const found = headers.find((h) => {
-          if (usedCols.has(h)) return false; // skip déjà assignées
-          const hl = h.toLowerCase().trim();
+          if (usedCols.has(h)) return false;
+          const hl = normalize(h);
           return hl === pl || hl.includes(pl);
         });
         if (found) {
@@ -153,40 +131,40 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
-    // L'ordre des détections compte pour éviter les conflits (ex: "Taux Commission")
-    // On détecte d'abord les colonnes les plus spécifiques, puis les génériques
-    const autoMapping = {
-      // D'abord les champs précis
-      bl: findColUnique(['N° BL', 'NUMERO BL', 'N BL', 'BON', 'BL']),
-      type: findColUnique(['TYPE', 'CANAL']),
-      agent: findColUnique(['AGENT', 'COMMERCIAL', 'REPRESENTANT']),
-      enseigne: findColUnique(['ENSEIGNE', 'CLIENT']),
-      date: findColUnique(['DATE']),
-      // Puis montants et taux - dans l'ordre du plus spécifique au moins spécifique
-      taux: findColUnique(['TAUX']), // capte "Taux Commission" et "Taux"
-      commission: findColUnique(['MONTANT COMMISSION', 'COMMISSION']), // évite "Taux Commission" déjà pris
-      ht: findColUnique(['MONTANT HT', 'CA HT', 'HT']),
-      ttc: findColUnique(['MONTANT TTC', 'CA TTC', 'TTC']),
-      mois: findColUnique(['MOIS']),
-      annee: findColUnique(['ANN']),
+    // Ordre important : du plus spécifique au moins spécifique pour éviter les conflits
+    const auto = {
+      taux: findCol(['% MARGE COMMERCIALE','MARGE COMMERCIALE','TAUX']),
+      commission: findCol(['MONTANT COMMISSION','COMMISSION']),
+      bl: findCol(['NUMERO BL','N° BL','NUMERO','N BL','BON DE LIVRAISON','BL','RÉFÉRENCE','REFERENCE','REF']),
+      agent: findCol(['COMMERCIAL','AGENT','REPRESENTANT','VENDEUR']),
+      reference: findCol(['RÉFÉRENCE','REFERENCE','REF']),
+      type: findCol(['TYPE','CANAL','CIRCUIT']),
+      enseigne: findCol(['ENSEIGNE','CLIENT','MAGASIN']),
+      date: findCol(['DATE']),
+      ht: findCol(['MONTANT HT','CA HT','MT HT','HT']),
+      ttc: findCol(['MONTANT TTC','CA TTC','MT TTC','TTC']),
+      // Ne pas détecter MOIS/ANNEE : on utilise toujours la date parsée
+      mois: null as string | null,
+      annee: null as string | null,
     };
 
+    let mapping: typeof auto;
     if (mappingRaw) {
       try {
-        const parsed = JSON.parse(mappingRaw);
-        // Pour chaque champ : utilise la valeur fournie, sinon l'auto-détection
+        const p = JSON.parse(mappingRaw);
         mapping = {
-          date: parsed.date ?? autoMapping.date,
-          bl: parsed.bl ?? autoMapping.bl,
-          enseigne: parsed.enseigne ?? autoMapping.enseigne,
-          type: parsed.type ?? autoMapping.type,
-          agent: parsed.agent ?? autoMapping.agent,
-          ht: parsed.ht ?? autoMapping.ht,
-          ttc: parsed.ttc ?? autoMapping.ttc,
-          taux: parsed.taux ?? autoMapping.taux,
-          commission: parsed.commission ?? autoMapping.commission,
-          mois: parsed.mois ?? autoMapping.mois,
-          annee: parsed.annee ?? autoMapping.annee,
+          taux: p.taux ?? auto.taux,
+          commission: p.commission ?? auto.commission,
+          bl: p.bl ?? auto.bl,
+          agent: p.agent ?? auto.agent,
+          reference: p.reference ?? auto.reference,
+          type: p.type ?? auto.type,
+          enseigne: p.enseigne ?? auto.enseigne,
+          date: p.date ?? auto.date,
+          ht: p.ht ?? auto.ht,
+          ttc: p.ttc ?? auto.ttc,
+          mois: null, // forcé : on n'utilise jamais de colonnes MOIS/ANNEE
+          annee: null,
         };
         console.log('Mapping utilisateur + auto-détection :', mapping);
       } catch {
@@ -196,54 +174,39 @@ export async function POST(req: NextRequest) {
         );
       }
     } else {
-      mapping = autoMapping;
+      mapping = auto;
       console.log('Mapping auto-détecté :', mapping);
     }
 
-    // Validation : date et (ht OU ttc OU commission) sont obligatoires
+    // Validation
     if (!mapping.date) {
       return NextResponse.json(
-        {
-          ok: false,
-          error: `Colonne "DATE" introuvable. Colonnes détectées : ${headers.join(', ')}`,
-          detectedColumns: headers,
-          mapping,
-        },
+        { ok: false, error: `Colonne "DATE" introuvable. Colonnes détectées : ${headers.join(', ')}`, detectedColumns: headers, mapping },
         { status: 400 }
       );
     }
-
     if (!mapping.ht && !mapping.ttc) {
       return NextResponse.json(
-        {
-          ok: false,
-          error: `Aucune colonne de montant (HT ou TTC) détectée. Colonnes : ${headers.join(', ')}`,
-          detectedColumns: headers,
-          mapping,
-        },
+        { ok: false, error: `Aucune colonne de montant (HT ou TTC) détectée. Colonnes : ${headers.join(', ')}`, detectedColumns: headers, mapping },
         { status: 400 }
       );
     }
-
     if (!mapping.enseigne) {
       return NextResponse.json(
-        {
-          ok: false,
-          error: `Aucune colonne "ENSEIGNE" ou "CLIENT" détectée. Colonnes : ${headers.join(', ')}`,
-          detectedColumns: headers,
-          mapping,
-        },
+        { ok: false, error: `Aucune colonne "ENSEIGNE" ou "CLIENT" détectée. Colonnes : ${headers.join(', ')}`, detectedColumns: headers, mapping },
         { status: 400 }
       );
     }
 
-    // Récupère les deduplicationKeys déjà en base
+    // Charge les données existantes
     const existingKeys = new Set(
       (await db.sale.findMany({ select: { deduplicationKey: true } })).map((s) => s.deduplicationKey)
     );
-    console.log(`Clés déjà en base : ${existingKeys.size}`);
+    const existingEnseignes = await db.enseigne.findMany();
+    const enseigneTypeMap = new Map(existingEnseignes.map((e) => [e.name, e.type]));
+    const activeAgents = await db.agent.findMany({ where: { isActive: true }, select: { name: true } });
+    console.log(`Clés déjà en base : ${existingKeys.size}, enseignes : ${existingEnseignes.length}, agents actifs : ${activeAgents.length}`);
 
-    // Prépare les ventes à insérer
     const toInsert: Array<{
       blNumber: string | null;
       deduplicationKey: string;
@@ -259,10 +222,7 @@ export async function POST(req: NextRequest) {
       year: number;
     }> = [];
     const newEnseignes = new Map<string, { name: string; type: string; agent: string }>();
-    let skippedNoDate = 0;
-    let skippedNoAmount = 0;
-    let skippedDuplicate = 0;
-    let skippedInvalid = 0;
+    let skippedNoDate = 0, skippedNoAmount = 0, skippedDuplicate = 0, skippedInvalid = 0;
     const errors: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
@@ -276,40 +236,12 @@ export async function POST(req: NextRequest) {
       const ttcRaw = mapping.ttc ? row[mapping.ttc] : null;
       const tauxRaw = mapping.taux ? row[mapping.taux] : null;
       const commissionRaw = mapping.commission ? row[mapping.commission] : null;
-      const moisRaw = mapping.mois ? row[mapping.mois] : null;
-      const anneeRaw = mapping.annee ? row[mapping.annee] : null;
 
-      // Parsing date
-      let date: Date | null = null;
-      if (dateRaw instanceof Date) {
-        date = dateRaw;
-      } else if (typeof dateRaw === 'number') {
-        const epoch = new Date(Date.UTC(1899, 11, 30));
-        date = new Date(epoch.getTime() + dateRaw * 86400000);
-      } else if (typeof dateRaw === 'string' && dateRaw.trim()) {
-        const trimmed = dateRaw.trim();
-        const dmy = trimmed.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
-        if (dmy) {
-          const day = parseInt(dmy[1], 10);
-          const month = parseInt(dmy[2], 10);
-          let year = parseInt(dmy[3], 10);
-          if (year < 100) year += 2000;
-          date = new Date(year, month - 1, day);
-        } else {
-          const parsed = new Date(trimmed);
-          if (!isNaN(parsed.getTime())) date = parsed;
-        }
-      }
-      if (!date || isNaN(date.getTime()) || date.getFullYear() < 2020) {
-        skippedNoDate++;
-        continue;
-      }
-
-      // Skip si pas d'enseigne ni de montant
       const toStr = (v: unknown): string => (v ? String(v).trim() : '');
       const toNum = (v: unknown): number => {
         if (typeof v === 'number') return v;
         if (typeof v === 'string') {
+          // Gère les formats français : "1 234,56 €" → 1234.56
           const cleaned = v.replace(/\s/g, '').replace(/€/g, '').replace(',', '.');
           const n = parseFloat(cleaned);
           return isNaN(n) ? 0 : n;
@@ -317,37 +249,111 @@ export async function POST(req: NextRequest) {
         return 0;
       };
 
+      // Parsing date : gère Date, nombre (Excel serial), string (DD/MM/YYYY ou ISO)
+      let date: Date | null = null;
+      if (dateRaw instanceof Date) {
+        date = dateRaw;
+      } else if (typeof dateRaw === 'number') {
+        const epoch = new Date(Date.UTC(1899, 11, 30));
+        date = new Date(epoch.getTime() + dateRaw * 86400000);
+      } else if (typeof dateRaw === 'string' && dateRaw.trim()) {
+        const t = dateRaw.trim();
+        // Format DD/MM/YYYY ou DD-MM-YYYY
+        const m = t.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+        if (m) {
+          const d = parseInt(m[1], 10);
+          const mo = parseInt(m[2], 10);
+          let y = parseInt(m[3], 10);
+          if (y < 100) y += 2000;
+          date = new Date(y, mo - 1, d);
+        } else {
+          const p = new Date(t);
+          if (!isNaN(p.getTime())) date = p;
+        }
+      }
+
+      if (!date || isNaN(date.getTime()) || date.getFullYear() < 2020) {
+        skippedNoDate++;
+        continue;
+      }
+
       const enseigne = toStr(enseigneRaw);
-      if (!enseigne) {
+      if (!enseigne || /^(total|totaux|somme)$/i.test(enseigne)) {
         skippedInvalid++;
         continue;
       }
 
       const amountHT = toNum(htRaw);
       const amountTTC = toNum(ttcRaw);
-      // Si HT absent mais TTC présent : estimer HT = TTC / 1.056 (TVA 5.6% alimentaire) ou / 1.2
+      // Si HT absent mais TTC présent : estimer HT = TTC / 1.056 (TVA 5.6% alimentaire)
       const finalHT = amountHT || (amountTTC ? amountTTC / 1.056 : 0);
       if (finalHT === 0) {
         skippedNoAmount++;
         continue;
       }
 
-      const type = toStr(typeRaw) || 'Direct';
-      const agent = toStr(agentRaw) || 'Inconnu';
-      const rate = toNum(tauxRaw) || (type === 'Direct' ? 0.07 : 0.05);
-      const commission = toNum(commissionRaw) || finalHT * rate;
-      const month = moisRaw ? Math.floor(toNum(moisRaw)) || date.getMonth() + 1 : date.getMonth() + 1;
-      const year = anneeRaw ? Math.floor(toNum(anneeRaw)) || date.getFullYear() : date.getFullYear();
+      // === Détection du type Centrale/Direct ===
+      // Priorité : forceType > type en base (enseigne) > type dans le fichier > auto-détection par nom
+      const ne = normalize(enseigne);
+      const isCentrale = [
+        'otera','scapest','scachap','scaouest','aldouest',
+        'centra approvi','cooperative approvisionnement','societe cooperative dapprovi'
+      ].some((p) => ne.includes(p));
+
+      let type = '';
+      if (forceType && forceType !== 'auto') {
+        type = forceType;
+      } else if (enseigneTypeMap.has(enseigne)) {
+        type = enseigneTypeMap.get(enseigne)!;
+      } else {
+        type = toStr(typeRaw) || (isCentrale ? 'Centrale' : 'Direct');
+      }
+
+      // === Détection de l'agent ===
+      // Priorité : forceAgent > colonne agent du fichier > extraction depuis référence > 'Inconnu'
+      let agent = (forceAgent && forceAgent.trim()) || toStr(agentRaw);
+      if (!agent && mapping.reference) {
+        const ref = toStr(row[mapping.reference]);
+        // Cherche "via XXX" ou "par XXX" dans la référence
+        const m2 = ref.match(/\b(?:via|par)\s+([A-Z][A-Z\s&]{2,30})/);
+        if (m2) {
+          agent = m2[1].trim().split(/\s+(?:À|A|ET|DE|POUR)\s+/)[0].trim();
+        }
+        // Cherche le nom d'un agent actif dans la référence
+        if (!agent) {
+          const ru = ref.toUpperCase();
+          for (const a of activeAgents) {
+            if (ru.includes(a.name.toUpperCase())) {
+              agent = a.name;
+              break;
+            }
+          }
+        }
+      }
+      if (!agent) agent = 'Inconnu';
+
+      // === Taux de commission ===
+      // Règle Kooks : 7% sur le CA Direct, 5% sur le CA Centrale
+      const explicitRate = toNum(tauxRaw);
+      const rate = explicitRate > 0
+        ? (explicitRate > 1 ? explicitRate / 100 : explicitRate)
+        : (type === 'Centrale' ? 0.05 : 0.07);
+
+      // === Montant commission ===
+      const explicitCommission = toNum(commissionRaw);
+      const commission = explicitCommission > 0 ? explicitCommission : finalHT * rate;
 
       // BL optionnel
       const blNumber = blRaw ? toStr(blRaw) : null;
 
-      // deduplicationKey : BL si présent, sinon hash de (date+enseigne+type+amountHT)
+      // deduplicationKey : BL+agent si BL présent, sinon hash incluant l'agent
+      // (l'agent est inclus pour éviter les faux doublons entre CAP FRAIS et BROCARD)
       const deduplicationKey = blNumber
-        || `${date.toISOString().split('T')[0]}|${enseigne}|${type}|${finalHT.toFixed(2)}`;
+        ? `${blNumber}|${agent}`
+        : `${date.toISOString().split('T')[0]}|${enseigne}|${type}|${finalHT.toFixed(2)}|${agent}`;
 
-      // Vérifie doublons (base + intra-batch)
-      if (existingKeys.has(deduplicationKey)) {
+      // Vérifie doublons
+      if (!replaceDuplicates && existingKeys.has(deduplicationKey)) {
         skippedDuplicate++;
         continue;
       }
@@ -367,11 +373,11 @@ export async function POST(req: NextRequest) {
         amountTTC: amountTTC || finalHT * 1.056,
         rate,
         commission,
-        month,
-        year,
+        // TOUJOURS utiliser la date parsée (jamais de colonnes MOIS/ANNEE)
+        month: date.getMonth() + 1,
+        year: date.getFullYear(),
       });
 
-      // Enseigne de référence
       if (!newEnseignes.has(enseigne)) {
         newEnseignes.set(enseigne, { name: enseigne, type, agent });
       }
@@ -379,7 +385,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`Pré-import : ${toInsert.length} à insérer, doublons=${skippedDuplicate}, sans date=${skippedNoDate}, sans montant=${skippedNoAmount}, invalides=${skippedInvalid}`);
 
-    // Mode détection : on renvoie juste le mapping + un aperçu sans rien insérer
+    // Mode détection : on renvoie juste le mapping + un aperçu
     if (detectOnly) {
       return NextResponse.json({
         ok: true,
@@ -403,12 +409,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Insertion
-    let inserted = 0;
+    // Insertion (avec update si replaceDuplicates)
+    let inserted = 0, updated = 0;
     for (const v of toInsert) {
       try {
-        await db.sale.create({ data: v });
-        inserted++;
+        if (replaceDuplicates && existingKeys.has(v.deduplicationKey)) {
+          const { deduplicationKey, ...ud } = v;
+          await db.sale.updateMany({
+            where: { deduplicationKey: v.deduplicationKey },
+            data: ud,
+          });
+          updated++;
+        } else {
+          await db.sale.create({ data: v });
+          inserted++;
+        }
       } catch (e) {
         // Doublon (race condition) : ignore
       }
@@ -424,17 +439,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Met à jour la période courante si on a importé
-    if (inserted > 0) {
-      const lastDate = toInsert.reduce((max, v) =>
-        v.date > max ? v.date : max, toInsert[0].date);
-      await setCurrentPeriod(lastDate.getFullYear(), lastDate.getMonth() + 1);
-      console.log(`Période mise à jour : ${lastDate.getMonth() + 1}/${lastDate.getFullYear()}`);
+    if (inserted > 0 || updated > 0) {
+      const nd = toInsert.reduce((max, v) => v.date > max ? v.date : max, toInsert[0].date);
+      const dbLatest = await db.sale.findFirst({ orderBy: { date: 'desc' }, select: { date: true } });
+      const ol = dbLatest && dbLatest.date > nd ? dbLatest.date : nd;
+      await setCurrentPeriod(ol.getFullYear(), ol.getMonth() + 1);
+      console.log(`Période mise à jour : ${ol.getMonth() + 1}/${ol.getFullYear()}`);
     }
 
     const totalSkipped = skippedNoDate + skippedNoAmount + skippedDuplicate + skippedInvalid;
     const detail = [
-      `${inserted} nouvelle(s) vente(s)`,
-      skippedDuplicate > 0 ? `${skippedDuplicate} doublon(s)` : null,
+      `${inserted} nouvelle(s)`,
+      updated > 0 ? `${updated} MAJ` : null,
+      (!replaceDuplicates && skippedDuplicate > 0) ? `${skippedDuplicate} doublon(s)` : null,
       skippedNoDate > 0 ? `${skippedNoDate} sans date` : null,
       skippedNoAmount > 0 ? `${skippedNoAmount} sans montant` : null,
       skippedInvalid > 0 ? `${skippedInvalid} invalide(s)` : null,
@@ -444,43 +461,28 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      result: {
-        inserted,
-        skipped: totalSkipped,
-        errors,
-        total: toInsert.length,
-      },
+      result: { inserted, updated, skipped: totalSkipped, total: toInsert.length },
       detail,
       detectedMapping: mapping,
       detectedColumns: headers,
+      totals: {
+        commission: toInsert.reduce((s, v) => s + v.commission, 0),
+        caHT: toInsert.reduce((s, v) => s + v.amountHT, 0),
+      },
     });
   } catch (e) {
     console.error('Erreur non gérée /api/import:', e);
     return NextResponse.json(
-      {
-        ok: false,
-        error: e instanceof Error ? e.message : 'Erreur serveur inattendue',
-      },
+      { ok: false, error: e instanceof Error ? e.message : 'Erreur serveur inattendue' },
       { status: 500 }
     );
   }
 }
 
-// GET /api/import/detect?file=... : détecte les colonnes d'un fichier sans importer
-// Utilisé pour afficher le mapping dans l'UI avant validation
+// GET /api/import/detect?file=... : non utilisé (le mapping est détecté dans le POST)
 export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    // Cette route GET ne fait rien de spécial pour l'instant
-    // Le mapping est détecté dans le POST
-    return NextResponse.json({
-      ok: true,
-      message: 'Utilisez POST pour importer un fichier.',
-    });
-  } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : 'Erreur' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({
+    ok: true,
+    message: 'Utilisez POST pour importer un fichier.',
+  });
 }

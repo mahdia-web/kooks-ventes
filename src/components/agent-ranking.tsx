@@ -53,7 +53,7 @@ export function AgentRanking({ agents }: AgentRankingProps) {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{agent.agent}</TableCell>
-                  <TableCell className="text-right font-semibold text-emerald-700 dark:text-emerald-400">
+                  <TableCell className="text-right font-semibold text-primary dark:text-primary">
                     {formatEuro(agent.totalAmount)}
                   </TableCell>
                   <TableCell className="text-right hidden sm:table-cell">

@@ -26,7 +26,7 @@ interface ChartsProps {
 
 // Palette cohérente (sans indigo/bleu dominant)
 const COLORS = [
-  '#059669', '#0d9488', '#0891b2', '#65a30d',
+  '#3674b5', '#f7a941', '#bb7e40', '#a6d6c9',
   '#ca8a04', '#dc2626', '#db2777', '#7c3aed',
   '#0f766e', '#4d7c0f', '#b45309', '#9333ea',
 ];
@@ -92,7 +92,7 @@ export function SalesByAgentChart({ result }: ChartsProps) {
               />
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => formatNumber(Math.round(v / 1000)) + 'k'} />
               <Tooltip content={<ChartTooltipContent formatter={(v: number) => formatEuro(v)} />} />
-              <Bar dataKey="amount" fill="#059669" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="amount" fill="#3674b5" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -215,19 +215,19 @@ export function SalesOverTimeChart({ result }: ChartsProps) {
                 type="monotone"
                 dataKey="amount"
                 name="Chiffre d'affaires"
-                stroke="#059669"
+                stroke="#3674b5"
                 strokeWidth={2.5}
-                dot={{ r: 3, fill: '#059669' }}
+                dot={{ r: 3, fill: '#3674b5' }}
               />
               <Line
                 yAxisId="quantity"
                 type="monotone"
                 dataKey="quantity"
                 name="Quantité"
-                stroke="#0d9488"
+                stroke="#f7a941"
                 strokeWidth={2.5}
                 strokeDasharray="4 4"
-                dot={{ r: 3, fill: '#0d9488' }}
+                dot={{ r: 3, fill: '#f7a941' }}
               />
             </LineChart>
           </ResponsiveContainer>

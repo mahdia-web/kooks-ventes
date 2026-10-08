@@ -7,7 +7,7 @@ import { formatEuro } from '@/lib/dashboard-service';
 import type { EnseigneStat } from '@/lib/dashboard-types';
 
 const COLORS = [
-  '#059669', '#0d9488', '#0891b2', '#65a30d',
+  '#3674b5', '#f7a941', '#bb7e40', '#a6d6c9',
   '#ca8a04', '#dc2626', '#db2777', '#7c3aed',
 ];
 
@@ -82,13 +82,13 @@ export function TopEnseignesCard({ enseignes }: TopEnseignesCardProps) {
               </TabsTrigger>
               <TabsTrigger
                 value="direct"
-                className="data-[state=active]:bg-emerald-100 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-emerald-950/30 dark:data-[state=active]:text-emerald-400 text-xs h-7"
+                className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary dark:data-[state=active]:bg-emerald-950/30 dark:data-[state=active]:text-primary text-xs h-7"
               >
                 Direct ({direct.length})
               </TabsTrigger>
               <TabsTrigger
                 value="centrale"
-                className="data-[state=active]:bg-teal-100 data-[state=active]:text-teal-700 dark:data-[state=active]:bg-teal-950/30 dark:data-[state=active]:text-teal-400 text-xs h-7"
+                className="data-[state=active]:bg-primary/15 data-[state=active]:text-primary dark:data-[state=active]:bg-teal-950/30 dark:data-[state=active]:text-primary text-xs h-7"
               >
                 Centrale ({centrale.length})
               </TabsTrigger>

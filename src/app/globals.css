@@ -6,8 +6,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-kooks-body);
+  --font-title: var(--font-kooks-title);
+  --font-mono: var(--font-kooks-body);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -45,71 +46,89 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  /* === CHARTRE GRAPHIQUE KOOKS === */
+  /* Beige "LA COMMUNE" comme fond */
+  --background: #fdf6e3;
+  --foreground: #2c1e0c;
+
+  /* Cartes blanches cassées pour le contraste sur le beige */
+  --card: #fffaf0;
+  --card-foreground: #2c1e0c;
+
+  --popover: #ffffff;
+  --popover-foreground: #2c1e0c;
+
+  /* Orange "L'ORIGINAL" comme couleur primaire */
+  --primary: #f7a941;
+  --primary-foreground: #2c1e0c;
+
+  /* Menthe "SPÉCULOOS" comme secondary */
+  --secondary: #a6d6c9;
+  --secondary-foreground: #2c1e0c;
+
+  --muted: #f5e9c8;
+  --muted-foreground: #7a654a;
+
+  --accent: #a6d6c9;
+  --accent-foreground: #2c1e0c;
+
+  /* Rouge Kooks pour les alertes/destructive */
+  --destructive: #e30613;
+
+  --border: #e8d6a4;
+  --input: #e8d6a4;
+  --ring: #f7a941;
+
+  /* Couleurs des charts Kooks */
+  --chart-1: #f7a941; /* orange */
+  --chart-2: #e30613; /* rouge */
+  --chart-3: #a6d6c9; /* menthe */
+  --chart-4: #bb7e40; /* caramel */
+  --chart-5: #3674b5; /* cobalt */
+
+  --sidebar: #fff5db;
+  --sidebar-foreground: #2c1e0c;
+  --sidebar-primary: #f7a941;
+  --sidebar-primary-foreground: #2c1e0c;
+  --sidebar-accent: #a6d6c9;
+  --sidebar-accent-foreground: #2c1e0c;
+  --sidebar-border: #e8d6a4;
+  --sidebar-ring: #f7a941;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1a1206;
+  --foreground: #fdf6e3;
+  --card: #2c1e0c;
+  --card-foreground: #fdf6e3;
+  --popover: #2c1e0c;
+  --popover-foreground: #fdf6e3;
+  --primary: #f7a941;
+  --primary-foreground: #1a1206;
+  --secondary: #4a3520;
+  --secondary-foreground: #fdf6e3;
+  --muted: #3a2814;
+  --muted-foreground: #b89a6a;
+  --accent: #4a3520;
+  --accent-foreground: #fdf6e3;
+  --destructive: #e30613;
+  --border: #4a3520;
+  --input: #4a3520;
+  --ring: #f7a941;
+  --chart-1: #f7a941;
+  --chart-2: #e30613;
+  --chart-3: #a6d6c9;
+  --chart-4: #bb7e40;
+  --chart-5: #3674b5;
+  --sidebar: #1a1206;
+  --sidebar-foreground: #fdf6e3;
+  --sidebar-primary: #f7a941;
+  --sidebar-primary-foreground: #1a1206;
+  --sidebar-accent: #4a3520;
+  --sidebar-accent-foreground: #fdf6e3;
+  --sidebar-border: #4a3520;
+  --sidebar-ring: #f7a941;
 }
 
 @layer base {
@@ -118,5 +137,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-kooks-body), 'Archivo', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-kooks-title), 'Fredoka', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 }

@@ -24,24 +24,33 @@ import {
 import type { AgentStat, EnseigneStat, KpiData, MonthlyStat } from '@/lib/dashboard-types';
 
 const COLORS = [
-  '#059669', '#0d9488', '#0891b2', '#65a30d',
+  '#3674b5', '#f7a941', '#bb7e40', '#a6d6c9',
   '#ca8a04', '#dc2626', '#db2777', '#7c3aed',
 ];
 
 function ChartTooltip({ active, payload, label, formatter }: any) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-md text-sm">
-      <p className="font-medium mb-1 text-slate-900 dark:text-slate-100">{label}</p>
-      {payload.map((entry: any, idx: number) => (
-        <p key={idx} className="text-slate-700 dark:text-slate-300">
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-sm mr-2 align-middle"
-            style={{ backgroundColor: entry.color || entry.fill }}
-          />
-          {formatter ? formatter(entry.value) : entry.value}
-        </p>
-      ))}
+    <div className="rounded-lg border border-border bg-card p-3 shadow-md text-sm">
+      <p className="font-medium mb-1">{label}</p>
+      {payload.map((entry: any, idx: number) => {
+        // Détection intelligente : si la clé contient "nb", "BL", "count", "nombre"
+        // → afficher comme un nombre, sinon comme euro
+        const dataKeyName = (entry.dataKey || entry.name || '').toLowerCase();
+        const isCount = dataKeyName.includes('nb') || dataKeyName.includes('bl') || dataKeyName.includes('count') || dataKeyName.includes('nombre');
+        const valueStr = isCount
+          ? formatNumber(entry.value)
+          : (formatter ? formatter(entry.value) : formatEuro(entry.value));
+        return (
+          <p key={idx} className="text-foreground">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-sm mr-2 align-middle"
+              style={{ backgroundColor: entry.color || entry.fill }}
+            />
+            {entry.name}: <strong>{valueStr}</strong>
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -82,6 +91,7 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                   yAxisId="nb"
                   orientation="right"
                   tick={{ fontSize: 11, fill: '#64748b' }}
+                  tickFormatter={(v) => formatNumber(v)}
                 />
                 <Tooltip
                   content={<ChartTooltip formatter={(v: number) => formatEuro(v)} />}
@@ -91,7 +101,7 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                   yAxisId="ca"
                   dataKey="caHT"
                   name="CA HT"
-                  fill="#059669"
+                  fill="#3674b5"
                   radius={[6, 6, 0, 0]}
                   barSize={28}
                 />
@@ -100,9 +110,9 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                   type="monotone"
                   dataKey="nbBl"
                   name="Nombre BL"
-                  stroke="#0d9488"
+                  stroke="#f7a941"
                   strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#0d9488' }}
+                  dot={{ r: 3, fill: '#f7a941' }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
@@ -123,8 +133,8 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Direct', value: kpis.current.caDirect, color: '#059669' },
-                      { name: 'Centrale', value: kpis.current.caCentrale, color: '#0d9488' },
+                      { name: 'Direct', value: kpis.current.caDirect, color: '#3674b5' },
+                      { name: 'Centrale', value: kpis.current.caCentrale, color: '#f7a941' },
                     ]}
                     dataKey="value"
                     nameKey="name"
@@ -135,8 +145,8 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                     paddingAngle={2}
                   >
                     {[
-                      { name: 'Direct', value: kpis.current.caDirect, color: '#059669' },
-                      { name: 'Centrale', value: kpis.current.caCentrale, color: '#0d9488' },
+                      { name: 'Direct', value: kpis.current.caDirect, color: '#3674b5' },
+                      { name: 'Centrale', value: kpis.current.caCentrale, color: '#f7a941' },
                     ].map((entry, idx) => (
                       <Cell key={idx} fill={entry.color} />
                     ))}
@@ -180,7 +190,7 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                   <Tooltip
                     content={<ChartTooltip formatter={(v: number) => formatEuro(v)} />}
                   />
-                  <Bar dataKey="caHT" fill="#059669" radius={[0, 6, 6, 0]} barSize={22} />
+                  <Bar dataKey="caHT" fill="#3674b5" radius={[0, 6, 6, 0]} barSize={22} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -222,7 +232,7 @@ export function ChartsGrid({ kpis, monthlySeries, agents, enseignes }: ChartsPro
                   yAxisId="commission"
                   dataKey="commission"
                   name="Commission"
-                  fill="#0d9488"
+                  fill="#f7a941"
                   radius={[6, 6, 0, 0]}
                   barSize={22}
                 />
