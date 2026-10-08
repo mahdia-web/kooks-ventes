@@ -41,6 +41,19 @@ export function formatPercent(value: number): string {
   return `${sign}${(value * 100).toFixed(1)}%`;
 }
 
+// Formate une date ISO (YYYY-MM-DD) en JJ/MM/AAAA
+export function formatDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return '—';
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${day}/${month}/${year}`;
+  }
+  const d = new Date(isoDate);
+  if (isNaN(d.getTime())) return '—';
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
 // Récupère la période courante depuis les paramètres de la base
 export async function getCurrentPeriod(): Promise<{ year: number; month: number }> {
   const yearParam = await db.parameter.findUnique({ where: { key: 'currentYear' } });
