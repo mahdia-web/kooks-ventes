@@ -177,7 +177,18 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
+      // Gère le cas où le serveur retourne du texte (timeout Vercel) au lieu de JSON
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(
+          res.status === 504 || res.status === 502
+            ? 'Le serveur a mis trop de temps à répondre (timeout). Le fichier est peut-être trop volumineux.'
+            : `Réponse serveur invalide (${res.status}). Le fichier est peut-être au mauvais format.`
+        );
+      }
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `Erreur HTTP ${res.status}`);
       }
