@@ -3,14 +3,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Store, FileText } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SettingsPanel } from '@/components/settings-panel';
+import { ClientTariffPanel } from '@/components/client-tariff-panel';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatEuro, formatNumber } from '@/lib/dashboard-service';
 
 export default function ClientsPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [tab, setTab] = useState('clients');
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -26,7 +29,6 @@ export default function ClientsPage() {
   }, []);
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
-
   const handleHome = () => { window.location.href = '/'; };
 
   return (
@@ -40,11 +42,11 @@ export default function ClientsPage() {
               <Link href="/">
                 <Button variant="outline" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Retour au tableau de bord
+                  Retour
                 </Button>
               </Link>
               <div className="hidden sm:flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
+                <Store className="h-5 w-5 text-primary" />
                 <h1 className="font-title text-lg font-bold">Clients</h1>
               </div>
             </div>
@@ -59,7 +61,26 @@ export default function ClientsPage() {
         </header>
 
         <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6">
-          <SettingsPanel initialTab="enseignes" />
+          <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+            <TabsList className="bg-muted flex flex-wrap h-auto">
+              <TabsTrigger value="clients" className="data-[state=active]:bg-card data-[state=active]:text-primary">
+                <Store className="h-4 w-4 mr-2" />
+                Liste clients
+              </TabsTrigger>
+              <TabsTrigger value="tarifs" className="data-[state=active]:bg-card data-[state=active]:text-primary">
+                <FileText className="h-4 w-4 mr-2" />
+                Grille tarifaire
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="clients" className="space-y-4">
+              <SettingsPanel initialTab="enseignes" />
+            </TabsContent>
+
+            <TabsContent value="tarifs" className="space-y-4">
+              <ClientTariffPanel />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
     </div>

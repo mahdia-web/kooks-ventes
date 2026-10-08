@@ -5,11 +5,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Store, Package, GitMerge, ArrowLeft, BarChart3, FileText } from 'lucide-react';
+import { Users, Store, Package, GitMerge, ArrowLeft, BarChart3 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SettingsPanel } from '@/components/settings-panel';
 import { ProductsTarifsPanel } from '@/components/products-tarifs-panel';
-import { ClientTariffPanel } from '@/components/client-tariff-panel';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatEuro, formatNumber } from '@/lib/dashboard-service';
 
@@ -92,13 +91,6 @@ export default function SettingsPage() {
                 Produits & Tarifs
               </TabsTrigger>
               <TabsTrigger
-                value="client-tariffs"
-                className="data-[state=active]:bg-card data-[state=active]:text-primary"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Grille Tarifaire Clients
-              </TabsTrigger>
-              <TabsTrigger
                 value="doublons"
                 className="data-[state=active]:bg-card data-[state=active]:text-primary"
               >
@@ -113,10 +105,6 @@ export default function SettingsPage() {
 
             <TabsContent value="products" className="space-y-4">
               <ProductsTarifsPanel />
-            </TabsContent>
-
-            <TabsContent value="client-tariffs" className="space-y-4">
-              <ClientTariffPanel />
             </TabsContent>
 
             <TabsContent value="doublons" className="space-y-4">
