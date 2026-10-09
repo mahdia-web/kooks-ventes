@@ -411,27 +411,73 @@ export default function Home() {
                 {/* Synthèse globale CA Direct/Centrale sur la période */}
                 <SyntheseGlobale data={data} />
 
-                {/* Charts (pie + barres) */}
+                {/* Charts (pie + barres) — utilise les données mensuelles ou globales selon le mode */}
                 <ChartsGrid
-                  kpis={data.kpis}
+                  kpis={viewMode === 'global' ? {
+                    ...data.kpis,
+                    current: {
+                      ...data.kpis.current,
+                      caHT: data.global.totalCaHT,
+                      caDirect: data.global.totalCaDirect,
+                      caCentrale: data.global.totalCaCentrale,
+                      nbBl: data.global.totalNbBl,
+                      nbBlDirect: data.global.totalBlDirect,
+                      nbBlCentrale: data.global.totalBlCentrale,
+                      commission: data.global.totalCommission,
+                      aovGlobal: data.global.totalNbBl > 0 ? data.global.totalCaHT / data.global.totalNbBl : 0,
+                      partCaDirect: data.global.totalCaHT > 0 ? data.global.totalCaDirect / data.global.totalCaHT : 0,
+                      partCaCentrale: data.global.totalCaHT > 0 ? data.global.totalCaCentrale / data.global.totalCaHT : 0,
+                      nbEnseignesActives: data.global.totalEnseignes,
+                      enseignesActives: [],
+                    },
+                    previous: null,
+                    evolution: { caHT: 0, caHTPercent: 0, commission: 0, commissionPercent: 0, nbBl: 0, nbBlPercent: 0 },
+                  } : data.kpis}
                   monthlySeries={data.monthlySeries}
-                  agents={data.agents}
-                  enseignes={data.enseignes}
+                  agents={viewMode === 'global' ? data.agentPeriodTotals.map(a => ({
+                    agent: a.agent,
+                    caHT: a.caHT,
+                    caTTC: a.caHT,
+                    commission: a.commission,
+                    nbBl: a.nbBl,
+                    nbBlDirect: a.nbBlDirect,
+                    nbBlCentrale: a.nbBlCentrale,
+                    caDirect: a.caDirect,
+                    caCentrale: a.caCentrale,
+                    aov: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+                    share: a.share,
+                    enseignesActives: a.enseignesActives,
+                    prixVenteMoyen: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+                  })) : data.agents}
+                  enseignes={viewMode === 'global' ? data.topEnseignesPeriod.map(e => ({
+                    enseigne: e.enseigne,
+                    type: e.type,
+                    agent: e.agent,
+                    caHT: e.caHT,
+                    nbBl: e.nbBl,
+                    share: e.share,
+                    lastOrder: e.lastOrder,
+                    prixVenteMoyen: e.nbBl > 0 ? e.caHT / e.nbBl : 0,
+                  })) : data.enseignes}
                 />
 
                 {/* Performances des commerciaux sur TOUTE la période */}
                 <AgentPeriodPerformance agents={data.agentPeriodTotals} />
 
-                {/* Top enseignes du mois + top enseignes sur la période */}
+                {/* Top enseignes */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <TopEnseignesCard enseignes={data.enseignes} />
+                  {viewMode === 'global' ? (
+                    <TopEnseignesPeriodCard enseignes={data.topEnseignesPeriod} />
+                  ) : (
+                    <TopEnseignesCard enseignes={data.enseignes} />
+                  )}
                   <TopEnseignesPeriodCard enseignes={data.topEnseignesPeriod} />
                 </div>
               </TabsContent>
 
               <TabsContent value="agents" className="space-y-4">
                 <div className="flex justify-end gap-2 flex-wrap">
-                  {data.agents.map((a) => (
+                  {(viewMode === 'global' ? data.agentPeriodTotals : data.agents).map((a: any) => (
                     <Button
                       key={a.agent}
                       variant="outline"
@@ -445,11 +491,17 @@ export default function Home() {
                     </Button>
                   ))}
                 </div>
-                <AgentTable agents={data.agents} />
+                <AgentTable agents={viewMode === 'global' ? data.agentPeriodTotals.map(a => ({
+                  agent: a.agent, caHT: a.caHT, caTTC: a.caHT, commission: a.commission,
+                  nbBl: a.nbBl, nbBlDirect: a.nbBlDirect, nbBlCentrale: a.nbBlCentrale,
+                  caDirect: a.caDirect, caCentrale: a.caCentrale,
+                  aov: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+                  share: a.share, enseignesActives: a.enseignesActives,
+                })) as any : data.agents} />
                 <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">
-                      Performance des commerciaux sur la période sélectionnée. Cliquez sur
+                      {viewMode === 'global' ? 'Performance sur TOUTE la période.' : 'Performance sur la période sélectionnée.'} Cliquez sur
                       « Bilan &lt;agent&gt; » pour générer un rapport PDF individuel à envoyer.
                     </p>
                   </CardContent>
@@ -461,7 +513,11 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="enseignes" className="space-y-4">
-                <EnseigneTable enseignes={data.enseignes} />
+                <EnseigneTable enseignes={viewMode === 'global' ? data.topEnseignesPeriod.map(e => ({
+                  enseigne: e.enseigne, type: e.type, agent: e.agent,
+                  caHT: e.caHT, nbBl: e.nbBl, share: e.share, lastOrder: e.lastOrder,
+                  prixVenteMoyen: e.nbBl > 0 ? e.caHT / e.nbBl : 0,
+                })) as any : data.enseignes} />
               </TabsContent>
 
               <TabsContent value="clients" className="space-y-4">
