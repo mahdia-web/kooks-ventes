@@ -699,3 +699,129 @@ export async function getDashboardData(
     },
   };
 }
+
+// Charge le dashboard pour une plage de dates (startDate/endDate en DD/MM/YYYY)
+export async function getDashboardDataForDateRange(
+  startDateStr: string,
+  endDateStr: string,
+  agentFilter?: string | null
+): Promise<DashboardData> {
+  // Parse DD/MM/YYYY
+  const m1 = startDateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const m2 = endDateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m1 || !m2) {
+    throw new Error('Format de date invalide. Utilisez JJ/MM/AAAA');
+  }
+  const startDate = new Date(parseInt(m1[3]), parseInt(m1[2]) - 1, parseInt(m1[1]));
+  const endDate = new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]));
+  endDate.setHours(23, 59, 59);
+
+  const dateWhere = { date: { gte: startDate, lte: endDate } };
+  const totalWhere = agentFilter ? { ...dateWhere, agent: agentFilter } : dateWhere;
+
+  // Récupère toutes les ventes dans la plage
+  const sales = await db.sale.findMany({
+    where: totalWhere,
+    select: { agent: true, type: true, amountHT: true, amountTTC: true, commission: true, enseigne: true, date: true, blNumber: true, rate: true },
+    orderBy: { date: 'asc' },
+  });
+
+  // Calcule les KPIs pour la plage
+  const caHT = sales.reduce((s, r) => s + r.amountHT, 0);
+  const caTTC = sales.reduce((s, r) => s + r.amountTTC, 0);
+  const commission = sales.reduce((s, r) => s + r.commission, 0);
+  const nbBl = sales.length;
+  const directSales = sales.filter(s => s.type === 'Direct');
+  const centraleSales = sales.filter(s => s.type === 'Centrale');
+  const caDirect = directSales.reduce((s, r) => s + r.amountHT, 0);
+  const caCentrale = centraleSales.reduce((s, r) => s + r.amountHT, 0);
+  const nbBlDirect = directSales.length;
+  const nbBlCentrale = centraleSales.length;
+  const enseignesActives = Array.from(new Set(sales.map(s => s.enseigne)));
+
+  // Stats par agent dans la plage
+  const byAgent = new Map<string, any>();
+  for (const r of sales) {
+    const a = byAgent.get(r.agent) ?? {
+      agent: r.agent, caHT: 0, caTTC: 0, commission: 0, nbBl: 0, nbBlDirect: 0, nbBlCentrale: 0,
+      caDirect: 0, caCentrale: 0, enseignes: new Set<string>(),
+    };
+    a.caHT += r.amountHT; a.caTTC += r.amountTTC; a.commission += r.commission; a.nbBl += 1;
+    a.enseignes.add(r.enseigne);
+    if (r.type === 'Direct') { a.nbBlDirect += 1; a.caDirect += r.amountHT; }
+    else { a.nbBlCentrale += 1; a.caCentrale += r.amountHT; }
+    byAgent.set(r.agent, a);
+  }
+  const agents = Array.from(byAgent.values()).map(a => ({
+    agent: a.agent, caHT: a.caHT, caTTC: a.caTTC, commission: a.commission,
+    nbBl: a.nbBl, nbBlDirect: a.nbBlDirect, nbBlCentrale: a.nbBlCentrale,
+    caDirect: a.caDirect, caCentrale: a.caCentrale,
+    enseignesActives: a.enseignes.size,
+    share: caHT > 0 ? (a.caHT / caHT) * 100 : 0,
+    aov: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+    prixVenteMoyen: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+  })).sort((a, b) => b.caHT - a.caHT);
+
+  // Stats par enseigne dans la plage
+  const byEnseigne = new Map<string, any>();
+  for (const r of sales) {
+    const e = byEnseigne.get(r.enseigne) ?? { enseigne: r.enseigne, type: r.type, agent: r.agent, caHT: 0, nbBl: 0, lastOrder: null as Date | null };
+    e.caHT += r.amountHT; e.nbBl += 1;
+    if (!e.lastOrder || r.date > e.lastOrder) e.lastOrder = r.date;
+    byEnseigne.set(r.enseigne, e);
+  }
+  const enseignes = Array.from(byEnseigne.values()).map(e => ({
+    ...e, share: caHT > 0 ? (e.caHT / caHT) * 100 : 0,
+    prixVenteMoyen: e.nbBl > 0 ? e.caHT / e.nbBl : 0,
+    lastOrder: e.lastOrder ? e.lastOrder.toISOString().split('T')[0] : null,
+  })).sort((a, b) => b.caHT - a.caHT);
+
+  // Globaux (non filtrés par date)
+  const agentPeriodTotals = await computeAgentPeriodTotals();
+  const topEnseignesPeriod = await computeTopEnseignesPeriod(agentFilter);
+  const customerFollowup = await computeCustomerFollowup(endDate.getFullYear(), endDate.getMonth() + 1, agentFilter);
+  const monthlySeries = await computeMonthlySeries(agentFilter);
+  const availablePeriods = await getAvailablePeriods(agentFilter);
+
+  // Volumes
+  const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
+  const allVolumes = await db.volumeSale.findMany({ select: { quantity: true, format: true } });
+  let colisAgg = 0, potsAgg = 0;
+  for (const v of allVolumes) {
+    colisAgg += v.quantity;
+    potsAgg += v.quantity * (v.format ? (FORMAT_POTS_MAP[v.format] ?? 1) : 1);
+  }
+  const totalEnseignes = await db.enseigne.count();
+
+  return {
+    kpis: {
+      current: {
+        month: endDate.getMonth() + 1, year: endDate.getFullYear(),
+        label: `${startDateStr} - ${endDateStr}`,
+        caHT, caTTC, commission, nbBl, nbBlDirect, nbBlCentrale,
+        caDirect, caCentrale,
+        aovDirect: nbBlDirect > 0 ? caDirect / nbBlDirect : 0,
+        aovCentrale: nbBlCentrale > 0 ? caCentrale / nbBlCentrale : 0,
+        aovGlobal: nbBl > 0 ? caHT / nbBl : 0,
+        partCaDirect: caHT > 0 ? caDirect / caHT : 0,
+        partCaCentrale: caHT > 0 ? caCentrale / caHT : 0,
+        nbEnseignesActives: enseignesActives.length, enseignesActives,
+      },
+      previous: null,
+      evolution: { caHT: 0, caHTPercent: 0, commission: 0, commissionPercent: 0, nbBl: 0, nbBlPercent: 0 },
+    },
+    monthlySeries, agents, agentPeriodTotals, enseignes, topEnseignesPeriod,
+    customerFollowup, availablePeriods,
+    currentPeriod: { year: endDate.getFullYear(), month: endDate.getMonth() + 1 },
+    agentFilter: agentFilter ?? null,
+    global: {
+      totalCaHT: caHT, totalCommission: commission, totalNbBl: nbBl, totalEnseignes,
+      totalCaDirect: caDirect, totalCaCentrale: caCentrale,
+      totalBlDirect: nbBlDirect, totalBlCentrale: nbBlCentrale,
+      totalCommissionDirect: directSales.reduce((s, r) => s + r.commission, 0),
+      totalCommissionCentrale: centraleSales.reduce((s, r) => s + r.commission, 0),
+      totalColis: colisAgg, totalPots: potsAgg,
+      dateRange: { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] },
+    },
+  };
+}

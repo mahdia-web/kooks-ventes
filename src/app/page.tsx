@@ -39,6 +39,7 @@ import { SalesDetailTable } from '@/components/sales-detail-table';
 import { ImportDialog } from '@/components/import-dialog';
 import { PeriodSelector } from '@/components/period-selector';
 import { AppSidebar } from '@/components/app-sidebar';
+import { DateRangeFilter } from '@/components/date-range-filter';
 import { generateBilanPdf } from '@/components/bilan-pdf';
 import { formatEuro, formatNumber, monthLabel } from '@/lib/dashboard-service';
 import type { DashboardData, SaleRow } from '@/lib/dashboard-types';
@@ -53,7 +54,8 @@ export default function Home() {
   const [month, setMonth] = useState<number | null>(null);
   const [agentFilter, setAgentFilter] = useState<string>('all');
   const [availableAgents, setAvailableAgents] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'month' | 'global'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'global' | 'daterange'>('month');
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [error, setError] = useState<string | null>(null);
 
   // Chargement initial : période courante + agents
@@ -91,13 +93,20 @@ export default function Home() {
     })();
   }, []);
 
-  const loadDashboard = useCallback(async (y: number, m: number, agent: string) => {
+  const loadDashboard = useCallback(async (y: number, m: number, agent: string, dr?: { start: string; end: string }) => {
     setLoading(true);
     setError(null);
     try {
-      const url = `/api/dashboard?year=${y}&month=${m}&agent=${encodeURIComponent(agent)}`;
+      let url: string;
+      if (dr && dr.start && dr.end) {
+        url = `/api/dashboard?startDate=${encodeURIComponent(dr.start)}&endDate=${encodeURIComponent(dr.end)}&agent=${encodeURIComponent(agent)}`;
+      } else {
+        url = `/api/dashboard?year=${y}&month=${m}&agent=${encodeURIComponent(agent)}`;
+      }
       const res = await fetch(url);
-      const json = await res.json();
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { throw new Error('Réponse serveur invalide'); }
       if (!json.ok) throw new Error(json.error);
       setData(json.data);
     } catch (e) {
@@ -109,9 +118,13 @@ export default function Home() {
 
   useEffect(() => {
     if (year !== null && month !== null) {
-      loadDashboard(year, month, agentFilter);
+      if (viewMode === 'daterange' && dateRange.start && dateRange.end) {
+        loadDashboard(year, month, agentFilter, dateRange);
+      } else {
+        loadDashboard(year, month, agentFilter);
+      }
     }
-  }, [year, month, agentFilter, loadDashboard]);
+  }, [year, month, agentFilter, viewMode, dateRange, loadDashboard]);
 
   const loadSales = useCallback(async () => {
     if (year === null || month === null) return;
@@ -256,14 +269,18 @@ export default function Home() {
 
               {/* Sélecteurs à droite */}
               <div className="flex items-center gap-2 flex-wrap">
-                {data && (
-                  <PeriodSelector
-                    periods={data.availablePeriods}
-                    currentYear={year!}
-                    currentMonth={month!}
-                    onPeriodChange={handlePeriodChange}
-                  />
-                )}
+                <DateRangeFilter
+                  startDate={dateRange.start}
+                  endDate={dateRange.end}
+                  onChange={(start, end) => {
+                    setDateRange({ start, end });
+                    setViewMode('daterange');
+                  }}
+                  onReset={() => {
+                    setDateRange({ start: '', end: '' });
+                    setViewMode('month');
+                  }}
+                />
 
                 {/* Sélecteur d'agent commercial */}
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted">
@@ -325,7 +342,7 @@ export default function Home() {
                 <Skeleton key={i} className="h-28 rounded-xl" />
               ))}
             </div>
-          ) : viewMode === 'global' ? (
+          ) : viewMode === 'global' || viewMode === 'daterange' ? (
             <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <Card className="border-primary/30 bg-primary/5"><CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase">CA Total HT</p>
