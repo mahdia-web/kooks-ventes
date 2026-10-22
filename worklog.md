@@ -138,3 +138,83 @@ Stage Summary:
 - All 217 volume clients now appear in the dropdown (was 20)
 - Clients page has an agent selector to filter by commercial
 - Production URL: https://venteskooks.vercel.app
+
+---
+Task ID: searchable-volumes-dropdown-dedup
+Agent: main
+Task: Add intelligent search to volumes client dropdown + dedup accent/space variants
+
+Work Log:
+
+User feedback:
+1. Make the volumes client dropdown searchable (intelligent search) — 217
+   items is too many to scroll through alphabetically
+2. Avoid duplicates in the list (some clients appear twice with slight
+   name variations)
+3. "Old data disappeared" — user couldn't find specific clients in the
+   giant list
+
+Investigation:
+- /api/volumes/clients returned 217 distinct names (exact match)
+- After accent/whitespace normalization, 2 duplicate groups found:
+  * 'SAS AUCHAN HYPERMARCHE' vs 'SAS AUCHAN HYPERMARCHÉ' (accent é vs e)
+  * 'SAS OTERA MERIGNAC' vs "SAS O'TERA MERIGNAC" (apostrophe vs no apostrophe)
+- VolumeSale data is intact: 18,283 records, date range 2024-10-02 → 2026-08-31
+- The 'data disappeared' complaint was a UX issue: user couldn't find their
+  client in the giant alphabetical list. Adding search will fix this.
+
+Code changes pushed to GitHub (commit d817bff):
+
+1. NEW component: src/components/searchable-client-select.tsx
+   - Combobox pattern (Popover + Command from cmdk) with search input
+   - Real-time filtering as the user types
+   - Insensitive to accents (é→e) and case (AUCHAN = auchan)
+   - Matches on ANY word in the name, not just prefix
+   - 'Tous les clients' option pinned at top
+   - '(N variants)' badge when a canonical name groups multiple stored variants
+   - Truncates long names in the trigger button (max 28 chars)
+   - Resets search when the menu closes
+
+2. /api/volumes/clients (rewritten):
+   - Returns [{ canonical, variants[] }] instead of plain string array
+   - Dedup by normalized key (uppercase + accent-strip + apostrophe-strip
+     + space-collapse + trim). Names that differ ONLY by accents/spaces/
+     apostrophes get merged into a single entry with all spellings as
+     variants.
+   - Canonical name = shortest variant (cleanest form)
+   - Returns stats: { totalRaw: 217, deduplicated: 215, duplicatesMerged: 2 }
+   - The 2 duplicates merged in production:
+     * 'SAS AUCHAN HYPERMARCHÉ' (1 variant was without accent)
+     * "SAS O'TERA MERIGNAC" (1 variant was without apostrophe)
+
+3. /api/volumes/stats:
+   - Accept pipe-separated enseigne names (?enseigne=A|B|C) and use whereIn
+     to match all variants. Lets the user filter on the canonical name
+     while still matching all stored spellings (so no data is lost).
+   - filteredEnseigne in the response returns only the canonical name
+     (not the pipe-separated string) for clean display in the UI.
+
+4. /volumes page:
+   - Replaced the plain Select dropdown with the new SearchableClientSelect
+   - State holds selectedClientVariants (pipe-separated, sent to API) and
+     selectedClientCanonical (displayed in trigger) separately
+   - When user selects 'SAS AUCHAN HYPERMARCHÉ', the API query becomes
+     ?enseigne=SAS AUCHAN HYPERMARCHÉ|SAS AUCHAN HYPERMARCHE which
+     matches both spellings in the database → 357 records / 1759 colis
+   - Removed the unused Select import
+
+Production verification:
+- /api/volumes/clients returns 215 deduplicated entries (was 217)
+  with 2 duplicate groups merged
+- /api/volumes/stats?enseigne=A|B returns combined data for both variants
+  (357 records, 1759 colis for SAS AUCHAN HYPERMARCHE variants)
+- /volumes, /clients, / pages all return 200 OK
+
+Stage Summary:
+- Volumes dropdown now has a search box (intelligent, accent-insensitive)
+- Duplicate client names (accent/apostrophe variants) are merged — user
+  sees a clean 215-entry list instead of 217 with duplicates
+- Selecting a merged client queries ALL stored spellings → no data lost
+- "Missing data" was a UX issue (couldn't find client in giant list) —
+  now solvable via search
+- Production URL: https://venteskooks.vercel.app/volumes
