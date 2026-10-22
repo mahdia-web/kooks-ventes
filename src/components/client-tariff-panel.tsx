@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ChevronDown, ChevronRight, Euro, Store, Search, LayoutList, ListTree } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Store, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatEuro, formatNumber } from '@/lib/dashboard-service';
+import { formatEuro } from '@/lib/dashboard-service';
 
 interface Product {
   id: string; name: string;
@@ -40,11 +40,6 @@ export function ClientTariffPanel() {
   const [newClientAgent, setNewClientAgent] = useState('CAP FRAIS');
   // Per-client add-product form state
   const [addForms, setAddForms] = useState<Record<string, { productId: string; tarif: string; remise: string; show: boolean }>>({});
-  // Vue courante : 'recap' (table plate récapitulative) ou 'byClient' (cartes dépliables)
-  const [viewMode, setViewMode] = useState<'recap' | 'byClient'>('recap');
-  // Filtres spécifiques au mode récap
-  const [filterProduct, setFilterProduct] = useState<string>('all');
-  const [filterAgent, setFilterAgent] = useState<string>('all');
 
   const loadAll = useCallback(async () => {
     try {
@@ -90,87 +85,6 @@ export function ClientTariffPanel() {
     c.enseigne.name.toLowerCase().includes(search.toLowerCase()) ||
     c.enseigne.type.toLowerCase().includes(search.toLowerCase())
   );
-
-  // === Vue Récapitulatif : flat list de tous les tarifs ===
-  // Une ligne par (client, produit). Construit aussi les filtres produits/agents.
-  const recapRows = useMemo(() => {
-    const rows: Array<{
-      sp: SalesPrice;
-      product?: Product;
-      enseigne: Enseigne;
-      finalPot: number;
-      margePot: number | null;
-      margeColis: number | null;
-      achatPot: number | null;
-      achatColis: number | null;
-    }> = [];
-    for (const client of clients) {
-      for (const sp of client.tariffs) {
-        const product = products.find(p => p.id === sp.productId) || sp.product;
-        const currentPrice = product?.purchasePrices?.find(pp => pp.endDate === null);
-        const fmt = product?.format;
-        const finalColis = sp.finalPrice;
-        const potsPerColis = fmt?.potsPerColis ?? 1;
-        const potsPerFormat = fmt?.potsPerFormat ?? 1;
-        const finalPot = finalColis / potsPerColis;
-        const achatPot = currentPrice?.pricePerPot ?? null;
-        const achatColis = currentPrice?.pricePerColis ?? null;
-        const margePot = achatPot !== null ? finalPot - achatPot : null;
-        const margeColis = achatColis !== null ? finalColis - achatColis : null;
-        rows.push({
-          sp,
-          product,
-          enseigne: client.enseigne,
-          finalPot,
-          margePot,
-          margeColis,
-          achatPot,
-          achatColis,
-        });
-        // unused but kept for parity with by-client view
-        void potsPerFormat;
-      }
-    }
-    return rows;
-  }, [clients, products]);
-
-  // Filtres appliqués au récap (recherche + produit + agent)
-  const recapFiltered = recapRows.filter(r => {
-    if (filterProduct !== 'all' && r.product?.id !== filterProduct) return false;
-    if (filterAgent !== 'all' && r.enseigne.agent !== filterAgent) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const matchClient = r.enseigne.name.toLowerCase().includes(q);
-      const matchProduct = (r.product?.name ?? '').toLowerCase().includes(q);
-      const matchAgent = r.enseigne.agent.toLowerCase().includes(q);
-      if (!matchClient && !matchProduct && !matchAgent) return false;
-    }
-    return true;
-  });
-
-  // KPIs pour la vue récap
-  const recapKpis = useMemo(() => {
-    const n = recapFiltered.length;
-    const sumFinal = recapFiltered.reduce((s, r) => s + r.sp.finalPrice, 0);
-    const sumMargePot = recapFiltered.reduce((s, r) => s + (r.margePot ?? 0), 0);
-    const sumMargeColis = recapFiltered.reduce((s, r) => s + (r.margeColis ?? 0), 0);
-    const distinctClients = new Set(recapFiltered.map(r => r.enseigne.name)).size;
-    const distinctProducts = new Set(recapFiltered.map(r => r.sp.productId)).size;
-    return {
-      n,
-      avgFinal: n > 0 ? sumFinal / n : 0,
-      avgMargePot: n > 0 ? sumMargePot / n : 0,
-      avgMargeColis: n > 0 ? sumMargeColis / n : 0,
-      distinctClients,
-      distinctProducts,
-    };
-  }, [recapFiltered]);
-
-  // Liste unique des agents présents (pour le filtre)
-  const agentsInRecap = useMemo(() => {
-    const s = new Set(recapRows.map(r => r.enseigne.agent));
-    return Array.from(s).sort();
-  }, [recapRows]);
 
   const addClient = async () => {
     if (!newClientName.trim()) { toast.error('Nom requis'); return; }
@@ -240,171 +154,23 @@ export function ClientTariffPanel() {
 
   return (
     <div className="space-y-3">
-      {/* Toggle vue : Récapitulatif | Par client */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
-          <button
-            onClick={() => setViewMode('recap')}
-            className={`px-3 py-1.5 text-xs font-medium rounded inline-flex items-center gap-1.5 ${viewMode === 'recap' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
-          >
-            <LayoutList className="h-3.5 w-3.5" />
-            Récapitulatif
-          </button>
-          <button
-            onClick={() => setViewMode('byClient')}
-            className={`px-3 py-1.5 text-xs font-medium rounded inline-flex items-center gap-1.5 ${viewMode === 'byClient' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
-          >
-            <ListTree className="h-3.5 w-3.5" />
-            Par client
-          </button>
+      {/* Recherche + ajout client */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher un client..." className="pl-8 h-9" />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Recherche (commune aux 2 vues) */}
-          <div className="relative min-w-[200px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={viewMode === 'recap' ? "Rechercher client, produit, agent..." : "Rechercher un client..."} className="pl-8 h-9 w-full sm:w-64" />
-          </div>
-          <Button size="sm" onClick={() => setShowAddClient(!showAddClient)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus className="h-4 w-4 mr-2" /> Nouveau client
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => setShowAddClient(!showAddClient)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Plus className="h-4 w-4 mr-2" /> Nouveau client
+        </Button>
       </div>
 
-      {/* === VUE RÉCAPITULATIF === */}
-      {viewMode === 'recap' && (
-        <>
-          {/* Filtres récap : produit + agent */}
-          <Card className="border-border">
-            <CardContent className="p-3 flex items-center gap-2 flex-wrap">
-              <Select value={filterProduct} onValueChange={setFilterProduct}>
-                <SelectTrigger className="h-8 text-sm w-full sm:w-[260px]">
-                  <SelectValue placeholder="Tous les produits" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les produits</SelectItem>
-                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterAgent} onValueChange={setFilterAgent}>
-                <SelectTrigger className="h-8 text-sm w-full sm:w-[160px]">
-                  <SelectValue placeholder="Tous les agents" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les agents</SelectItem>
-                  {agentsInRecap.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <span className="text-xs text-muted-foreground ml-auto">
-                {recapKpis.n} tarif(s) • {recapKpis.distinctClients} client(s) • {recapKpis.distinctProducts} produit(s)
-              </span>
-            </CardContent>
-          </Card>
-
-          {/* KPIs récap : prix final moyen + marges moyennes */}
-          {recapKpis.n > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Prix final moyen / colis</p>
-                  <p className="text-lg font-title font-bold text-primary">{formatEuro(recapKpis.avgFinal)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Marge moyenne / pot</p>
-                  <p className={`text-lg font-title font-bold ${recapKpis.avgMargePot >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>{formatEuro(recapKpis.avgMargePot)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Marge moyenne / colis</p>
-                  <p className={`text-lg font-title font-bold ${recapKpis.avgMargeColis >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>{formatEuro(recapKpis.avgMargeColis)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total tarifs</p>
-                  <p className="text-lg font-title font-bold">{formatNumber(recapKpis.n)}</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Table récapitulative — une ligne par (client × produit) */}
-          <Card className="border-border">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted z-10">
-                    <TableRow>
-                      <TableHead>Client</TableHead>
-                      <TableHead className="hidden md:table-cell">Agent</TableHead>
-                      <TableHead>Produit</TableHead>
-                      <TableHead className="text-right">Tarif départ</TableHead>
-                      <TableHead className="text-right">Remise %</TableHead>
-                      <TableHead className="text-right">Prix final / colis</TableHead>
-                      <TableHead className="text-right hidden lg:table-cell">Achat pot</TableHead>
-                      <TableHead className="text-right hidden md:table-cell">Marge / pot</TableHead>
-                      <TableHead className="text-right hidden lg:table-cell">Marge / colis</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recapFiltered.map((r) => (
-                      <TableRow key={r.sp.id}>
-                        <TableCell className="font-medium text-sm">
-                          <div className="truncate max-w-[180px]" title={r.enseigne.name}>
-                            {r.enseigne.name}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">{r.enseigne.type}</div>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs">{r.enseigne.agent}</TableCell>
-                        <TableCell className="text-sm">{r.product?.name ?? r.sp.productId}</TableCell>
-                        <TableCell className="text-right text-sm">{formatEuro(r.sp.tarifDepart)}</TableCell>
-                        <TableCell className="text-right text-sm">{r.sp.remisePercent.toFixed(1)}%</TableCell>
-                        <TableCell className="text-right font-semibold text-primary text-sm">{formatEuro(r.sp.finalPrice)}</TableCell>
-                        <TableCell className="text-right hidden lg:table-cell text-xs text-muted-foreground">
-                          {r.achatPot !== null ? formatEuro(r.achatPot) : '—'}
-                        </TableCell>
-                        <TableCell className={`text-right hidden md:table-cell text-sm font-medium ${r.margePot !== null ? (r.margePot >= 0 ? 'text-emerald-600' : 'text-destructive') : 'text-muted-foreground'}`}>
-                          {r.margePot !== null ? formatEuro(r.margePot) : '—'}
-                        </TableCell>
-                        <TableCell className={`text-right hidden lg:table-cell text-sm font-medium ${r.margeColis !== null ? (r.margeColis >= 0 ? 'text-emerald-600' : 'text-destructive') : 'text-muted-foreground'}`}>
-                          {r.margeColis !== null ? formatEuro(r.margeColis) : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => deleteTariff(r.sp.id, r.sp.enseigne)} className="h-7 w-7 text-destructive hover:bg-destructive/10" title="Supprimer ce tarif">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {recapFiltered.length === 0 && (
-            <Card className="border-border">
-              <CardContent className="p-12 text-center">
-                <Store className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" />
-                <p className="text-sm text-muted-foreground">Aucun tarif pour ces filtres.</p>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
-
-      {/* === VUE PAR CLIENT (cartes dépliables) === */}
-      {viewMode === 'byClient' && (
-        <>
-          {/* Formulaire nouveau client */}
-          {showAddClient && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="p-3 grid gap-2 sm:grid-cols-4 items-end">
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium">Nom du client *</Label>
+      {/* Formulaire nouveau client */}
+      {showAddClient && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 grid gap-2 sm:grid-cols-4 items-end">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Nom du client *</Label>
               <Input value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Ex: NOUVEAU MAGASIN" className="h-8 text-sm" />
             </div>
             <div className="space-y-1">
@@ -577,8 +343,6 @@ export function ClientTariffPanel() {
             <p className="text-sm text-muted-foreground">Aucun client trouvé. Créez-en un avec le bouton « Nouveau client ».</p>
           </CardContent>
         </Card>
-      )}
-        </>
       )}
     </div>
   );

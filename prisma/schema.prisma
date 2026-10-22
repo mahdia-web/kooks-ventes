@@ -189,3 +189,32 @@ model VolumeSale {
   @@index([format])
   @@index([date])
 }
+
+// === Charges supportées par l'entreprise ===
+// Importé depuis un fichier Excel comptable (transport, loyer, salaires, etc.)
+// Permet le calcul de marge en compta analytique (CA - charges) global + par client.
+model Charge {
+  id               String   @id @default(cuid())
+  date             DateTime
+  month            Int
+  year             Int
+  category         String   // 'Transport', 'Loyer', 'Salaires', 'Marketing', 'Achats', 'Énergie', 'Autres'...
+  subLabel         String?  // libellé court (ex: "Livraison Auchan Lyon 12/09")
+  vendor           String?  // fournisseur (ex: transporteur X, lessor Y)
+  amountHT         Float    // montant HT
+  amountTTC        Float    // montant TTC
+  vatRate          Float?   // taux de TVA (ex: 0.2 pour 20%)
+  enseigne         String?  // si charge directement attribuable à un client (allocation directe)
+  blNumber         String?  // si charge liée à un BL spécifique (ex: livraison)
+  allocationMethod String   @default("GLOBAL") // 'DIRECT' (client spécifique) | 'PROPORTIONAL' (au prorata CA) | 'GLOBAL' (non ventilé)
+  source           String   @default("IMPORT") // 'IMPORT' ou 'MANUAL'
+  filePath         String?  // nom du fichier source (traçabilité)
+  deduplicationKey String   @unique // évite les ré-imports (hash date+montant+catégorie+libellé)
+  createdAt        DateTime @default(now())
+
+  @@index([year, month])
+  @@index([category])
+  @@index([enseigne])
+  @@index([date])
+  @@index([allocationMethod])
+}
