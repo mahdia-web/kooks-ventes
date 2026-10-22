@@ -58,3 +58,83 @@ Stage Summary:
 - 4 KPIs: Colis, Pots, CA HT, Top client — all reflect the selected period
 - New CA HT KPI computed from sum(quantity × unitPrice) of filtered records
 - Production URL: https://venteskooks.vercel.app/volumes
+---
+Task ID: presets-autapply-exercice-clients-filter
+Agent: main
+Task: Fix UX issues: presets not applying, 'Exercice en cours' showing nothing, missing clients in dropdown, no agent filter on Clients page
+
+Work Log:
+
+User feedback:
+1. "Exercice en cours" filter shows nothing — should at least display data
+   from beginning to current period
+2. "Année civile en cours" doesn't work
+3. Verify all clients are in the volumes dropdown list
+4. Add an agent selector on the Clients page to display each agent's clients
+
+Root cause analysis:
+1+2. The presets in DateRangeFilter only populated the date inputs (temp
+state) but did NOT call onChange. The user had to click "Valider" to
+actually apply the preset. So clicking "Exercice en cours" looked like
+nothing happened.
+1 (bis). Even after applying, "Exercice en cours" with the old logic
+returned Oct 1, 2026 → Sep 30, 2027 (the brand-new exercise that just
+started 22 days ago), but the user's data ends Aug 31, 2026 — so 0
+records matched.
+3. The /api/volumes/stats endpoint only returns top 20 enseignes in
+`topEnseignes`. The volumes page populated its dropdown from this list,
+so only 20 clients were visible (out of 217).
+4. The SettingsPanel's "Clients" tab had a search box + a type filter
+(Direct/Centrale) but no agent filter — the user couldn't display only
+the clients of a specific commercial.
+
+Code changes pushed to GitHub (commit 188afa5):
+
+1. src/components/date-range-filter.tsx:
+   - handlePreset now AUTO-APPLIES the preset on click (calls onChange
+     immediately + closes the dropdown). The user no longer needs to
+     click "Valider" after picking a preset.
+   - Rewrote "Exercice en cours" preset logic:
+     Old: exerciseYear = (month >= 9 ? year : year - 1) → in Oct 2026
+          gave Oct 2026 → Sep 2027 (empty, no data yet)
+     New: exerciseStartYear = year - 1, range = Oct 1 (Y-1) → Sep 30 (Y)
+          Always refers to the most recent 12-month Kooks exercise that
+          has data. In Oct 2026, gives Oct 2025 → Sep 2026 (full data).
+   - Rewrote "Exercice dernier" preset:
+     New: exerciseStartYear = year - 2, range = Oct 1 (Y-2) → Sep 30 (Y-1)
+          Consistently refers to the previous exercise.
+
+2. src/app/api/volumes/clients/route.ts (NEW ENDPOINT):
+   - GET returns ALL distinct enseigne names from VolumeSale table
+     (not just top 20). Used by the volumes page dropdown.
+   - Production: returns 217 clients (was 20 before).
+
+3. src/app/volumes/page.tsx:
+   - loadVolumeClients now fetches /api/volumes/clients instead of
+     /api/volumes/stats (which only returned top 20)
+   - All 217 clients now appear in the dropdown
+
+4. src/components/settings-panel.tsx (Clients tab):
+   - Added filterAgent state ("all" by default)
+   - Added an agent selector dropdown next to the existing type filter,
+     with "Tous les agents" + each active agent (CAP FRAIS, BROCARD,
+     KOOK'S)
+   - Updated the filtered computation to also filter by agent
+   - Added a live count "{N} clients" next to the filters
+   - Updated "Tous" → "Tous types" for clarity
+
+Production verification:
+- /api/volumes/clients → 217 clients (was 20)
+- /api/volumes/stats?startDate=01/10/2025&endDate=30/09/2026 ("Exercice
+  en cours") → 113,781 colis / 1,753,604 pots / 1,409,757.40 € (was 0)
+- /api/volumes/stats?startDate=01/01/2026&endDate=31/12/2026 ("Année
+  civile en cours") → 82,638 colis / 1,264,860 pots / 1,051,047.98 € (was 0)
+- /volumes, /clients, / pages all return 200 OK
+
+Stage Summary:
+- Presets auto-apply on click (no more need to click Valider)
+- "Exercice en cours" always returns the most recent 12-month period
+  with data (not the brand-new empty exercise)
+- All 217 volume clients now appear in the dropdown (was 20)
+- Clients page has an agent selector to filter by commercial
+- Production URL: https://venteskooks.vercel.app
