@@ -60,12 +60,20 @@ export async function GET(req: NextRequest) {
 
     let totalQuantity = 0;
     let totalPots = 0;
+    let totalCA = 0;        // CA HT = sum(quantity * unitPrice) pour la période filtrée
+    let recordsWithPrice = 0; // Nombre de lignes ayant un unitPrice renseigné
 
     for (const v of allVolumes) {
       totalQuantity += v.quantity;
       const potsPerColis = v.format ? (FORMAT_POTS[v.format] ?? 1) : 1;
       const pots = v.quantity * potsPerColis;
       totalPots += pots;
+
+      // CA HT pour cette ligne
+      if (v.unitPrice != null && v.unitPrice > 0) {
+        totalCA += v.quantity * v.unitPrice;
+        recordsWithPrice++;
+      }
 
       const key = v.productLabel;
       const p = byProduct.get(key) ?? { productLabel: v.productLabel, parfum: v.parfum, format: v.format, totalQty: 0 };
@@ -114,6 +122,8 @@ export async function GET(req: NextRequest) {
       data: {
         totalQuantity,
         totalPots,
+        totalCA,
+        recordsWithPrice,
         potsSinceOct,
         objective: OBJECTIVE,
         remaining: Math.max(0, OBJECTIVE - potsSinceOct),

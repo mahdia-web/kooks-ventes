@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Package, TrendingUp, Upload, Loader2, Trophy, Target, Calendar } from 'lucide-react';
+import { ArrowLeft, Package, TrendingUp, Upload, Loader2, Trophy, Target, Calendar, Euro } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import type { DashboardData } from '@/lib/dashboard-types';
-import { formatNumber, formatDate, shortMonth } from '@/lib/dashboard-service';
+import { formatNumber, formatDate, formatEuro } from '@/lib/dashboard-service';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { toast } from 'sonner';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -39,8 +39,14 @@ function mapProductLabel(label: string): string {
 }
 
 interface VolumeStats {
-  totalQuantity: number; totalPots: number; potsSinceOct: number;
-  objective: number; remaining: number; progressPct: number;
+  totalQuantity: number;
+  totalPots: number;
+  totalCA: number;
+  recordsWithPrice: number;
+  potsSinceOct: number;
+  objective: number;
+  remaining: number;
+  progressPct: number;
   dateRange: { start: string | null; end: string | null };
   filteredDateRange: { start: string | null; end: string | null } | null;
   topProducts: Array<{ productLabel: string; parfum: string | null; format: string | null; totalQty: number; }>;
@@ -48,7 +54,8 @@ interface VolumeStats {
   topFormats: Array<{ format: string; totalQty: number; totalPots: number; }>;
   topEnseignes: Array<{ enseigne: string; totalQty: number; totalPots: number; }>;
   monthlySeries: Array<{ year: number; month: number; totalQty: number; totalPots: number; label: string; }>;
-  totalRecords: number; filteredEnseigne: string | null;
+  totalRecords: number;
+  filteredEnseigne: string | null;
 }
 
 export default function VolumesPage() {
@@ -73,7 +80,6 @@ export default function VolumesPage() {
 
   const loadVolumeClients = useCallback(async () => {
     try {
-      // Récupère les noms de clients distincts depuis VolumeSale (pas Enseigne!)
       const res = await fetch('/api/volumes/stats');
       const json = await res.json();
       if (json.ok) {
@@ -113,12 +119,15 @@ export default function VolumesPage() {
     );
   }
 
-  // Construction du libellé de période (affiché en haut)
-  const periodLabel = dateRange.start && dateRange.end
+  // Période affichée : soit le filtre utilisateur, soit la période réelle des données
+  const hasDateFilter = !!(dateRange.start && dateRange.end);
+  const displayRange = hasDateFilter
     ? `${dateRange.start} → ${dateRange.end}`
     : (stats?.dateRange.start && stats?.dateRange.end
         ? `${formatDate(stats.dateRange.start)} → ${formatDate(stats.dateRange.end)}`
-        : '—');
+        : 'Toutes les données');
+  // L'objectif annuel n'a de sens que sans filtre par date (sinon on compare des pommes et des poires)
+  const showObjective = !stats?.filteredEnseigne && !hasDateFilter && (stats?.objective ?? 0) > 0;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -130,7 +139,13 @@ export default function VolumesPage() {
               <Link href="/"><Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4 mr-2" />Retour</Button></Link>
               <div className="hidden sm:flex items-center gap-2"><Package className="h-5 w-5 text-primary" /><h1 className="font-title text-lg font-bold">Volumes & Produits</h1></div>
             </div>
-            {stats && <div className="text-xs text-muted-foreground">{formatNumber(stats.totalQuantity)} colis • {formatNumber(stats.totalPots)} pots{stats.dateRange.start && ` • du ${formatDate(stats.dateRange.start)} au ${formatDate(stats.dateRange.end)}`}</div>}
+            {stats && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                {displayRange}
+                {stats.filteredEnseigne && <span className="ml-2 text-primary">• {stats.filteredEnseigne}</span>}
+              </div>
+            )}
           </div>
         </header>
 
@@ -138,18 +153,13 @@ export default function VolumesPage() {
           {/* Barre de filtres */}
           <Card className="border-border">
             <CardContent className="p-3 flex items-center gap-2 flex-wrap">
-              {/* Import */}
               <VolumesImportButton onImported={() => { loadStats(); loadVolumeClients(); }} />
-
-              {/* Filtre plage de dates (identique au tableau de bord) */}
               <DateRangeFilter
                 startDate={dateRange.start}
                 endDate={dateRange.end}
                 onChange={(start, end) => setDateRange({ start, end })}
                 onReset={() => setDateRange({ start: '', end: '' })}
               />
-
-              {/* Filtre client */}
               <Select value={selectedEnseigne || 'all'} onValueChange={(v) => setSelectedEnseigne(v === 'all' ? '' : v)}>
                 <SelectTrigger className="h-8 text-sm w-[200px]"><SelectValue placeholder="Tous les clients" /></SelectTrigger>
                 <SelectContent>
@@ -162,102 +172,239 @@ export default function VolumesPage() {
 
           {stats && stats.totalQuantity > 0 ? (
             <>
-              {/* Période active */}
-              <Card className="border-border bg-muted/30"><CardContent className="p-2 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                <Calendar className="h-3.5 w-3.5 text-primary" />
-                <span>Période : <strong>{periodLabel}</strong></span>
-                {stats.filteredEnseigne && <span className="ml-2 text-primary">• {stats.filteredEnseigne}</span>}
-                {stats.filteredDateRange?.start && (
-                  <span className="ml-2 text-primary">
-                    • filtré du {formatDate(stats.filteredDateRange.start)} au {formatDate(stats.filteredDateRange.end!)}
-                  </span>
-                )}
-              </CardContent></Card>
+              {/* === KPIs principaux (3 cartes : Colis + Pots + CA HT) === */}
+              {/* Reflète TOUJOURS la période sélectionnée (filtre date ou client) */}
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Package className="h-3.5 w-3.5 text-primary" />
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Colis vendus</p>
+                    </div>
+                    <p className="text-2xl font-title font-bold text-primary">{formatNumber(stats.totalQuantity)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{displayRange}{stats.filteredEnseigne ? ` • ${stats.filteredEnseigne}` : ''}</p>
+                  </CardContent>
+                </Card>
 
-              {/* Objectif 3M */}
-              {!stats.filteredEnseigne && !stats.filteredDateRange && stats.objective > 0 && (
-                <Card className="border-primary/40 bg-primary/10"><CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3"><Target className="h-6 w-6 text-primary" /><div><h3 className="font-title text-base font-bold">Objectif annuel : 3 000 000 pots</h3><p className="text-xs text-muted-foreground">Année démarrée le 01/10/2026</p></div></div>
-                  <div className="grid gap-3 sm:grid-cols-4">
-                    <div><p className="text-xs text-muted-foreground uppercase">Pots vendus</p><p className="text-xl font-title font-bold text-primary">{formatNumber(stats.potsSinceOct)}</p></div>
-                    <div><p className="text-xs text-muted-foreground uppercase">Reste</p><p className="text-xl font-title font-bold">{formatNumber(stats.remaining)}</p></div>
-                    <div><p className="text-xs text-muted-foreground uppercase">Progression</p><p className="text-xl font-title font-bold text-emerald-600">{stats.progressPct.toFixed(1)}%</p></div>
-                    <div className="flex items-center"><div className="w-full h-3 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(stats.progressPct, 100)}%` }} /></div></div>
-                  </div>
-                </CardContent></Card>
-              )}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Package className="h-3.5 w-3.5 text-cobalt" style={{ color: '#3674b5' }} />
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Pots vendus</p>
+                    </div>
+                    <p className="text-2xl font-title font-bold" style={{ color: '#3674b5' }}>{formatNumber(stats.totalPots)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">colis × pots/colis</p>
+                  </CardContent>
+                </Card>
 
-              {/* KPIs : colis + pots seulement */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
-                <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Colis vendus</p><p className="text-2xl font-title font-bold text-primary">{formatNumber(stats.totalQuantity)}</p><p className="text-[10px] text-muted-foreground">{stats.dateRange.start ? `${formatDate(stats.dateRange.start)} → ${formatDate(stats.dateRange.end)}` : ''}</p></CardContent></Card>
-                <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground uppercase">Pots vendus</p><p className="text-2xl font-title font-bold">{formatNumber(stats.totalPots)}</p><p className="text-[10px] text-muted-foreground">colis × pots/colis</p></CardContent></Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Euro className="h-3.5 w-3.5 text-destructive" />
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">CA HT</p>
+                    </div>
+                    <p className="text-2xl font-title font-bold text-destructive">
+                      {formatEuro(stats.totalCA)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {stats.recordsWithPrice > 0
+                        ? `${formatNumber(stats.recordsWithPrice)} factures tarifées`
+                        : 'prix unitaires non renseignés'}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Top client</p>
+                    </div>
+                    <p className="text-sm font-title font-bold truncate">
+                      {stats.topEnseignes[0]?.enseigne ?? '—'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {stats.topEnseignes[0] ? `${formatNumber(stats.topEnseignes[0].totalQty)} colis` : '—'}
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
+
+              {/* === Objectif annuel : version compacte (1 ligne) === */}
+              {/* Affiché uniquement sans filtre date ni client (sinon sans objet) */}
+              {showObjective && (
+                <Card className="border-primary/40 bg-primary/10">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Target className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-title font-bold leading-tight">Objectif annuel : 3 000 000 pots</p>
+                          <p className="text-[10px] text-muted-foreground leading-tight">Exercice depuis le 01/10/2026</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 ml-auto">
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground uppercase">Vendus</p>
+                          <p className="text-base font-title font-bold text-primary leading-tight">{formatNumber(stats.potsSinceOct)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground uppercase">Reste</p>
+                          <p className="text-base font-title font-bold leading-tight">{formatNumber(stats.remaining)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground uppercase">Progression</p>
+                          <p className="text-base font-title font-bold text-emerald-600 leading-tight">{stats.progressPct.toFixed(1)}%</p>
+                        </div>
+                        <div className="w-32 h-2 bg-muted rounded-full overflow-hidden shrink-0">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(stats.progressPct, 100)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Évolution mensuelle */}
               {stats.monthlySeries.length > 0 && (
-                <Card className="border-border"><CardHeader><CardTitle className="font-title flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Évolution mensuelle</CardTitle><CardDescription>Colis et pots par mois</CardDescription></CardHeader>
-                  <CardContent><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.monthlySeries} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" /><XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#7a654a" angle={-45} textAnchor="end" height={60} /><YAxis tick={{ fontSize: 10 }} stroke="#7a654a" tickFormatter={(v) => formatNumber(v)} />
-                    <Tooltip contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number, name: string) => name === 'totalPots' ? [formatNumber(v) + ' pots', 'Pots'] : [formatNumber(v) + ' colis', 'Colis']} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} /><Bar dataKey="totalQty" name="Colis" fill="#f7a941" radius={[4, 4, 0, 0]} /><Bar dataKey="totalPots" name="Pots" fill="#3674b5" radius={[4, 4, 0, 0]} />
-                  </BarChart></ResponsiveContainer></div></CardContent>
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="font-title flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Évolution mensuelle</CardTitle>
+                    <CardDescription>Colis et pots par mois</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.monthlySeries} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" />
+                          <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#7a654a" angle={-45} textAnchor="end" height={60} />
+                          <YAxis tick={{ fontSize: 10 }} stroke="#7a654a" tickFormatter={(v) => formatNumber(v)} />
+                          <Tooltip contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number, name: string) => name === 'totalPots' ? [formatNumber(v) + ' pots', 'Pots'] : [formatNumber(v) + ' colis', 'Colis']} />
+                          <Legend wrapperStyle={{ fontSize: 11 }} />
+                          <Bar dataKey="totalQty" name="Colis" fill="#f7a941" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="totalPots" name="Pots" fill="#3674b5" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
                 </Card>
               )}
 
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* Top produits */}
-                <Card className="border-border"><CardHeader><CardTitle className="font-title flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> Top produits</CardTitle></CardHeader>
-                  <CardContent><div className="space-y-2 max-h-80 overflow-y-auto">
-                    {stats.topProducts.map((p, idx) => { const maxQty = stats.topProducts[0]?.totalQty || 1; return (
-                      <div key={p.productLabel} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm"><span className="font-medium truncate"><span className="text-muted-foreground mr-1.5">{idx + 1}.</span>{mapProductLabel(p.productLabel)}</span><span className="font-semibold text-primary shrink-0 ml-2">{formatNumber(p.totalQty)}</span></div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${(p.totalQty / maxQty) * 100}%` }} /></div>
-                      </div> ); })}
-                  </div></CardContent>
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="font-title flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> Top produits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {stats.topProducts.map((p, idx) => {
+                        const maxQty = stats.topProducts[0]?.totalQty || 1;
+                        return (
+                          <div key={p.productLabel} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium truncate">
+                                <span className="text-muted-foreground mr-1.5">{idx + 1}.</span>
+                                {mapProductLabel(p.productLabel)}
+                              </span>
+                              <span className="font-semibold text-primary shrink-0 ml-2">{formatNumber(p.totalQty)}</span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${(p.totalQty / maxQty) * 100}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
                 </Card>
 
                 {/* Parfum */}
-                <Card className="border-border"><CardHeader><CardTitle className="font-title">Par parfum</CardTitle></CardHeader>
-                  <CardContent><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><PieChart>
-                    <Pie data={stats.topParfums.map(p => ({ name: p.parfum, value: p.totalQty }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={2}>
-                      {stats.topParfums.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [formatNumber(v) + ' colis', 'Volume']} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                  </PieChart></ResponsiveContainer></div></CardContent>
+                <Card className="border-border">
+                  <CardHeader><CardTitle className="font-title">Par parfum</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="h-72 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={stats.topParfums.map(p => ({ name: p.parfum, value: p.totalQty }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} paddingAngle={2}>
+                            {stats.topParfums.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
+                          </Pie>
+                          <Tooltip contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number) => [formatNumber(v) + ' colis', 'Volume']} />
+                          <Legend wrapperStyle={{ fontSize: 11 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
                 </Card>
               </div>
 
               {/* Format détaillé */}
-              <Card className="border-border"><CardHeader><CardTitle className="font-title">Volume par format</CardTitle></CardHeader>
-                <CardContent><div className="space-y-3">
-                  {stats.topFormats.map((f) => { const max = stats.topFormats[0]?.totalQty || 1; const pct = stats.totalQuantity > 0 ? (f.totalQty / stats.totalQuantity) * 100 : 0; return (
-                    <div key={f.format} className="space-y-1">
-                      <div className="flex items-center justify-between text-sm"><span className="font-medium">{f.format}</span>
-                        <div className="flex gap-4 text-right"><span className="text-muted-foreground">{formatNumber(f.totalPots)} pots</span><span className="font-semibold text-primary">{formatNumber(f.totalQty)} colis</span><span className="text-muted-foreground w-12">{pct.toFixed(1)}%</span></div>
-                      </div>
-                      <div className="h-3 bg-muted rounded-full overflow-hidden"><div className="h-full bg-[#3674b5] rounded-full" style={{ width: `${(f.totalQty / max) * 100}%` }} /></div>
-                    </div> ); })}
-                </div></CardContent>
+              <Card className="border-border">
+                <CardHeader><CardTitle className="font-title">Volume par format</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {stats.topFormats.map((f) => {
+                      const max = stats.topFormats[0]?.totalQty || 1;
+                      const pct = stats.totalQuantity > 0 ? (f.totalQty / stats.totalQuantity) * 100 : 0;
+                      return (
+                        <div key={f.format} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{f.format}</span>
+                            <div className="flex gap-4 text-right">
+                              <span className="text-muted-foreground">{formatNumber(f.totalPots)} pots</span>
+                              <span className="font-semibold text-primary">{formatNumber(f.totalQty)} colis</span>
+                              <span className="text-muted-foreground w-12">{pct.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div className="h-3 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-[#3674b5] rounded-full" style={{ width: `${(f.totalQty / max) * 100}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
               </Card>
 
               {/* Top clients (global only) */}
               {!stats.filteredEnseigne && stats.topEnseignes.length > 0 && (
-                <Card className="border-border"><CardHeader><CardTitle className="font-title">Top clients par volume</CardTitle></CardHeader>
-                  <CardContent><div className="space-y-2 max-h-60 overflow-y-auto">
-                    {stats.topEnseignes.map((e, idx) => { const max = stats.topEnseignes[0]?.totalQty || 1; return (
-                      <div key={e.enseigne} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm"><span className="font-medium truncate"><span className="text-muted-foreground mr-1.5">{idx + 1}.</span>{e.enseigne}</span>
-                          <div className="flex gap-3 text-right shrink-0"><span className="text-muted-foreground">{formatNumber(e.totalPots)} pots</span><span className="font-semibold text-primary">{formatNumber(e.totalQty)} colis</span></div>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${(e.totalQty / max) * 100}%` }} /></div>
-                      </div> ); })}
-                  </div></CardContent>
+                <Card className="border-border">
+                  <CardHeader><CardTitle className="font-title">Top clients par volume</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {stats.topEnseignes.map((e, idx) => {
+                        const max = stats.topEnseignes[0]?.totalQty || 1;
+                        return (
+                          <div key={e.enseigne} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium truncate">
+                                <span className="text-muted-foreground mr-1.5">{idx + 1}.</span>
+                                {e.enseigne}
+                              </span>
+                              <div className="flex gap-3 text-right shrink-0">
+                                <span className="text-muted-foreground">{formatNumber(e.totalPots)} pots</span>
+                                <span className="font-semibold text-primary">{formatNumber(e.totalQty)} colis</span>
+                              </div>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${(e.totalQty / max) * 100}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
                 </Card>
               )}
             </>
           ) : (
-            <Card className="border-border"><CardContent className="p-12 text-center"><Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" /><p className="text-sm text-muted-foreground mb-2">Aucune donnée pour ce filtre.</p><p className="text-xs text-muted-foreground">Essayez « Tous les clients » et réinitialisez la plage de dates.</p></CardContent></Card>
+            <Card className="border-border">
+              <CardContent className="p-12 text-center">
+                <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" />
+                <p className="text-sm text-muted-foreground mb-2">Aucune donnée pour ce filtre.</p>
+                <p className="text-xs text-muted-foreground">Essayez « Tous les clients » et réinitialisez la plage de dates.</p>
+              </CardContent>
+            </Card>
           )}
         </main>
       </div>
@@ -268,10 +415,30 @@ export default function VolumesPage() {
 function VolumesImportButton({ onImported }: { onImported: () => void }) {
   const [loading, setLoading] = useState(false);
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return; setLoading(true);
-    try { const formData = new FormData(); formData.append('file', file); const res = await fetch('/api/volumes/import', { method: 'POST', body: formData }); const json = await res.json(); if (!json.ok) throw new Error(json.error || 'Erreur serveur'); toast.success('Import réussi', { description: json.detail }); onImported(); }
-    catch (e: any) { toast.error('Erreur d\'import', { description: e.message }); } finally { setLoading(false); }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/volumes/import', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Erreur serveur');
+      toast.success('Import réussi', { description: json.detail });
+      onImported();
+    } catch (e: any) {
+      toast.error('Erreur d\'import', { description: e.message });
+    } finally {
+      setLoading(false);
+    }
   };
   if (loading) return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
-  return (<><Button size="sm" onClick={() => document.getElementById('volumes-import-input')?.click()} className="bg-primary text-primary-foreground hover:bg-primary/90"><Upload className="h-4 w-4 mr-2" /> Importer volumes</Button><input id="volumes-import-input" type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} /></>);
+  return (
+    <>
+      <Button size="sm" onClick={() => document.getElementById('volumes-import-input')?.click()} className="bg-primary text-primary-foreground hover:bg-primary/90">
+        <Upload className="h-4 w-4 mr-2" /> Importer volumes
+      </Button>
+      <input id="volumes-import-input" type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFile} />
+    </>
+  );
 }
