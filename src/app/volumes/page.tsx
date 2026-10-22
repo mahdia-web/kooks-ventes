@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Package, TrendingUp, Upload, Loader2, Trophy, Target, Calendar, Euro } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatNumber, formatDate, formatEuro } from '@/lib/dashboard-service';
 import { DateRangeFilter } from '@/components/date-range-filter';
+import { SearchableClientSelect, type ClientOption } from '@/components/searchable-client-select';
 import { toast } from 'sonner';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -61,8 +61,10 @@ interface VolumeStats {
 export default function VolumesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [stats, setStats] = useState<VolumeStats | null>(null);
-  const [volumeClients, setVolumeClients] = useState<string[]>([]);
-  const [selectedEnseigne, setSelectedEnseigne] = useState<string>('');
+  const [volumeClients, setVolumeClients] = useState<ClientOption[]>([]);
+  // Variants séparés par '|' (envoyé à l'API) + nom canonique (affiché dans le trigger)
+  const [selectedClientVariants, setSelectedClientVariants] = useState<string>('');
+  const [selectedClientCanonical, setSelectedClientCanonical] = useState<string>('');
   // Plage de dates (format DD/MM/YYYY). Chaîne vide = pas de filtre par date.
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,8 @@ export default function VolumesPage() {
 
   const loadVolumeClients = useCallback(async () => {
     try {
-      // Récupère TOUS les noms de clients distincts (pas seulement le top 20)
+      // Récupère TOUS les noms de clients distincts (déjà dédupliqués côté API
+      // par clé normalisée : accents + espaces + apostrophes).
       const res = await fetch('/api/volumes/clients');
       const json = await res.json();
       if (json.ok) {
@@ -92,7 +95,7 @@ export default function VolumesPage() {
   const loadStats = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (selectedEnseigne) params.set('enseigne', selectedEnseigne);
+      if (selectedClientVariants) params.set('enseigne', selectedClientVariants);
       if (dateRange.start && dateRange.end) {
         params.set('startDate', dateRange.start);
         params.set('endDate', dateRange.end);
@@ -103,7 +106,7 @@ export default function VolumesPage() {
       if (json.ok) setStats(json.data);
     } catch {}
     setLoading(false);
-  }, [selectedEnseigne, dateRange]);
+  }, [selectedClientVariants, dateRange]);
 
   useEffect(() => { loadDashboard(); loadVolumeClients(); }, [loadDashboard, loadVolumeClients]);
   useEffect(() => { loadStats(); }, [loadStats]);
@@ -160,13 +163,16 @@ export default function VolumesPage() {
                 onChange={(start, end) => setDateRange({ start, end })}
                 onReset={() => setDateRange({ start: '', end: '' })}
               />
-              <Select value={selectedEnseigne || 'all'} onValueChange={(v) => setSelectedEnseigne(v === 'all' ? '' : v)}>
-                <SelectTrigger className="h-8 text-sm w-[200px]"><SelectValue placeholder="Tous les clients" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les clients</SelectItem>
-                  {volumeClients.map((name) => <SelectItem key={name} value={name}>{name.length > 40 ? name.slice(0, 40) + '...' : name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {/* Liste déroulante client AVEC recherche intelligente (insensible
+                  aux accents et à la casse, match sur n'importe quel mot du nom) */}
+              <SearchableClientSelect
+                options={volumeClients}
+                value={selectedClientCanonical}
+                onChange={(variants, canonical) => {
+                  setSelectedClientVariants(variants);
+                  setSelectedClientCanonical(canonical);
+                }}
+              />
             </CardContent>
           </Card>
 

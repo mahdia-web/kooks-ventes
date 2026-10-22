@@ -16,7 +16,17 @@ export async function GET(req: NextRequest) {
     const endDateStr = searchParams.get('endDate');
 
     const where: Record<string, unknown> = {};
-    if (enseigne) where.enseigne = enseigne;
+    if (enseigne) {
+      // Support des noms séparés par '|' (quand l'utilisateur sélectionne un
+      // client canonique qui regroupe plusieurs variants en base — ex: avec ou
+      // sans accent). On utilise whereIn pour matcher tous les variants.
+      const names = enseigne.split('|').filter(Boolean);
+      if (names.length === 1) {
+        where.enseigne = names[0];
+      } else {
+        where.enseigne = { in: names };
+      }
+    }
     if (yearParam) where.year = parseInt(yearParam, 10);
     if (monthParam) where.month = parseInt(monthParam, 10);
 
@@ -141,7 +151,11 @@ export async function GET(req: NextRequest) {
         topEnseignes,
         monthlySeries,
         totalRecords: allVolumes.length,
-        filteredEnseigne: enseigne || null,
+        // Affiche uniquement le nom canonique (premier variant) plutôt que
+        // la chaîne 'A|B|C' avec les pipes
+        filteredEnseigne: enseigne
+          ? (enseigne.split('|')[0] || null)
+          : null,
       },
     });
   } catch (e) {
