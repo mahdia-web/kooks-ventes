@@ -113,28 +113,61 @@ export async function POST(req: NextRequest) {
     };
 
     const auto = {
-      date: findCol(['DATE FACTURE', 'DATE OPERATION', 'DATE OPÉRATION', 'DATE', 'JOUR']),
-      category: findCol(['CATEGORIE', 'CATÉGORIE', 'TYPE', 'NATURE', 'CLASSE', 'FAMILLE']),
-      subLabel: findCol(['LIBELLE', 'LIBELLÉ', 'DESCRIPTION', 'DÉTAIL', 'DETAIL', 'INTITULE', 'INTITULÉ', 'OPÉRATION', 'OPERATION']),
+      // Date : on accepte ÉMISSION (date de facturation, préféré) puis AJOUT,
+      // puis les formats classiques (DATE FACTURE, DATE OPERATION, etc.)
+      date: findCol(['EMISSION', 'ÉMISSION', 'DATE FACTURE', 'DATE OPERATION', 'DATE OPÉRATION', 'DATE', 'JOUR', 'AJOUT']),
+      // Catégorie : COMPTES COMPTABLES peut servir de catégorie, sinon TYPE/NATURE/CLASSE
+      category: findCol(['CATEGORIE', 'CATÉGORIE', 'COMPTES COMPTABLES', 'COMPTE COMPTABLE', 'TYPE', 'NATURE', 'CLASSE', 'FAMILLE']),
+      // Libellé : COMMENTAIRES est souvent utilisé dans les exports comptables
+      subLabel: findCol(['LIBELLE', 'LIBELLÉ', 'COMMENTAIRES', 'DESCRIPTION', 'DÉTAIL', 'DETAIL', 'INTITULE', 'INTITULÉ', 'OPÉRATION', 'OPERATION']),
+      // Fournisseur : colonne "Fournisseur" typique des exports d'achats
       vendor: findCol(['FOURNISSEUR', 'TIERS', 'BÉNÉFICIAIRE', 'BENEFICIAIRE', 'PAYÉ À', 'PAYE A', 'DESTINATAIRE']),
+      // Montants : on accepte "Montant HT", "MT HT", "HT", mais aussi la colonne
+      // combinée "Montant HT / TVA / TTC" (qui sera parsée en 3 valeurs)
       ht: findCol(['MONTANT HT', 'MT HT', 'HT']),
+      // Si la colonne combinée "Montant HT / TVA / TTC" existe, on l'utilise
+      // pour HT (et TTC sera aussi extrait du même champ)
+      combinedAmount: findCol(['MONTANT HT / TVA / TTC', 'MONTANT HT TVA TTC', 'MT HT TVA TTC', 'MONTANT HT/TVA/TTC']),
       ttc: findCol(['MONTANT TTC', 'MT TTC', 'TTC', 'MONTANT']),
       vatRate: findCol(['TAUX TVA', 'TVA']),
       enseigne: findCol(['ENSEIGNE', 'CLIENT', 'MAGASIN', 'CLIENT FINAL']),
       bl: findCol(['NUMERO BL', 'N° BL', 'BL', 'BON DE LIVRAISON']),
+      // Référence facture (numéro de facture/achat) — utile pour tracer la charge
+      factureRef: findCol(['NUMERO FACTURE', 'N° FACTURE', 'NUMERO ACHAT', "NUMÉRO DE L'ACHAT", "NUMERO DE L ACHAT", "FACTURE", "NUMERO DE LA FACTURE", "NUMERO DE LA FACTURE"]),
     };
+
+    // Si aucune colonne montant séparée n'a été trouvée, mais qu'il existe
+    // des colonnes "Montant HT", "TVA", "TTC" qui sont des sous-colonnes d'un
+    // en-tête groupé "Montant HT / TVA / TTC", on les détecte avec un
+    // pattern plus souple (le 2e findCol sur 'TVA' peut maintenant les attraper)
+    if (!auto.ht && !auto.ttc && !auto.combinedAmount) {
+      // Dernier recours : cherche une colonne dont le nom CONTIENT "HT" ou "TTC"
+      const htCol = headers.find((h) => {
+        if (usedCols.has(h)) return false;
+        const hl = normalize(h);
+        return hl.endsWith('ht') || hl === 'montantht' || hl === 'mtht';
+      });
+      if (htCol) { usedCols.add(htCol); (auto as any).ht = htCol; }
+      const ttcCol = headers.find((h) => {
+        if (usedCols.has(h)) return false;
+        const hl = normalize(h);
+        return hl.endsWith('ttc') || hl === 'montantttc' || hl === 'mtttc';
+      });
+      if (ttcCol) { usedCols.add(ttcCol); (auto as any).ttc = ttcCol; }
+    }
 
     console.log('Mapping auto-détecté :', auto);
 
     if (!auto.date) {
       return NextResponse.json(
-        { ok: false, error: `Colonne "DATE" introuvable. Colonnes: ${headers.join(', ')}`, detectedColumns: headers },
+        { ok: false, error: `Colonne "DATE" introuvable. Colonnes détectées : ${headers.join(', ')}. Astuce : le système reconnaît aussi "Émission", "Ajout", "Date facture", "Date opération".`, detectedColumns: headers },
         { status: 400 }
       );
     }
-    if (!auto.ht && !auto.ttc) {
+    // Valide les montants : il faut AU MOINS un montant (HT, TTC, ou la colonne combinée)
+    if (!auto.ht && !auto.ttc && !auto.combinedAmount) {
       return NextResponse.json(
-        { ok: false, error: `Aucune colonne de montant (HT ou TTC) détectée. Colonnes: ${headers.join(', ')}`, detectedColumns: headers },
+        { ok: false, error: `Aucune colonne de montant (HT, TTC, ou "Montant HT / TVA / TTC") détectée. Colonnes: ${headers.join(', ')}`, detectedColumns: headers },
         { status: 400 }
       );
     }
@@ -220,9 +253,40 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Montant
-      const amountHT = toNum(auto.ht ? row[auto.ht] : null);
-      const amountTTC = toNum(auto.ttc ? row[auto.ttc] : null);
+      // Montant — gère 3 cas :
+      //   1. Colonnes séparées HT + TTC (classique)
+      //   2. Colonne combinée "Montant HT / TVA / TTC" (un seul champ avec
+      //      3 valeurs séparées par / ou | ou tabulation)
+      //   3. Une seule colonne TTC ou HT
+      let amountHT = auto.ht ? toNum(row[auto.ht]) : 0;
+      let amountTTC = auto.ttc ? toNum(row[auto.ttc]) : 0;
+      let amountTVA_fromCombined = 0;
+
+      if (auto.combinedAmount) {
+        // Parse la valeur combinée : "100.00 / 20.00 / 120.00"
+        const combined = toStr(row[auto.combinedAmount]);
+        if (combined) {
+          // Split sur '/', '|' ou tabulation
+          const parts = combined.split(/[\/|,\t]+/).map((s) => s.trim()).filter(Boolean);
+          if (parts.length >= 1) {
+            // Le 1er est HT (si pas déjà renseigné), le 2e est TVA, le 3e est TTC
+            if (parts.length >= 3) {
+              if (!amountHT) amountHT = toNum(parts[0]);
+              amountTVA_fromCombined = toNum(parts[1]);
+              if (!amountTTC) amountTTC = toNum(parts[2]);
+            } else if (parts.length === 2) {
+              // HT / TTC
+              if (!amountHT) amountHT = toNum(parts[0]);
+              if (!amountTTC) amountTTC = toNum(parts[1]);
+            } else {
+              // une seule valeur — c'est probablement le TTC
+              if (!amountTTC) amountTTC = toNum(parts[0]);
+              if (!amountHT) amountHT = toNum(parts[0]);
+            }
+          }
+        }
+      }
+
       const finalHT = amountHT || (amountTTC ? amountTTC : 0);
       const finalTTC = amountTTC || finalHT;
       if (finalHT === 0) { skippedNoAmount++; continue; }
@@ -232,6 +296,9 @@ export async function POST(req: NextRequest) {
       if (auto.vatRate) {
         const v = toNum(row[auto.vatRate]);
         if (v > 0) vatRate = v > 1 ? v / 100 : v;
+      }
+      if (vatRate === null && amountTVA_fromCombined > 0 && finalHT > 0) {
+        vatRate = amountTVA_fromCombined / finalHT;
       }
       if (vatRate === null && finalHT > 0 && finalTTC > finalHT) {
         vatRate = (finalTTC - finalHT) / finalHT;
