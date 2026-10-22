@@ -218,3 +218,69 @@ Stage Summary:
 - "Missing data" was a UX issue (couldn't find client in giant list) —
   now solvable via search
 - Production URL: https://venteskooks.vercel.app/volumes
+
+---
+Task ID: grille-tarifaire-recap-view
+Agent: main
+Task: Add recap view first in Grille Tarifaire, then per-client view (toggle)
+
+Work Log:
+
+User feedback: "dans la partie grille tarifaire je veux un recap des tarifs
+d'abord un peu comme avant, avant de voir les clients et les produits qu'ils
+ont comme actuellement réparti"
+
+The previous version (commit 9810b02) had a flat recap view: 1 client
+selector → that client's tariffs in a table. Commit 8317178 rewrote it to
+collapsible client cards (the current "Par client" view). User now wants
+both: a recap view first + the per-client view behind a toggle.
+
+Code changes pushed to GitHub (commit aeb6a20):
+
+1. src/components/client-tariff-panel.tsx:
+   - Added viewMode state ('recap' | 'byClient'), default 'recap'
+   - Added filterProduct and filterAgent states for the recap view
+   - Added useMemo computations:
+     * recapRows: flat array of { sp, product, enseigne, finalPot,
+       margePot, margeColis, achatPot, achatColis } — one entry per
+       (client × product) tariff
+     * recapFiltered: applies search + product + agent filters
+     * recapKpis: { n, avgFinal, avgMargePot, avgMargeColis,
+       distinctClients, distinctProducts }
+     * agentsInRecap: unique agent names for the filter dropdown
+   - Added a toggle at the top: "Récapitulatif | Par client" with the
+     same visual style as the dashboard's Mensuel/Global toggle
+   - Search input is shared between both views (placeholder changes)
+
+2. Vue 'Récapitulatif' (default):
+   - Filter bar: product dropdown + agent dropdown + count summary
+   - 4 KPI cards above the table:
+     * Prix final moyen / colis (orange, primary)
+     * Marge moyenne / pot (green if positive, red if negative)
+     * Marge moyenne / colis (same color coding)
+     * Total tarifs (with distinct clients & products count in subtitle)
+   - Single flat table with all tariffs:
+     - Sticky header + scrollable body (max-h 60vh)
+     - Columns: Client (with type), Agent, Produit, Tarif départ, Remise %,
+       Prix final /colis, Achat pot (lg only), Marge/pot (md+),
+       Marge/colis (lg only), Delete action
+     - Margins are color-coded (green = positive, red = negative)
+     - Truncate long client names with tooltip
+
+3. Vue 'Par client' (behind the toggle):
+   - The current collapsible client cards view (unchanged from before)
+   - Used for detailed per-client editing (inline edit + add product)
+
+Production verification:
+- /clients page returns 200 OK
+- /volumes, / pages also return 200 OK
+- The Grille tarifaire tab now opens on the Récapitulatif view by default
+- User can switch to Par client view via the toggle
+
+Stage Summary:
+- Grille tarifaire now opens on a recap/summary view (like before)
+- Single flat table shows all tariffs at once
+- Filters by product, agent, and search
+- 4 KPI cards give quick stats overview
+- Per-client detailed view still available behind a toggle
+- Production URL: https://venteskooks.vercel.app/clients
