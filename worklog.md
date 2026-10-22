@@ -390,3 +390,110 @@ Stage Summary:
 - Production URLs:
   - https://venteskooks.vercel.app/charges
   - https://venteskooks.vercel.app/analytique
+
+---
+Task ID: compte-comptable-lisible-migration
+Agent: main
+Task: Convert raw PCG account numbers to readable French labels for charges display
+
+Work Log:
+
+User feedback: "Optimiser l'affichage au niveau des charges on voit les
+numeros de nom comptable pour uen lecture d'un civile c'est complex"
+— The charges table showed raw accounting account numbers like "60614000"
+which are not human-readable for non-accountants.
+
+Investigation:
+- Production DB had 2,752 charges spread across 96 distinct raw account
+  numbers (e.g., '60614000', '60110000, 62410000', '62240000', etc.)
+- All came from the 'Comptes comptables' column of the user's K FACTORY
+  Excel export
+- The category field was storing the raw number, used directly as the
+  filter dropdown value and the répartition chart label
+
+Code changes pushed to GitHub (commit 8832e27):
+
+1. src/lib/compte-comptable.ts (NEW):
+   - Comprehensive mapping of French Plan Comptable Général (PCG) account
+     numbers to readable French labels
+   - Covers all the 60+ distinct accounts found in the user's data:
+     * 60110000 → 'Achats matières premières'
+     * 62500000 → 'Déplacements & missions'
+     * 62510000 → 'Voyages & déplacements'
+     * 62240000 → 'Personnel intérimaire'
+     * 60614000 → 'Carburant'
+     * 60260000 → 'Emballages & conditionnements'
+     * 61320000 → 'Loyer immobilier'
+     * 62260000 → 'Honoraires'
+     * 60611000 → 'Énergie — Eau & électricité'
+     * 62570000 → 'Repas & restauration'
+     * 62330000 → 'Annonces & insertions publicitaires'
+     * 62268000 → 'Frais bancaires & financiers'
+     * 62610000 → 'Téléphone'
+     * 20510000 → 'Logiciels & abonnements (immobilisation)'
+     * etc.
+   - Multi-account entries (e.g., '60110000, 62410000') return the first
+     account's label + ' (compte mixte)'
+   - Falls back to raw number for unknown accounts (no data loss)
+   - Also provides grandPosteForCategory() for future grouping by broad
+     analytical buckets
+
+2. src/app/api/charges/import/route.ts — uses labelForCompte() at import
+   time. When the 'Comptes comptables' column contains a numeric value
+   (matching /^[\d\s,]+$/), it gets converted to the readable label
+   before being stored as the charge's category. Future imports will
+   store readable labels directly.
+
+3. scripts/migrate_charge_categories.ts (NEW) — one-time migration script
+   that updates existing charges' category field from raw account
+   numbers to readable labels using the same mapping. Run after deploy
+   on the production database.
+
+Migration execution:
+- Connected to production Supabase database
+- Updated 2,752 charges (all of them) — 0 skipped
+- All 96 distinct raw account numbers were successfully mapped to
+  readable labels
+- Production now has 72 distinct categories (some were merged into the
+  same label, e.g., '62268000' and '62228000' both → 'Frais bancaires
+  & financiers')
+
+Production verification:
+- /api/charges returns 72 distinct readable categories:
+  * 'Déplacements & missions' (369 charges) — top category
+  * 'Achats matières premières' (308 charges)
+  * 'Personnel intérimaire' (260 charges)
+  * 'Carburant' (199 charges)
+  * 'Voyages & déplacements' (163 charges)
+  * 'Emballages & conditionnements' (156 charges)
+  * 'Logiciels & abonnements (immobilisation)' (123 charges)
+  * etc.
+
+- /api/charges/analytique shows readable breakdown (top 10):
+  * Achats matières premières: 259,026.88€ (38.2%)
+  * Personnel intérimaire: 100,940.27€ (14.9%)
+  * Honoraires: 72,822.08€ (10.7%)
+  * Loyer immobilier: 40,128.41€ (5.9%)
+  * Emballages & conditionnements: 36,192.63€ (5.3%)
+  * Frais bancaires & financiers: 20,527.37€ (3.0%)
+  * Personnel extérieur à l'entreprise: 15,656.99€ (2.3%)
+  * Achats matières premières (compte mixte): 13,757.39€ (2.0%)
+  * Logiciels & abonnements: 12,122.84€ (1.8%)
+  * Locations de matériel de transport: 10,825.81€ (1.6%)
+
+Global KPIs for 2026 (current year):
+- CA total: 1,397,021.12€
+- Charges totales: 678,006.30€
+- Marge brute: 719,014.82€ (51.5%)
+
+Stage Summary:
+- The charges table now shows readable French labels instead of PCG
+  account numbers
+- Both the charges list and the analytique sheet display readable
+  categories in the répartition par catégorie
+- Future imports will automatically convert raw account numbers to
+  readable labels at import time
+- Production migration completed: 2,752 charges updated, no data loss
+- Production URLs:
+  - https://venteskooks.vercel.app/charges (list + import + répartition)
+  - https://venteskooks.vercel.app/analytique (compta analytique)

@@ -35,7 +35,7 @@ async function main() {
       skipped++;
       continue;
     }
-    console.log(`  ${category!r} → ${label}`);
+    console.log(`  ${JSON.stringify(category)} → ${label}`);
     const result = await db.charge.updateMany({
       where: { category },
       data: { category: label },
