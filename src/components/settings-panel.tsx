@@ -71,6 +71,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   const [merging, setMerging] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'Direct' | 'Centrale'>('all');
+  const [filterAgent, setFilterAgent] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newClient, setNewClient] = useState({
     name: '',
@@ -275,6 +276,11 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       if (filterType === 'Centrale') return e.type === 'Centrale';
       return true;
     })
+    .filter((e) => {
+      // Filtre par agent (sélecteur de commercial)
+      if (filterAgent === 'all') return true;
+      return e.agent === filterAgent;
+    })
     .filter(
       (e) =>
         !search.trim() ||
@@ -422,11 +428,31 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="all">Tous types</SelectItem>
                 <SelectItem value="Direct">Direct</SelectItem>
                 <SelectItem value="Centrale">Centrale</SelectItem>
               </SelectContent>
             </Select>
+            {/* Sélecteur d'agent (filtre par commercial) */}
+            <Select value={filterAgent} onValueChange={(v) => setFilterAgent(v)}>
+              <SelectTrigger className="w-44">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  <SelectValue />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les agents</SelectItem>
+                {agents.filter((a) => a.isActive).map((a) => (
+                  <SelectItem key={a.id} value={a.name}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground">
+              {filtered.length} client{filtered.length > 1 ? 's' : ''}
+            </span>
           </div>
           <Button
             onClick={() => setShowAddForm(!showAddForm)}

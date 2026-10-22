@@ -80,11 +80,11 @@ export default function VolumesPage() {
 
   const loadVolumeClients = useCallback(async () => {
     try {
-      const res = await fetch('/api/volumes/stats');
+      // Récupère TOUS les noms de clients distincts (pas seulement le top 20)
+      const res = await fetch('/api/volumes/clients');
       const json = await res.json();
       if (json.ok) {
-        const names = json.data.topEnseignes.map((e: { enseigne: string }) => e.enseigne).sort();
-        setVolumeClients(names);
+        setVolumeClients(json.data);
       }
     } catch {}
   }, []);

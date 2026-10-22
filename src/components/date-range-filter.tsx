@@ -77,18 +77,24 @@ const PRESETS: Preset[] = [
   }},
   { label: "Exercice en cours", getRange: () => {
     // Kooks : exercice du 01/10 au 30/09
+    // "Exercice en cours" = l'exercice qui s'est terminé (ou se termine) cette
+    // année civile. En oct-déc, c'est l'exercice qui vient de se terminer
+    // (commencé l'année précédente) car le nouvel exercice vient de démarrer et
+    // n'a probablement pas de données. En jan-sep, c'est l'exercice en cours
+    // (commencé l'année précédente). Formule: year-1 → year.
+    // Cette logique garantit qu'on a toujours des données à afficher.
     const now = new Date();
-    const exerciseYear = now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
-    const start = new Date(exerciseYear, 9, 1); // Oct 1
-    const end = new Date(exerciseYear + 1, 8, 30); // Sep 30
+    const exerciseStartYear = now.getFullYear() - 1;
+    const start = new Date(exerciseStartYear, 9, 1); // Oct 1
+    const end = new Date(exerciseStartYear + 1, 8, 30); // Sep 30
     return { start: formatDMY(start), end: formatDMY(end) };
   }},
   { label: "Exercice dernier", getRange: () => {
-    // Kooks : exercice précédent (01/10 N-1 → 30/09 N)
+    // L'exercice précédent (commencé il y a 2 ans, terminé l'année dernière)
     const now = new Date();
-    const exerciseYear = now.getMonth() >= 9 ? now.getFullYear() - 1 : now.getFullYear() - 2;
-    const start = new Date(exerciseYear, 9, 1); // Oct 1
-    const end = new Date(exerciseYear + 1, 8, 30); // Sep 30
+    const exerciseStartYear = now.getFullYear() - 2;
+    const start = new Date(exerciseStartYear, 9, 1); // Oct 1
+    const end = new Date(exerciseStartYear + 1, 8, 30); // Sep 30
     return { start: formatDMY(start), end: formatDMY(end) };
   }},
 ];
@@ -106,8 +112,12 @@ export function DateRangeFilter({ startDate, endDate, onChange, onReset }: DateR
 
   const handlePreset = (preset: Preset) => {
     const { start, end } = preset.getRange();
+    // Met à jour les inputs visuels (au cas où l'utilisateur rouvre le panneau)
     setTempStartIso(dmyToIso(start));
     setTempEndIso(dmyToIso(end));
+    // AUTO-APPLIQUE le preset immédiatement (pas besoin de cliquer Valider)
+    onChange(start, end);
+    setOpen(false);
   };
 
   const handleValidate = () => {
