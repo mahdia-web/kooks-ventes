@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
+import { labelForCompte } from '@/lib/compte-comptable';
 
 // Augmente le timeout Vercel à 60s
 export const maxDuration = 60;
@@ -313,11 +314,23 @@ export async function POST(req: NextRequest) {
       if (forceCategory && forceCategory.trim()) {
         category = forceCategory.trim();
       } else if (auto.category) {
-        category = toStr(row[auto.category]) || inferCategory(`${subLabel} ${vendor}`);
+        // La colonne "Comptes comptables" contient des numéros de compte (ex: "60614000"
+        // ou "60110000, 62410000"). On les convertit en libellés lisibles via le
+        // mapping du Plan Comptable Général (src/lib/compte-comptable.ts).
+        const rawCategory = toStr(row[auto.category]);
+        if (rawCategory && /^[\d\s,]+$/.test(rawCategory)) {
+          // La valeur ressemble à un numéro de compte → on la passe par le mapping
+          category = labelForCompte(rawCategory);
+        } else if (rawCategory) {
+          // Sinon, c'est probablement déjà un libellé — on le garde tel quel
+          category = rawCategory;
+        } else {
+          category = inferCategory(`${subLabel} ${vendor}`);
+        }
       } else {
         category = inferCategory(`${subLabel} ${vendor}`);
       }
-      if (!category) category = 'Autres';
+      if (!category) category = 'Autres charges';
 
       // Enseigne + BL (optionnels)
       const enseigne = auto.enseigne ? toStr(row[auto.enseigne]) : '';
