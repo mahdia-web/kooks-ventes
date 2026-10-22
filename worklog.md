@@ -284,3 +284,109 @@ Stage Summary:
 - 4 KPI cards give quick stats overview
 - Per-client detailed view still available behind a toggle
 - Production URL: https://venteskooks.vercel.app/clients
+
+---
+Task ID: charges-section-analytique-sheet
+Agent: main
+Task: Remove recap view from ClientTariffPanel + new Charges section + analytical sheet (compta analytique)
+
+Work Log:
+
+User feedback:
+1. "tu peux retirer la partie récapitulatifs de la partie client finalement,
+   plus nécessaire" — remove the Recap toggle from Grille Tarifaire
+2. "je veux une nouvelle section avec nos charges, je vais importer les
+   charges qu'on supporte et je voudrais que ça soit segmenter en transport
+   et les types de charge qu'il aura trouver"
+3. "on créera une feuille analytique que tu programmera avec des capacité de
+   compta analytique pour calculer nos marges par rapport au ventes et cout
+   supporter globalement et aussi par client"
+
+Code changes pushed to GitHub (commit f5bb99d):
+
+1. src/components/client-tariff-panel.tsx — full rewrite back to single
+   Par client view (removed the Recap toggle added in previous commit).
+   Simplified imports (removed useMemo, LayoutList, ListTree).
+
+2. prisma/schema.prisma — new Charge model:
+   - date, month, year (date indexing)
+   - category (Transport, Loyer, Salaires, Achats, Énergie, etc.)
+   - subLabel, vendor (free text)
+   - amountHT, amountTTC, vatRate
+   - enseigne (optional: charge for a specific client)
+   - blNumber (optional: linked to a delivery)
+   - allocationMethod: 'DIRECT' | 'PROPORTIONAL' | 'GLOBAL'
+   - source: 'IMPORT' | 'MANUAL'
+   - filePath, deduplicationKey (unique)
+   - Indexes on year/month, category, enseigne, date, allocationMethod
+
+3. New API endpoints:
+   - GET /api/charges — list with filters (category, enseigne, date range).
+     Also returns the list of distinct categories for the dropdown filter.
+   - POST /api/charges — manual creation.
+   - DELETE /api/charges?id=X — delete one.
+   - POST /api/charges/import — Excel import with auto-detection of:
+     * Date (Date, Date Facture, Date Opération, Jour)
+     * Catégorie (Catégorie, Type, Nature, Classe, Famille)
+     * Libellé (Libellé, Description, Détail, Intitulé, Opération)
+     * Fournisseur (Fournisseur, Tiers, Bénéficiaire, Payé à)
+     * Montant HT/TTC, TVA
+     * Enseigne (optional: if charge directly attributable to a client)
+     * N° BL (optional)
+     * Auto-categorization from keywords when category column missing
+       (transport, livraison, salaire, paie, loyer, électricité, eau,
+       gaz, marketing, publicité, assurance, téléphone, fournitures,
+       entretien, carburant, achat, honoraire, taxe, impôt, etc.)
+     * Allocation method auto-set: DIRECT if enseigne provided, GLOBAL otherwise
+     * Batch insert with deduplicationKey
+   - GET /api/charges/analytique — the analytical sheet:
+     * Global KPIs: totalCA, totalCharges, totalDirect, totalShared,
+       margeBrute, margeBrutePct, nbVentes, nbClients, nbCharges
+     * Category breakdown (top categories by amount)
+     * Per-client detail: CA, directCharges, proportionalCharges,
+       totalCharges, marge, margePct (sorted by margin desc)
+     * Top 20 charges (highest amounts)
+     * Monthly series: CA + charges + marge per month
+     * Allocation method: DIRECT charges → attributed to that client;
+       GLOBAL/PROPORTIONAL → ventilated au prorata du CA du client
+
+4. New pages:
+   - /charges — list with filters (date range, category, search),
+     import button (Excel), manual add form (date, category, libellé,
+     fournisseur, montant HT, enseigne), 4 KPIs (total HT/TTC, transport+
+     carburant, direct charges), répartition par catégorie bar chart,
+     full charges table with category badges + allocation badges + delete
+   - /analytique — analytical sheet with:
+     * DateRangeFilter for the period
+     * 4 KPI cards (CA HT, Charges HT, Marge brute, Taux de marge)
+     * Monthly bar chart CA vs Charges vs Marge
+     * Pie chart of charges by category + table répartition
+     * Top 20 charges table
+     * Toggle 'Vue globale' | 'Par client'
+     * Par client view: Top 10 by CA + Top 10 by margin + full per-client
+       table with allocation breakdown + totals footer row
+
+5. Sidebar (app-sidebar.tsx): added 'Charges' (Receipt icon) and
+   'Feuille analytique' (Calculator icon) entries between Volumes and
+   Paramètres.
+
+Production verification:
+- prisma db push created the Charge table automatically on Vercel deploy
+- /api/charges returns { ok: true, data: [], categories: [] }
+- /api/charges/analytique returns the existing CA (1,397,021€ for 2026)
+  with 0 charges so 100% margin — ready for charges imports
+- /charges, /analytique pages return 200 OK
+- 171 clients already have their analytical detail ready
+
+Stage Summary:
+- Recap view removed from Grille Tarifaire (back to single Par client view)
+- New Charges section operational: Excel import + manual add + filters +
+  KPIs + répartition par catégorie + table with allocation badges
+- Feuille analytique operational: compta analytique with allocation
+  methods (DIRECT = per client, GLOBAL/PROPORTIONAL = ventilated au prorata
+  du CA), per-client margin calculation, monthly evolution, top charges,
+  global KPIs
+- Sidebar updated with new entries
+- Production URLs:
+  - https://venteskooks.vercel.app/charges
+  - https://venteskooks.vercel.app/analytique
