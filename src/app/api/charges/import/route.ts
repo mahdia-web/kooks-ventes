@@ -112,6 +112,11 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
+    // IMPORTANT: detect combinedAmount FIRST so the combined column (e.g.
+    // "Montant HT / TVA / TTC") is claimed before the simple 'HT' pattern
+    // can match it via the includes() rule.
+    const combinedAmount = findCol(['MONTANT HT / TVA / TTC', 'MONTANT HT TVA TTC', 'MT HT TVA TTC', 'MONTANT HT/TVA/TTC']);
+
     const auto = {
       // Date : on accepte ÉMISSION (date de facturation, préféré) puis AJOUT,
       // puis les formats classiques (DATE FACTURE, DATE OPERATION, etc.)
@@ -122,18 +127,15 @@ export async function POST(req: NextRequest) {
       subLabel: findCol(['LIBELLE', 'LIBELLÉ', 'COMMENTAIRES', 'DESCRIPTION', 'DÉTAIL', 'DETAIL', 'INTITULE', 'INTITULÉ', 'OPÉRATION', 'OPERATION']),
       // Fournisseur : colonne "Fournisseur" typique des exports d'achats
       vendor: findCol(['FOURNISSEUR', 'TIERS', 'BÉNÉFICIAIRE', 'BENEFICIAIRE', 'PAYÉ À', 'PAYE A', 'DESTINATAIRE']),
-      // Montants : on accepte "Montant HT", "MT HT", "HT", mais aussi la colonne
-      // combinée "Montant HT / TVA / TTC" (qui sera parsée en 3 valeurs)
+      // Montants : colonnes séparées HT/TTC (uniquement si pas déjà pris par combinedAmount)
       ht: findCol(['MONTANT HT', 'MT HT', 'HT']),
-      // Si la colonne combinée "Montant HT / TVA / TTC" existe, on l'utilise
-      // pour HT (et TTC sera aussi extrait du même champ)
-      combinedAmount: findCol(['MONTANT HT / TVA / TTC', 'MONTANT HT TVA TTC', 'MT HT TVA TTC', 'MONTANT HT/TVA/TTC']),
       ttc: findCol(['MONTANT TTC', 'MT TTC', 'TTC', 'MONTANT']),
       vatRate: findCol(['TAUX TVA', 'TVA']),
       enseigne: findCol(['ENSEIGNE', 'CLIENT', 'MAGASIN', 'CLIENT FINAL']),
       bl: findCol(['NUMERO BL', 'N° BL', 'BL', 'BON DE LIVRAISON']),
       // Référence facture (numéro de facture/achat) — utile pour tracer la charge
-      factureRef: findCol(['NUMERO FACTURE', 'N° FACTURE', 'NUMERO ACHAT', "NUMÉRO DE L'ACHAT", "NUMERO DE L ACHAT", "FACTURE", "NUMERO DE LA FACTURE", "NUMERO DE LA FACTURE"]),
+      factureRef: findCol(['NUMERO FACTURE', 'N° FACTURE', 'NUMERO ACHAT', "NUMÉRO DE L'ACHAT", "NUMERO DE L ACHAT", "FACTURE", "NUMERO DE LA FACTURE"]),
+      combinedAmount,
     };
 
     // Si aucune colonne montant séparée n'a été trouvée, mais qu'il existe
