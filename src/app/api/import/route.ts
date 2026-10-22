@@ -207,8 +207,17 @@ export async function POST(req: NextRequest) {
     );
     const existingEnseignes = await db.enseigne.findMany();
     const enseigneTypeMap = new Map(existingEnseignes.map((e) => [e.name, e.type]));
-    const activeAgents = await db.agent.findMany({ where: { isActive: true }, select: { name: true } });
-    console.log(`Clés déjà en base : ${existingKeys.size}, enseignes : ${existingEnseignes.length}, agents actifs : ${activeAgents.length}`);
+    const enseigneAgentMap = new Map(existingEnseignes.map((e) => [e.name, e.agent]));
+    const allAgents = await db.agent.findMany({ where: { isActive: true } });
+    const activeAgents = allAgents.map((a) => ({ name: a.name }));
+    // Récupère les taux par agent (pour KOOK'S = 0% / 0%)
+    const agentRateMap = new Map<string, { direct: number; centrale: number }>(
+      allAgents.map((a) => [a.name, { direct: a.defaultDirectRate, centrale: a.defaultCentraleRate }])
+    );
+    // Trouve l'agent KOOK'S (fallback par défaut pour les ventes sans commercial)
+    const kooksAgent = allAgents.find((a) => /kook/i.test(a.name));
+    const fallbackAgent = kooksAgent?.name ?? 'KOOK\'S';
+    console.log(`Clés déjà en base : ${existingKeys.size}, enseignes : ${existingEnseignes.length}, agents actifs : ${activeAgents.length}, fallback : ${fallbackAgent}`);
 
     const toInsert: Array<{
       blNumber: string | null;
@@ -313,7 +322,8 @@ export async function POST(req: NextRequest) {
       }
 
       // === Détection de l'agent ===
-      // Priorité : forceAgent > colonne agent du fichier > extraction depuis référence > 'Inconnu'
+      // Priorité : forceAgent > colonne agent du fichier > extraction depuis référence > fallback KOOK'S
+      // (KOOK'S est l'entreprise elle-même — toute vente sans commercial lui est rattachée)
       let agent = (forceAgent && forceAgent.trim()) || toStr(agentRaw);
       if (!agent && mapping.reference) {
         const ref = toStr(row[mapping.reference]);
@@ -333,14 +343,20 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      if (!agent) agent = 'Inconnu';
+      if (!agent) agent = fallbackAgent;
 
       // === Taux de commission ===
-      // Règle Kooks : 7% sur le CA Direct, 5% sur le CA Centrale
+      // Règle Kooks : utilise les taux de l'agent (defaultDirectRate / defaultCentraleRate)
+      // - CAP FRAIS & BROCARD : 7% Direct, 5% Centrale
+      // - KOOK'S : 0% (ventes maison sans commercial)
       const explicitRate = toNum(tauxRaw);
+      const agentDefaults = agentRateMap.get(agent);
+      const defaultRate = type === 'Centrale'
+        ? (agentDefaults?.centrale ?? 0.05)
+        : (agentDefaults?.direct ?? 0.07);
       const rate = explicitRate > 0
         ? (explicitRate > 1 ? explicitRate / 100 : explicitRate)
-        : (type === 'Centrale' ? 0.05 : 0.07);
+        : defaultRate;
 
       // === Montant commission ===
       const explicitCommission = toNum(commissionRaw);
@@ -383,7 +399,40 @@ export async function POST(req: NextRequest) {
 
       if (!newEnseignes.has(enseigne)) {
         newEnseignes.set(enseigne, { name: enseigne, type, agent });
+      } else {
+        // Si l'enseigne est déjà dans newEnseignes, met à jour l'agent si la nouvelle vente
+        // a un agent plus spécifique (forceAgent ou colonne agent du fichier)
+        const existing = newEnseignes.get(enseigne)!;
+        // Si la nouvelle vente a un agent (forceAgent ou agentRaw) et l'existant est le fallback, on prend le nouveau
+        if ((forceAgent?.trim() || toStr(agentRaw)) && existing.agent === fallbackAgent) {
+          existing.agent = agent;
+          existing.type = type;
+        }
       }
+    }
+
+    // Met à jour les enseignes EXISTANTES dont l'agent a changé
+    // (utile quand on importe un fichier de KOOK'S : les enseignes déjà en base
+    //  sous CAP FRAIS ou BROCARD mais ayant des ventes KOOK'S doivent être réaffectées)
+    let enseignesUpdated = 0;
+    for (const [name, newData] of newEnseignes.entries()) {
+      const existingAgent = enseigneAgentMap.get(name);
+      // Met à jour l'agent si : pas d'agent existant, OU agent existant = fallback,
+      // OU nouvelle vente force un agent explicite différent (forceAgent)
+      if (!existingAgent || existingAgent === fallbackAgent || (forceAgent?.trim() && existingAgent !== newData.agent)) {
+        try {
+          await db.enseigne.update({
+            where: { name },
+            data: { agent: newData.agent, type: newData.type },
+          });
+          enseignesUpdated++;
+        } catch {
+          // L'enseigne n'existe pas encore, elle sera créée plus bas
+        }
+      }
+    }
+    if (enseignesUpdated > 0) {
+      console.log(`Enseignes existantes mises à jour (agent réaffecté) : ${enseignesUpdated}`);
     }
 
     console.log(`Pré-import : ${toInsert.length} à insérer, doublons=${skippedDuplicate}, sans date=${skippedNoDate}, sans montant=${skippedNoAmount}, invalides=${skippedInvalid}`);

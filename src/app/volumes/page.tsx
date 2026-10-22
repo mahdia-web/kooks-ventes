@@ -9,6 +9,7 @@ import { ArrowLeft, Package, TrendingUp, Upload, Loader2, Trophy, Target, Calend
 import { AppSidebar } from '@/components/app-sidebar';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatNumber, formatDate, shortMonth } from '@/lib/dashboard-service';
+import { DateRangeFilter } from '@/components/date-range-filter';
 import { toast } from 'sonner';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -41,6 +42,7 @@ interface VolumeStats {
   totalQuantity: number; totalPots: number; potsSinceOct: number;
   objective: number; remaining: number; progressPct: number;
   dateRange: { start: string | null; end: string | null };
+  filteredDateRange: { start: string | null; end: string | null } | null;
   topProducts: Array<{ productLabel: string; parfum: string | null; format: string | null; totalQty: number; }>;
   topParfums: Array<{ parfum: string; totalQty: number; }>;
   topFormats: Array<{ format: string; totalQty: number; totalPots: number; }>;
@@ -49,16 +51,13 @@ interface VolumeStats {
   totalRecords: number; filteredEnseigne: string | null;
 }
 
-const ALL_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
-const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
 export default function VolumesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [stats, setStats] = useState<VolumeStats | null>(null);
   const [volumeClients, setVolumeClients] = useState<string[]>([]);
   const [selectedEnseigne, setSelectedEnseigne] = useState<string>('');
-  const [selectedYear, setSelectedYear] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  // Plage de dates (format DD/MM/YYYY). Chaîne vide = pas de filtre par date.
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
@@ -88,15 +87,17 @@ export default function VolumesPage() {
     try {
       const params = new URLSearchParams();
       if (selectedEnseigne) params.set('enseigne', selectedEnseigne);
-      if (selectedYear !== 'all') params.set('year', selectedYear);
-      if (selectedMonth !== 'all') params.set('month', selectedMonth);
+      if (dateRange.start && dateRange.end) {
+        params.set('startDate', dateRange.start);
+        params.set('endDate', dateRange.end);
+      }
       const url = `/api/volumes/stats${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const json = await res.json();
       if (json.ok) setStats(json.data);
     } catch {}
     setLoading(false);
-  }, [selectedEnseigne, selectedYear, selectedMonth]);
+  }, [selectedEnseigne, dateRange]);
 
   useEffect(() => { loadDashboard(); loadVolumeClients(); }, [loadDashboard, loadVolumeClients]);
   useEffect(() => { loadStats(); }, [loadStats]);
@@ -111,6 +112,13 @@ export default function VolumesPage() {
       </div>
     );
   }
+
+  // Construction du libellé de période (affiché en haut)
+  const periodLabel = dateRange.start && dateRange.end
+    ? `${dateRange.start} → ${dateRange.end}`
+    : (stats?.dateRange.start && stats?.dateRange.end
+        ? `${formatDate(stats.dateRange.start)} → ${formatDate(stats.dateRange.end)}`
+        : '—');
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -133,6 +141,14 @@ export default function VolumesPage() {
               {/* Import */}
               <VolumesImportButton onImported={() => { loadStats(); loadVolumeClients(); }} />
 
+              {/* Filtre plage de dates (identique au tableau de bord) */}
+              <DateRangeFilter
+                startDate={dateRange.start}
+                endDate={dateRange.end}
+                onChange={(start, end) => setDateRange({ start, end })}
+                onReset={() => setDateRange({ start: '', end: '' })}
+              />
+
               {/* Filtre client */}
               <Select value={selectedEnseigne || 'all'} onValueChange={(v) => setSelectedEnseigne(v === 'all' ? '' : v)}>
                 <SelectTrigger className="h-8 text-sm w-[200px]"><SelectValue placeholder="Tous les clients" /></SelectTrigger>
@@ -141,42 +157,25 @@ export default function VolumesPage() {
                   {volumeClients.map((name) => <SelectItem key={name} value={name}>{name.length > 40 ? name.slice(0, 40) + '...' : name}</SelectItem>)}
                 </SelectContent>
               </Select>
-
-              {/* Filtre mois */}
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="h-8 text-sm w-[100px]"><SelectValue placeholder="Mois" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  {ALL_MONTHS.map(m => <SelectItem key={m} value={String(m)}>{shortMonth(m)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-
-              {/* Filtre année */}
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="h-8 text-sm w-[80px]"><SelectValue placeholder="Année" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  {ALL_YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </CardContent>
           </Card>
 
           {stats && stats.totalQuantity > 0 ? (
             <>
-              {/* Période */}
-              {stats.dateRange.start && (
-                <Card className="border-border bg-muted/30"><CardContent className="p-2 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5 text-primary" />
-                  <span>Période : <strong>{formatDate(stats.dateRange.start)} → {formatDate(stats.dateRange.end)}</strong></span>
-                  {stats.filteredEnseigne && <span className="ml-2 text-primary">• {stats.filteredEnseigne}</span>}
-                  {selectedYear !== 'all' && <span className="ml-2 text-primary">• {selectedYear}</span>}
-                  {selectedMonth !== 'all' && <span className="ml-2 text-primary">• {shortMonth(parseInt(selectedMonth))}</span>}
-                </CardContent></Card>
-              )}
+              {/* Période active */}
+              <Card className="border-border bg-muted/30"><CardContent className="p-2 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                <span>Période : <strong>{periodLabel}</strong></span>
+                {stats.filteredEnseigne && <span className="ml-2 text-primary">• {stats.filteredEnseigne}</span>}
+                {stats.filteredDateRange?.start && (
+                  <span className="ml-2 text-primary">
+                    • filtré du {formatDate(stats.filteredDateRange.start)} au {formatDate(stats.filteredDateRange.end!)}
+                  </span>
+                )}
+              </CardContent></Card>
 
               {/* Objectif 3M */}
-              {!stats.filteredEnseigne && selectedYear === 'all' && selectedMonth === 'all' && stats.objective > 0 && (
+              {!stats.filteredEnseigne && !stats.filteredDateRange && stats.objective > 0 && (
                 <Card className="border-primary/40 bg-primary/10"><CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3"><Target className="h-6 w-6 text-primary" /><div><h3 className="font-title text-base font-bold">Objectif annuel : 3 000 000 pots</h3><p className="text-xs text-muted-foreground">Année démarrée le 01/10/2026</p></div></div>
                   <div className="grid gap-3 sm:grid-cols-4">
@@ -258,7 +257,7 @@ export default function VolumesPage() {
               )}
             </>
           ) : (
-            <Card className="border-border"><CardContent className="p-12 text-center"><Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" /><p className="text-sm text-muted-foreground mb-2">Aucune donnée pour ce filtre.</p><p className="text-xs text-muted-foreground">Essayez « Tous les clients » et « Toutes » les années.</p></CardContent></Card>
+            <Card className="border-border"><CardContent className="p-12 text-center"><Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-40" /><p className="text-sm text-muted-foreground mb-2">Aucune donnée pour ce filtre.</p><p className="text-xs text-muted-foreground">Essayez « Tous les clients » et réinitialisez la plage de dates.</p></CardContent></Card>
           )}
         </main>
       </div>

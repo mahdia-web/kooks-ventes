@@ -253,7 +253,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
         body: JSON.stringify({
           name: newClient.name.trim(),
           type,
-          agent: newClient.agent || 'Inconnu',
+          agent: newClient.agent || "KOOK'S",
           commissionRate: rate,
           isActive: newClient.isActive,
         }),
@@ -774,7 +774,7 @@ function DuplicateGroupCard({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {item.type} • {item.agent || 'Inconnu'} •{' '}
+                    {item.type} • {item.agent || "KOOK'S"} •{' '}
                     {item.isActive ? 'Actif' : 'Inactif'}
                   </p>
                 </div>

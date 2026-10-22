@@ -30,7 +30,12 @@ export async function POST(req: NextRequest) {
     const existingKeys = new Set((await db.sale.findMany({ select: { deduplicationKey: true } })).map(s => s.deduplicationKey));
     const existingEnseignes = await db.enseigne.findMany();
     const enseigneTypeMap = new Map(existingEnseignes.map(e => [e.name, e.type]));
-    const activeAgents = await db.agent.findMany({ where: { isActive: true }, select: { name: true } });
+    const enseigneAgentMap = new Map(existingEnseignes.map(e => [e.name, e.agent]));
+    const allAgents = await db.agent.findMany({ where: { isActive: true } });
+    const activeAgents = allAgents.map(a => ({ name: a.name }));
+    const agentRateMap = new Map<string, { direct: number; centrale: number }>(allAgents.map(a => [a.name, { direct: a.defaultDirectRate, centrale: a.defaultCentraleRate }]));
+    const kooksAgent = allAgents.find(a => /kook/i.test(a.name));
+    const fallbackAgent = kooksAgent?.name ?? "KOOK'S";
     const toInsert: any[] = [];
     let skipped = 0;
     for (const row of rows) {
@@ -49,10 +54,12 @@ export async function POST(req: NextRequest) {
       let type = ''; if (forceType && forceType !== 'auto') type = forceType; else if (enseigneTypeMap.has(enseigne)) type = enseigneTypeMap.get(enseigne)!; else type = toStr(mapping.type ? row[mapping.type] : null) || (isCentrale ? 'Centrale' : 'Direct');
       let agent = (forceAgent && forceAgent.trim()) || toStr(mapping.agent ? row[mapping.agent] : null);
       if (!agent && mapping.reference) { const ref = toStr(row[mapping.reference]); const m2 = ref.match(/\b(?:via|par)\s+([A-Z][A-Z\s&]{2,30})/); if (m2) agent = m2[1].trim().split(/\s+(?:À|A|ET|DE|POUR)\s+/)[0].trim(); if (!agent) { const ru = ref.toUpperCase(); for (const a of activeAgents) { if (ru.includes(a.name.toUpperCase())) { agent = a.name; break; } } } }
-      if (!agent) agent = 'Inconnu';
+      if (!agent) agent = fallbackAgent;
       const explicitRate = toNum(mapping.taux ? row[mapping.taux] : null);
-      // Règle Kooks : 7% sur le CA Direct, 5% sur le CA Centrale
-      const rate = explicitRate > 0 ? (explicitRate > 1 ? explicitRate/100 : explicitRate) : (type === 'Centrale' ? 0.05 : 0.07);
+      // Règle Kooks : utilise les taux de l'agent (defaultDirectRate / defaultCentraleRate)
+      const agentDefaults = agentRateMap.get(agent);
+      const defaultRate = type === 'Centrale' ? (agentDefaults?.centrale ?? 0.05) : (agentDefaults?.direct ?? 0.07);
+      const rate = explicitRate > 0 ? (explicitRate > 1 ? explicitRate/100 : explicitRate) : defaultRate;
       const explicitCommission = toNum(mapping.commission ? row[mapping.commission] : null);
       const commission = explicitCommission > 0 ? explicitCommission : finalHT * rate;
       const blNumber = mapping.bl ? toStr(row[mapping.bl]) : null;

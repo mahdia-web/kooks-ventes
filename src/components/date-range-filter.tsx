@@ -14,63 +14,108 @@ interface DateRangeFilterProps {
   onReset: () => void;
 }
 
-const PRESETS = [
-  { label: 'Mois en cours', getRange: () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return { start: formatDate(start), end: formatDate(end) };
-  }},
-  { label: 'Mois dernier', getRange: () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), 0);
-    return { start: formatDate(start), end: formatDate(end) };
-  }},
-  { label: '6 derniers mois', getRange: () => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return { start: formatDate(start), end: formatDate(end) };
-  }},
-  { label: 'Exercice en cours', getRange: () => {
-    const now = new Date();
-    // Exercise starts Oct 1st
-    const exerciseYear = now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
-    const start = new Date(exerciseYear, 9, 1); // Oct 1
-    const end = new Date(exerciseYear + 1, 8, 30); // Sep 30
-    return { start: formatDate(start), end: formatDate(end) };
-  }},
-];
-
-function formatDate(d: Date): string {
+// Format une date en DD/MM/YYYY (format affiché)
+function formatDMY(d: Date): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
-function parseDate(s: string): Date | null {
-  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!m) return null;
-  return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+// Format une date en YYYY-MM-DD (format attendu par <input type="date">)
+function formatISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+// Convertit DD/MM/YYYY → YYYY-MM-DD (pour le input type=date)
+function dmyToIso(s: string): string {
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return '';
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+// Convertit YYYY-MM-DD → DD/MM/YYYY
+function isoToDmy(s: string): string {
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+type Preset = {
+  label: string;
+  getRange: () => { start: string; end: string }; // DD/MM/YYYY
+};
+
+const PRESETS: Preset[] = [
+  { label: "Mois en cours", getRange: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+  { label: "Mois dernier", getRange: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+  { label: "Trimestre en cours", getRange: () => {
+    const now = new Date();
+    const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+    const start = new Date(now.getFullYear(), qStartMonth, 1);
+    const end = new Date(now.getFullYear(), qStartMonth + 3, 0);
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+  { label: "6 derniers mois", getRange: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+  { label: "Année civile en cours", getRange: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31);
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+  { label: "Exercice en cours", getRange: () => {
+    // Kooks : exercice du 01/10 au 30/09
+    const now = new Date();
+    const exerciseYear = now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+    const start = new Date(exerciseYear, 9, 1); // Oct 1
+    const end = new Date(exerciseYear + 1, 8, 30); // Sep 30
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+  { label: "Exercice dernier", getRange: () => {
+    // Kooks : exercice précédent (01/10 N-1 → 30/09 N)
+    const now = new Date();
+    const exerciseYear = now.getMonth() >= 9 ? now.getFullYear() - 1 : now.getFullYear() - 2;
+    const start = new Date(exerciseYear, 9, 1); // Oct 1
+    const end = new Date(exerciseYear + 1, 8, 30); // Sep 30
+    return { start: formatDMY(start), end: formatDMY(end) };
+  }},
+];
 
 export function DateRangeFilter({ startDate, endDate, onChange, onReset }: DateRangeFilterProps) {
   const [open, setOpen] = useState(false);
-  const [tempStart, setTempStart] = useState(startDate);
-  const [tempEnd, setTempEnd] = useState(endDate);
+  // Pour les inputs <input type="date">, on utilise le format ISO YYYY-MM-DD
+  const [tempStartIso, setTempStartIso] = useState(dmyToIso(startDate));
+  const [tempEndIso, setTempEndIso] = useState(dmyToIso(endDate));
 
   useEffect(() => {
-    setTempStart(startDate);
-    setTempEnd(endDate);
+    setTempStartIso(dmyToIso(startDate));
+    setTempEndIso(dmyToIso(endDate));
   }, [startDate, endDate]);
 
-  const handlePreset = (preset: typeof PRESETS[0]) => {
+  const handlePreset = (preset: Preset) => {
     const { start, end } = preset.getRange();
-    setTempStart(start);
-    setTempEnd(end);
+    setTempStartIso(dmyToIso(start));
+    setTempEndIso(dmyToIso(end));
   };
 
   const handleValidate = () => {
-    onChange(tempStart, tempEnd);
+    const startDmy = tempStartIso ? isoToDmy(tempStartIso) : '';
+    const endDmy = tempEndIso ? isoToDmy(tempEndIso) : '';
+    if (startDmy && endDmy) {
+      onChange(startDmy, endDmy);
+    }
     setOpen(false);
   };
 
@@ -85,6 +130,7 @@ export function DateRangeFilter({ startDate, endDate, onChange, onReset }: DateR
     <div className="relative">
       {/* Trigger button */}
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/70 transition-colors text-sm"
       >
@@ -94,12 +140,16 @@ export function DateRangeFilter({ startDate, endDate, onChange, onReset }: DateR
       </button>
 
       {/* Reset link */}
-      <button
-        onClick={handleReset}
-        className="ml-2 text-xs text-primary hover:underline"
-      >
-        Réinitialiser
-      </button>
+      {(startDate || endDate) && (
+        <button
+          type="button"
+          onClick={handleReset}
+          className="ml-2 text-xs text-primary hover:underline inline-flex items-center gap-1"
+        >
+          <X className="h-3 w-3" />
+          Réinitialiser
+        </button>
+      )}
 
       {/* Dropdown */}
       {open && (
@@ -108,49 +158,59 @@ export function DateRangeFilter({ startDate, endDate, onChange, onReset }: DateR
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
           {/* Panel */}
-          <div className="absolute top-full left-0 mt-2 z-50 w-96 bg-card border border-border rounded-lg shadow-xl p-4 space-y-4">
+          <div className="absolute top-full left-0 mt-2 z-50 w-[420px] bg-card border border-border rounded-lg shadow-xl p-4 space-y-4">
             {/* Predefined periods */}
             <div>
               <Label className="text-xs font-semibold uppercase text-muted-foreground mb-2 block">
                 Périodes prédéfinies
               </Label>
               <div className="grid grid-cols-2 gap-2">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    onClick={() => handlePreset(preset)}
-                    className="px-3 py-2 text-xs rounded-md border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+                {PRESETS.map((preset) => {
+                  // Surligne le preset actif si la plage correspond
+                  const isActive = startDate === preset.getRange().start && endDate === preset.getRange().end;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => handlePreset(preset)}
+                      className={cn(
+                        'px-3 py-2 text-xs rounded-md border transition-colors text-center',
+                        isActive
+                          ? 'border-primary bg-primary/10 text-primary font-medium'
+                          : 'border-border hover:border-primary hover:bg-primary/5'
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Custom date range */}
+            {/* Custom date range — utilise input type="date" natif pour faciliter la saisie */}
             <div>
               <Label className="text-xs font-semibold uppercase text-muted-foreground mb-2 block">
-                Période
+                Période personnalisée
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Début <span className="text-destructive">*</span></Label>
+                  <Label className="text-xs text-muted-foreground">Début</Label>
                   <Input
-                    type="text"
-                    value={tempStart}
-                    onChange={(e) => setTempStart(e.target.value)}
-                    placeholder="JJ/MM/AAAA"
+                    type="date"
+                    value={tempStartIso}
+                    onChange={(e) => setTempStartIso(e.target.value)}
                     className="h-8 text-sm"
+                    lang="fr-FR"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Fin <span className="text-destructive">*</span></Label>
+                  <Label className="text-xs text-muted-foreground">Fin</Label>
                   <Input
-                    type="text"
-                    value={tempEnd}
-                    onChange={(e) => setTempEnd(e.target.value)}
-                    placeholder="JJ/MM/AAAA"
+                    type="date"
+                    value={tempEndIso}
+                    onChange={(e) => setTempEndIso(e.target.value)}
                     className="h-8 text-sm"
+                    lang="fr-FR"
                   />
                 </div>
               </div>

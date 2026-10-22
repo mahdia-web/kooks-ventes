@@ -3,7 +3,8 @@ import { db } from '@/lib/db';
 
 /**
  * GET /api/volumes/stats?enseigne=XXX&year=2026&month=9
- * Retourne les stats de volumes avec filtre optionnel par enseigne.
+ * GET /api/volumes/stats?enseigne=XXX&startDate=01/10/2025&endDate=30/09/2026
+ * Retourne les stats de volumes avec filtre optionnel par enseigne + plage de dates.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -11,11 +12,30 @@ export async function GET(req: NextRequest) {
     const enseigne = searchParams.get('enseigne');
     const yearParam = searchParams.get('year');
     const monthParam = searchParams.get('month');
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
 
     const where: Record<string, unknown> = {};
     if (enseigne) where.enseigne = enseigne;
     if (yearParam) where.year = parseInt(yearParam, 10);
     if (monthParam) where.month = parseInt(monthParam, 10);
+
+    // Plage de dates (optionnel) — si fournie, on filtre par `date` au lieu de year/month
+    let dateRange: { start: Date; end: Date } | null = null;
+    if (startDateStr && endDateStr) {
+      const m1 = startDateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      const m2 = endDateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m1 && m2) {
+        const start = new Date(parseInt(m1[3]), parseInt(m1[2]) - 1, parseInt(m1[1]));
+        const end = new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]));
+        end.setHours(23, 59, 59);
+        // On enlève les filtres year/month quand on a une plage de dates
+        delete where.year;
+        delete where.month;
+        where.date = { gte: start, lte: end };
+        dateRange = { start, end };
+      }
+    }
 
     const allVolumes = await db.volumeSale.findMany({
       where,
@@ -102,6 +122,9 @@ export async function GET(req: NextRequest) {
           start: minDate ? minDate.toISOString().split('T')[0] : null,
           end: maxDate ? maxDate.toISOString().split('T')[0] : null,
         },
+        filteredDateRange: dateRange
+          ? { start: dateRange.start.toISOString().split('T')[0], end: dateRange.end.toISOString().split('T')[0] }
+          : null,
         topProducts,
         topParfums,
         topFormats,
