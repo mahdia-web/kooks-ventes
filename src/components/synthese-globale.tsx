@@ -7,25 +7,27 @@ import type { DashboardData } from '@/lib/dashboard-types';
 
 interface Props {
   data: DashboardData;
+  periodLabel?: string;
 }
 
 /**
- * Synthèse globale : lecture CA Direct vs Centrale sur toute la période.
- * Affiche les totaux et la part de chaque type.
+ * Synthèse : lecture CA Direct vs Centrale.
+ * S'adapte à la période sélectionnée (mensuel, plage de dates, ou global).
  */
-export function SyntheseGlobale({ data }: Props) {
+export function SyntheseGlobale({ data, periodLabel }: Props) {
   const g = data.global;
   const totalCa = g.totalCaHT || 0;
   const partDirect = totalCa > 0 ? (g.totalCaDirect / totalCa) : 0;
   const partCentrale = totalCa > 0 ? (g.totalCaCentrale / totalCa) : 0;
   const isAgentFiltered = !!data.agentFilter;
+  const label = periodLabel || 'toute la période';
 
   return (
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader>
         <CardTitle className="font-title flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
-          Synthèse globale — CA Direct / Centrale
+          Synthèse — CA Direct / Centrale
           {isAgentFiltered && (
             <span className="text-xs font-normal text-muted-foreground">
               ({data.agentFilter})
@@ -33,7 +35,7 @@ export function SyntheseGlobale({ data }: Props) {
           )}
         </CardTitle>
         <CardDescription>
-          Lecture du CA total et de sa répartition sur toute la période disponible
+          Répartition du CA sur <strong>{label}</strong>
           {g.dateRange.start && g.dateRange.end && (
             <>
               {' '}— du <strong>{formatDate(g.dateRange.start)}</strong> au <strong>{formatDate(g.dateRange.end)}</strong>

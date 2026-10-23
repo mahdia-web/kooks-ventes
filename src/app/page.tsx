@@ -425,8 +425,33 @@ export default function Home() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
-                {/* Synthèse globale CA Direct/Centrale sur la période */}
-                <SyntheseGlobale data={data} />
+                {/* Synthèse CA Direct/Centrale — adaptée à la période sélectionnée */}
+                <SyntheseGlobale
+                  data={viewMode === 'global' ? data : {
+                    ...data,
+                    global: {
+                      ...data.global,
+                      totalCaHT: data.kpis.current.caHT,
+                      totalCaDirect: data.kpis.current.caDirect,
+                      totalCaCentrale: data.kpis.current.caCentrale,
+                      totalNbBl: data.kpis.current.nbBl,
+                      totalBlDirect: data.kpis.current.nbBlDirect,
+                      totalBlCentrale: data.kpis.current.nbBlCentrale,
+                      totalCommission: data.kpis.current.commission,
+                      // Commission par type: répartie proportionnellement au CA
+                      totalCommissionDirect: data.kpis.current.caHT > 0
+                        ? data.kpis.current.commission * (data.kpis.current.caDirect / data.kpis.current.caHT)
+                        : 0,
+                      totalCommissionCentrale: data.kpis.current.caHT > 0
+                        ? data.kpis.current.commission * (data.kpis.current.caCentrale / data.kpis.current.caHT)
+                        : 0,
+                      dateRange: viewMode === 'daterange' && data.global.dateRange
+                        ? data.global.dateRange
+                        : { start: `${data.kpis.current.year}-${String(data.kpis.current.month).padStart(2, '0')}-01`, end: `${data.kpis.current.year}-${String(data.kpis.current.month).padStart(2, '0')}-30` },
+                    },
+                  }}
+                  periodLabel={viewMode === 'global' ? 'toute la période' : viewMode === 'daterange' ? 'la plage sélectionnée' : data.kpis.current.label}
+                />
 
                 {/* Charts (pie + barres) — utilise les données mensuelles ou globales selon le mode */}
                 <ChartsGrid
