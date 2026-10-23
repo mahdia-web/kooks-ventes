@@ -497,3 +497,90 @@ Stage Summary:
 - Production URLs:
   - https://venteskooks.vercel.app/charges (list + import + répartition)
   - https://venteskooks.vercel.app/analytique (compta analytique)
+
+---
+Task ID: charges-top-vendors-readable-pie-explanation
+Agent: main
+Task: Add top vendors chart + fix unreadable répartition pie chart + explain 'charges par client'
+
+Work Log:
+
+User feedback (3 points):
+1. 'rajouter nos fournisseurs qui nous coute le plus peut etre en choisissant
+   les graphiques appropriés' — need a top vendors chart
+2. 'la partie répartiton des charges est illisible à cause du jeu de couleur
+   qu'il y a dessus' — the pie chart has too many slices and colors become
+   indistinguishable
+3. 'les charges par clients correspondent à quoi ?' — per-client allocation
+   method is unclear
+
+Code changes pushed to GitHub (commit a5487cf):
+
+1. Top 15 fournisseurs — added on both /charges and /analytique pages:
+   - Horizontal bar chart (vertical layout BarChart) — most appropriate
+     chart type for ranking data with potentially long vendor names
+   - Y axis: vendor name (truncated to 22-26 chars with ellipsis)
+   - X axis: total HT formatted as 'Nk€'
+   - Tooltip shows: total HT, count of factures, %, primary category
+   - Kooks color palette (orange, blue, caramel, mint, etc.)
+   - On /charges: height 420px + top 6 vendors legend below
+   - On /analytique: height 480px (more vendors visible)
+
+2. Fixed unreadable pie chart on /analytique:
+   - Was displaying all 55+ categories → 8 colors cycling = unreadable
+     (the screenshot the user sent showed this exact issue)
+   - Now limits to top 10 categories + groups the rest as 'Autres (N)'
+   - Subtitle updated: 'Ventilation HT — top 10 catégories + autres
+     regroupés'
+   - The detailed list (horizontal bars) below the pie chart still shows
+     ALL categories — no information lost
+
+3. /api/charges (GET) now also returns 'topVendors' (top 15 by total HT,
+   computed from filtered charges — so it respects date/category filters)
+
+4. /api/charges/analytique now also returns 'topVendors' (same format,
+   respects the date range filter)
+
+5. Replaced the terse 1-line explanation banner on /analytique (Vue par
+   client) with a detailed Info-card explaining:
+   - What 'charges par client' corresponds to: it's NOT a real cost
+     billed to the client, but an analytical estimation (cost imputé)
+   - Charges DIRECTES (allocation DIRECT): charges imported with
+     'enseigne' field set (e.g. transport sur ventes) — attributed
+     100% to that client
+   - Charges GLOBALES (allocation GLOBAL): all other charges (loyer,
+     salaires, électricité, etc.) — ventilated au prorata du CA
+     (if client = 10% of CA → takes 10% of global charges)
+   - Marge du client = CA − direct charges − proportional share
+   - Important NB: in the user's K FACTORY file, very few charges have
+     the 'enseigne' field set, so almost everything is ventilated
+     au prorata. For more precise per-client margins, the user would
+     need to fill in the 'client final' on transport/livraison charges
+     directly attributable to a client.
+   - Card uses Info icon + primary background to be visible
+
+Production verification:
+- /api/charges returns topVendors (15 vendors). Top 5:
+  * SAS FLECHARD: 376,830€ (81 factures, 16.9%)
+  * BARRY CALLEBAUT: 132,009€ (34 factures, 5.9%)
+  * STG: 130,322€ (38 factures, 5.9%)
+  * SEDA INTERNATIONAL: 120,995€ (4 factures, 5.4%)
+  * BONCOLAC: 115,195€ (11 factures, 5.2%)
+- /api/charges/analytique returns topVendors (top 5 on default period):
+  * BONCOLAC: 115,195€ (11 factures, 17.0%)
+  * SAS FLECHARD: 71,876€ (20 factures, 10.6%)
+  * STG: 64,388€ (9 factures, 9.5%)
+  * ESSET PROPERTY MGMT: 35,130€ (5 factures, 5.2%)
+  * BARRY CALLEBAUT: 27,183€ (5 factures, 4.0%)
+- /charges and /analytique pages return 200 OK
+- Pie chart now shows top 10 + 1 'Autres' slice instead of 55+ slices
+
+Stage Summary:
+- Top 15 fournisseurs chart operational on both pages — sorted by cost
+  with horizontal bar chart (best chart type for ranking data)
+- Pie chart répartition now readable: top 10 + grouped 'Autres' slice
+- 'Charges par client' clearly explained in the analytique UI — user
+  understands it's an analytical estimation, not a real billed cost
+- Production URLs:
+  - https://venteskooks.vercel.app/charges
+  - https://venteskooks.vercel.app/analytique
