@@ -201,11 +201,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Charge les données existantes
+    // Charge les données existantes — optimisé: ne charge que les clés
+    // de déduplication (pas toutes les ventes) et les enseignes existantes
+    console.log('Chargement des clés existantes...');
     const existingKeys = new Set(
-      (await db.sale.findMany({ select: { deduplicationKey: true } })).map((s) => s.deduplicationKey)
+      (await db.sale.findMany({ select: { deduplicationKey: true }, orderBy: { date: 'desc' } })).map((s) => s.deduplicationKey)
     );
-    const existingEnseignes = await db.enseigne.findMany();
+    console.log(`Clés en base: ${existingKeys.size}`);
+    const existingEnseignes = await db.enseigne.findMany({ select: { name: true, type: true, agent: true } });
     const enseigneTypeMap = new Map(existingEnseignes.map((e) => [e.name, e.type]));
     const enseigneAgentMap = new Map(existingEnseignes.map((e) => [e.name, e.agent]));
     const allAgents = await db.agent.findMany({ where: { isActive: true } });
@@ -462,24 +465,25 @@ export async function POST(req: NextRequest) {
     }
 
     // Insertion en lots (batch) pour éviter le timeout Vercel
+    // Batch plus gros (500) = moins de round-trips DB = plus rapide
     let inserted = 0, updated = 0;
-    const BATCH_SIZE = 100;
-    
+    const BATCH_SIZE = 500;
+
     if (!replaceDuplicates) {
-      // Mode simple : batch insert sans replaceDuplicates
+      // Mode simple : batch insert avec skipDuplicates (très rapide)
+      console.log(`Insertion de ${toInsert.length} ventes en batches de ${BATCH_SIZE}...`);
       for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
         const batch = toInsert.slice(i, i + BATCH_SIZE);
         try {
           const result = await db.sale.createMany({
-            data: batch.map(v => {
-              const { deduplicationKey, ...rest } = v;
-              return { ...v }; // garde tout y compris deduplicationKey
-            }),
+            data: batch,
             skipDuplicates: true,
           });
           inserted += result.count;
+          console.log(`  Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(toInsert.length / BATCH_SIZE)}: ${result.count} insérées`);
         } catch (e) {
-          // Si le batch échoue, essaie un par un
+          console.error(`  Batch ${Math.floor(i / BATCH_SIZE) + 1} échoué, fallback 1-par-1:`, e instanceof Error ? e.message : String(e));
+          // Si le batch échoue, essaie un par un (plus lent mais resilient)
           for (const v of batch) {
             try { await db.sale.create({ data: v }); inserted++; } catch {}
           }
@@ -487,6 +491,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Mode replaceDuplicates : un par un (nécessite update)
+      console.log(`Mode replaceDuplicates: ${toInsert.length} ventes à traiter...`);
       for (const v of toInsert) {
         try {
           if (replaceDuplicates && existingKeys.has(v.deduplicationKey)) {
@@ -503,12 +508,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Nouvelles enseignes
-    for (const e of Array.from(newEnseignes.values())) {
+    // Nouvelles enseignes — batch insert avec skipDuplicates (très rapide)
+    const newEnseignesList = Array.from(newEnseignes.values());
+    if (newEnseignesList.length > 0) {
+      console.log(`Création de ${newEnseignesList.length} nouvelles enseignes...`);
       try {
-        await db.enseigne.create({ data: e });
-      } catch {
-        // Ignore doublons
+        const ensResult = await db.enseigne.createMany({
+          data: newEnseignesList,
+          skipDuplicates: true,
+        });
+        console.log(`  ${ensResult.count} enseignes créées`);
+      } catch (e) {
+        console.error('Erreur création enseignes en batch, fallback 1-par-1:', e instanceof Error ? e.message : String(e));
+        for (const e of newEnseignesList) {
+          try { await db.enseigne.create({ data: e }); } catch {}
+        }
       }
     }
 

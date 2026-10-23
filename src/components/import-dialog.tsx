@@ -185,7 +185,7 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
       } catch {
         throw new Error(
           res.status === 504 || res.status === 502
-            ? 'Le serveur a mis trop de temps à répondre (timeout). Le fichier est peut-être trop volumineux.'
+            ? 'Le serveur a mis trop de temps à répondre (timeout). Le fichier est peut-être trop volumineux. Conseil: essayez de réduire le fichier ou de l\'importer sans l\'option "Remplacer les doublons" (plus rapide).'
             : `Réponse serveur invalide (${res.status}). Le fichier est peut-être au mauvais format.`
         );
       }
