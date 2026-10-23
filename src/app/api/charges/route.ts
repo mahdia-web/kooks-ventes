@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { isChargeDirecte } from '@/lib/compte-comptable';
 
 /**
  * GET /api/charges?category=Transport&startDate=01/01/2026&endDate=31/12/2026&enseigne=XXX&vendor=YYY
@@ -236,7 +237,7 @@ export async function POST(req: NextRequest) {
         amountHT: finalHT,
         amountTTC: finalTTC,
         enseigne: enseigne || null,
-        allocationMethod: allocationMethod || (enseigne ? 'DIRECT' : 'GLOBAL'),
+        allocationMethod: allocationMethod || ((enseigne || isChargeDirecte(category)) ? 'DIRECT' : 'GLOBAL'),
         source: 'MANUAL',
         deduplicationKey,
       },

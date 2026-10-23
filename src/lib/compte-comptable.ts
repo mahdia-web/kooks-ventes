@@ -159,6 +159,44 @@ export function rawCompteFromCategory(category: string | null | undefined): stri
 }
 
 /**
+ * Détermine si une catégorie de charge est DIRECTE ou INDIRECTE selon les
+ * principes de la comptabilité analytique française.
+ *
+ * Charges DIRECTES = charges qu'on peut affecter sans calcul intermédiaire
+ * à un coût (production, vente). Ce sont les charges opérationnelles
+ * directement liées à l'activité : matières premières, emballages, transport
+ * sur ventes.
+ *
+ * Charges INDIRECTES = charges de structure qui nécessitent une répartition
+ * (loyer, électricité, salaires, honoraires, frais bancaires, etc.)
+ *
+ * Le paramètre est le libellé lisible (déjà converti depuis le numéro de
+ * compte par labelForCompte).
+ */
+export function isChargeDirecte(categoryLabel: string | null | undefined): boolean {
+  if (!categoryLabel) return false;
+  const l = categoryLabel.toLowerCase();
+
+  // === Charges DIRECTES (liées à la production/vente) ===
+  // 601 — Achats matières premières (ingredients des cookies vendus)
+  if (l.includes('achats matières premières')) return true;
+  // 6026 — Emballages & conditionnements (packaging des produits vendus)
+  if (l.includes('emballage') || l.includes('conditionnement')) return true;
+  // 6241 — Transport sur ventes (livraison aux clients)
+  if (l.includes('transport sur ventes')) return true;
+  // 604 — Études & prestations liées à la production
+  if (l.includes('études & prestations') && !l.includes('compte mixte')) return true;
+  // 605 — Achats de matériel & équipements (pour production)
+  if (l.includes('achats de matériel')) return true;
+
+  // === Tout le reste = INDIRECT (charges de structure) ===
+  // Loyer, électricité, carburant, salaires, intérim, honoraires, frais
+  // bancaires, déplacements, téléphone, assurances, entretien, marketing,
+  // logiciels, mobilier, etc.
+  return false;
+}
+
+/**
  * Renvoie une catégorie "racine" simplifiée pour grouper les charges.
  * Par exemple, tous les "Transport sur ventes", "Transport sur achats" et
  * "Transport entre établissements" sont groupés sous "Transport".

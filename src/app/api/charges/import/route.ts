@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
-import { labelForCompte } from '@/lib/compte-comptable';
+import { labelForCompte, isChargeDirecte } from '@/lib/compte-comptable';
 
 // Augmente le timeout Vercel à 60s
 export const maxDuration = 60;
@@ -336,8 +336,12 @@ export async function POST(req: NextRequest) {
       const enseigne = auto.enseigne ? toStr(row[auto.enseigne]) : '';
       const blNumber = auto.bl ? toStr(row[auto.bl]) : '';
 
-      // Allocation method : DIRECT si enseigne renseigné, sinon GLOBAL
-      const allocationMethod = enseigne ? 'DIRECT' : 'GLOBAL';
+      // Allocation method intelligent basé sur la compta analytique:
+      // - Si la charge a un client (enseigne) renseigné → DIRECT
+      // - Sinon, on regarde la catégorie: achats matières, emballages,
+      //   transport sur ventes → DIRECT (charges opérationnelles)
+      // - Tout le reste (loyer, électricité, salaires, etc.) → GLOBAL (structure)
+      const allocationMethod = (enseigne || isChargeDirecte(category)) ? 'DIRECT' : 'GLOBAL';
 
       // deduplicationKey
       const deduplicationKey = `IMPORT|${date.toISOString().split('T')[0]}|${category}|${finalHT.toFixed(2)}|${subLabel}|${vendor}`;
