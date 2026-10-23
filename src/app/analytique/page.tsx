@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Calculator, Loader2, TrendingUp, TrendingDown, Euro, PieChart as PieIcon } from 'lucide-react';
+import { ArrowLeft, Calculator, Loader2, TrendingUp, TrendingDown, Euro, PieChart as PieIcon, Building2, Info } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import type { DashboardData } from '@/lib/dashboard-types';
@@ -39,6 +39,9 @@ interface AnalytiqueData {
   topCharges: Array<{
     date: string; category: string; subLabel: string | null;
     vendor: string | null; amountHT: number; enseigne: string | null;
+  }>;
+  topVendors: Array<{
+    vendor: string; totalHT: number; count: number; category: string; pct: number;
   }>;
   monthlySeries: Array<{
     year: number; month: number; label: string;
@@ -93,8 +96,18 @@ export default function AnalytiquePage() {
     );
   }
 
-  const { globalKpis, categoryBreakdown, clients, topCharges, monthlySeries } = analytique;
+  const { globalKpis, categoryBreakdown, clients, topCharges, topVendors, monthlySeries } = analytique;
   const hasData = globalKpis.nbVentes > 0 || globalKpis.nbCharges > 0;
+
+  // Pour le camembert: limiter à top 10 catégories + grouper le reste en "Autres"
+  // (au lieu d'afficher 72 slices illisibles)
+  const top10 = (categoryBreakdown || []).slice(0, 10);
+  const others = (categoryBreakdown || []).slice(10);
+  const othersSum = others.reduce((s, c) => s + c.amount, 0);
+  const othersPct = others.reduce((s, c) => s + c.pct, 0);
+  const pieData = others.length > 0
+    ? [...top10, { category: `Autres (${others.length})`, amount: othersSum, pct: othersPct }]
+    : top10;
 
   // Top 10 clients par CA
   const topClientsByCA = [...clients].sort((a, b) => b.ca - a.ca).slice(0, 10);
@@ -225,18 +238,18 @@ export default function AnalytiquePage() {
               )}
 
               <div className="grid gap-4 lg:grid-cols-2">
-                {/* Répartition des charges par catégorie */}
+                {/* Répartition des charges par catégorie — top 10 + Autres */}
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="font-title flex items-center gap-2"><PieIcon className="h-5 w-5 text-primary" /> Répartition des charges</CardTitle>
-                    <CardDescription>Ventilation HT par catégorie</CardDescription>
+                    <CardDescription>Ventilation HT — top 10 catégories + autres regroupés</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="h-72 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={categoryBreakdown}
+                            data={pieData}
                             dataKey="amount"
                             nameKey="category"
                             cx="50%"
@@ -245,7 +258,7 @@ export default function AnalytiquePage() {
                             innerRadius={40}
                             paddingAngle={2}
                           >
-                            {categoryBreakdown.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
+                            {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
                           </Pie>
                           <Tooltip contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }} formatter={(v: number, name: string) => [formatEuro(v), name]} />
                           <Legend wrapperStyle={{ fontSize: 10 }} />
@@ -255,7 +268,7 @@ export default function AnalytiquePage() {
                   </CardContent>
                 </Card>
 
-                {/* Tableau répartition catégories */}
+                {/* Tableau répartition catégories — toutes */}
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="font-title text-base">Détail par catégorie</CardTitle>
@@ -286,6 +299,58 @@ export default function AnalytiquePage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Top 15 fournisseurs */}
+              {topVendors && topVendors.length > 0 && (
+                <Card className="border-border">
+                  <CardHeader>
+                    <CardTitle className="font-title flex items-center gap-2"><Building2 className="h-5 w-5 text-primary" /> Top 15 fournisseurs les plus coûteux</CardTitle>
+                    <CardDescription>Sur la période — tri par coût total HT</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[480px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={topVendors}
+                          layout="vertical"
+                          margin={{ top: 5, right: 60, left: 5, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" horizontal={false} />
+                          <XAxis
+                            type="number"
+                            tickFormatter={(v) => formatNumber(Math.round(v / 1000)) + 'k€'}
+                            tick={{ fontSize: 10, fill: '#7a654a' }}
+                            stroke="#e8d6a4"
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="vendor"
+                            width={160}
+                            tick={{ fontSize: 10, fill: '#7a654a' }}
+                            stroke="#e8d6a4"
+                            tickFormatter={(v: string) => v.length > 26 ? v.slice(0, 26) + '…' : v}
+                          />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }}
+                            formatter={(value: number, _name: string, props) => {
+                              const p = props?.payload;
+                              return [
+                                `${formatEuro(value)} • ${p?.count ?? 0} factures • ${p?.pct?.toFixed(1) ?? 0}% • ${p?.category ?? ''}`,
+                                p?.vendor,
+                              ];
+                            }}
+                          />
+                          <Bar dataKey="totalHT" name="Total HT" radius={[0, 4, 4, 0]}>
+                            {topVendors.map((_, idx) => (
+                              <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Top charges les plus coûteuses */}
               {topCharges.length > 0 && (
@@ -328,9 +393,47 @@ export default function AnalytiquePage() {
           ) : (
             /* === VUE PAR CLIENT === */
             <>
-              <Card className="border-border">
-                <CardContent className="p-3 text-xs text-muted-foreground">
-                  <strong>Méthode d'allocation analytique :</strong> les charges avec un client spécifique (allocation DIRECT) sont affectées directement. Les charges globales et proportionnelles sont ventilées au prorata du CA de chaque client sur la période. <strong>Marge = CA − charges directes − part proportionnelle des charges globales.</strong>
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <div className="text-xs text-muted-foreground space-y-2">
+                      <p>
+                        <strong>« Charges par client » correspond à quoi ?</strong> Pour chaque
+                        client de la liste ci-dessous, le système calcule un <em>coût
+                        imputé</em> qui n'est pas un coût réel facturé à ce client, mais
+                        une <strong>estimation analytique</strong> basée sur la méthode
+                        d'allocation suivante :
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>
+                          <strong>Charges directes (allocation DIRECT)</strong> :
+                          factures de charges importées avec un champ « enseigne »
+                          (client) renseigné (ex: livraisons, transport sur ventes).
+                          Ces charges sont <strong>attribuées 100% au client</strong>.
+                        </li>
+                        <li>
+                          <strong>Charges globales (allocation GLOBAL)</strong> :
+                          toutes les autres charges (loyer, salaires, électricité,
+                          carburant non rattaché à un BL, etc.). Ces charges sont
+                          ventilées <strong>au prorata du CA</strong> du client sur
+                          la période (si un client fait 10% du CA → il prend 10% des
+                          charges globales).
+                        </li>
+                      </ul>
+                      <p className="pt-1">
+                        <strong>Marge du client</strong> = CA du client − charges directes
+                        du client − part proportionnelle des charges globales.
+                      </p>
+                      <p className="text-[10px] italic">
+                        NB: dans le fichier K FACTORY actuel, très peu de charges ont le
+                        champ « enseigne » renseigné — la quasi-totalité des charges est
+                        donc ventilée au prorata. Pour des marges par client plus
+                        précises, il faudrait renseigner le client final sur les charges
+                        de transport/livraison directement attribuables.
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

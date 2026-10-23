@@ -38,6 +38,27 @@ export async function GET(req: NextRequest) {
       orderBy: { date: 'desc' },
     });
 
+    // Top 15 fournisseurs (par total HT) — basé sur les charges filtrées
+    const vendorMap = new Map<string, { totalHT: number; count: number; category: string }>();
+    for (const c of charges) {
+      const name = (c.vendor ?? '').trim() || '(sans fournisseur)';
+      const cur = vendorMap.get(name) ?? { totalHT: 0, count: 0, category: c.category };
+      cur.totalHT += c.amountHT;
+      cur.count += 1;
+      vendorMap.set(name, cur);
+    }
+    const totalHTAll = charges.reduce((s, c) => s + c.amountHT, 0);
+    const topVendors = Array.from(vendorMap.entries())
+      .map(([vendor, d]) => ({
+        vendor,
+        totalHT: d.totalHT,
+        count: d.count,
+        category: d.category,
+        pct: totalHTAll > 0 ? (d.totalHT / totalHTAll) * 100 : 0,
+      }))
+      .sort((a, b) => b.totalHT - a.totalHT)
+      .slice(0, 15);
+
     // Catégories distinctes (pour le filtre dropdown)
     const allCategories = await db.charge.findMany({
       select: { category: true },
@@ -48,6 +69,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       data: charges,
+      topVendors,
       categories: allCategories.map((c) => c.category),
     });
   } catch (e) {

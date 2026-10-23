@@ -133,6 +133,21 @@ export async function GET(req: NextRequest) {
         enseigne: c.enseigne,
       }));
 
+    // Top 15 fournisseurs (par total HT) — sur la période filtrée
+    const vendorMap = new Map<string, { totalHT: number; count: number; category: string }>();
+    for (const c of charges) {
+      const name = c.vendor?.trim() || '(sans fournisseur)';
+      const cur = vendorMap.get(name) ?? { totalHT: 0, count: 0, category: c.category };
+      cur.totalHT += c.amountHT;
+      cur.count += 1;
+      // Garde la catégorie de la 1ère occurrence trouvée
+      vendorMap.set(name, cur);
+    }
+    const topVendors = Array.from(vendorMap.entries())
+      .map(([vendor, d]) => ({ vendor, totalHT: d.totalHT, count: d.count, category: d.category, pct: totalCharges > 0 ? (d.totalHT / totalCharges) * 100 : 0 }))
+      .sort((a, b) => b.totalHT - a.totalHT)
+      .slice(0, 15);
+
     // Série mensuelle (CA + charges par mois)
     const monthlyMap = new Map<string, { year: number; month: number; ca: number; charges: number }>();
     for (const s of sales) {
@@ -177,6 +192,7 @@ export async function GET(req: NextRequest) {
         categoryBreakdown,
         clients,
         topCharges,
+        topVendors,
         monthlySeries,
       },
     });

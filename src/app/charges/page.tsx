@@ -7,12 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Receipt, Upload, Loader2, Trash2, Euro, Truck, Search, Plus } from 'lucide-react';
+import { ArrowLeft, Receipt, Upload, Loader2, Trash2, Euro, Truck, Search, Plus, Building2 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatNumber, formatEuro, formatDate } from '@/lib/dashboard-service';
 import { toast } from 'sonner';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 
 interface Charge {
   id: string;
@@ -29,9 +30,12 @@ interface Charge {
   source: string;
 }
 
+const COLORS = ['#f7a941', '#3674b5', '#bb7e40', '#a6d6c9', '#e30613', '#ffe111', '#ca8a04', '#db2777'];
+
 export default function ChargesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [charges, setCharges] = useState<Charge[]>([]);
+  const [topVendors, setTopVendors] = useState<Array<{ vendor: string; totalHT: number; count: number; category: string; pct: number; }>>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -67,6 +71,7 @@ export default function ChargesPage() {
       const json = await res.json();
       if (json.ok) {
         setCharges(json.data);
+        setTopVendors(json.topVendors || []);
         setCategories(json.categories || []);
       }
     } catch {}
@@ -326,6 +331,68 @@ export default function ChargesPage() {
                       </div>
                     );
                   })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Top 15 fournisseurs les plus coûteux */}
+          {topVendors.length > 0 && (
+            <Card className="border-border">
+              <CardHeader>
+                <CardTitle className="font-title text-base flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Top 15 fournisseurs</CardTitle>
+                <CardDescription>Coût total HT par fournisseur — sur la période filtrée ({topVendors.length} plus gros)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[420px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={topVendors}
+                      layout="vertical"
+                      margin={{ top: 5, right: 60, left: 5, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" horizontal={false} />
+                      <XAxis
+                        type="number"
+                        tickFormatter={(v) => formatNumber(Math.round(v / 1000)) + 'k€'}
+                        tick={{ fontSize: 10, fill: '#7a654a' }}
+                        stroke="#e8d6a4"
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="vendor"
+                        width={140}
+                        tick={{ fontSize: 10, fill: '#7a654a' }}
+                        stroke="#e8d6a4"
+                        tickFormatter={(v: string) => v.length > 22 ? v.slice(0, 22) + '…' : v}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }}
+                        formatter={(value: number, _name: string, props) => {
+                          const p = props?.payload;
+                          return [
+                            `${formatEuro(value)} • ${p?.count ?? 0} factures • ${p?.pct?.toFixed(1) ?? 0}% • ${p?.category ?? ''}`,
+                            p?.vendor,
+                          ];
+                        }}
+                      />
+                      <Bar dataKey="totalHT" name="Total HT" radius={[0, 4, 4, 0]}>
+                        {topVendors.map((_, idx) => (
+                          <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Légende combinée + tableau récap rapide */}
+                <div className="mt-3 grid gap-1 sm:grid-cols-2 lg:grid-cols-3 text-xs">
+                  {topVendors.slice(0, 6).map((v, idx) => (
+                    <div key={v.vendor} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                      <span className="font-medium truncate flex-1">{v.vendor}</span>
+                      <span className="text-muted-foreground shrink-0">{formatEuro(v.totalHT)}</span>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
