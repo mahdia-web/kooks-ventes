@@ -29,10 +29,14 @@ export interface KpiData {
     caTTC: number;
     commission: number;
     nbBl: number;
+    caDirect: number;
+    caCentrale: number;
   } | null;
   evolution: {
     caHT: number;
     caHTPercent: number;
+    caDirectPercent: number;
+    caCentralePercent: number;
     commission: number;
     commissionPercent: number;
     nbBl: number;

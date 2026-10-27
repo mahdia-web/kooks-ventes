@@ -267,9 +267,9 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       ['Chiffre d\'affaires HT', pdfEuro(c.caHT),
         kpis.previous ? `${pdfEuro(kpis.previous.caHT)} (${pdfPct(kpis.evolution.caHTPercent)})` : '—'],
       ['CA Direct (7%)', pdfEuro(c.caDirect),
-        kpis.previous ? `${pdfEuro(kpis.previous.caDirect ?? 0)} (${pdfPct((kpis.evolution as any).caDirectPercent ?? 0)})` : '—'],
+        kpis.previous ? `${pdfEuro(kpis.previous.caDirect)} (${pdfPct(kpis.evolution.caDirectPercent)})` : '—'],
       ['CA Centrale (5%)', pdfEuro(c.caCentrale),
-        kpis.previous ? `${pdfEuro(kpis.previous.caCentrale ?? 0)} (${pdfPct((kpis.evolution as any).caCentralePercent ?? 0)})` : '—'],
+        kpis.previous ? `${pdfEuro(kpis.previous.caCentrale)} (${pdfPct(kpis.evolution.caCentralePercent)})` : '—'],
       ['Commission', pdfEuro(c.commission),
         kpis.previous ? `${pdfEuro(kpis.previous.commission)} (${pdfPct(kpis.evolution.commissionPercent)})` : '—'],
       ['Nombre de BL', pdfNum(c.nbBl),
@@ -345,14 +345,13 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     margin: { left: margin, right: margin },
   });
 
-  yPos = (doc as any).lastAutoTable.finalY + 8;
+  yPos = (doc as any).lastAutoTable.finalY + 14;
 
   // ============================================================
   // Clients à relancer (filtrés par agent si applicable)
   // — ne force pas un addPage si on a encore de la place
   // ============================================================
-  yPos = (doc as any).lastAutoTable.finalY + 14;
-  if (yPos > pageHeight - 60) {
+  if (yPos > pageHeight - 80) {
     doc.addPage();
     yPos = 18;
   }
@@ -364,6 +363,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     margin,
     yPos
   );
+  yPos += 7;
 
   const toRelance = targetCustomers.filter((cu) => cu.status === 'A RELANCER');
   const inactifs = targetCustomers.filter((cu) => cu.status === 'INACTIF');
@@ -374,14 +374,15 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.text(
     `${toRelance.length} à relancer • ${inactifs.length} inactifs sur ${targetCustomers.length} enseignes`,
     margin,
-    26
+    yPos
   );
+  yPos += 6;
 
   if (toRelance.length === 0) {
     doc.setFontSize(12);
     doc.setTextColor(5, 150, 105);
     doc.setFont('helvetica', 'bold');
-    doc.text('Aucun client à relancer. Excellent travail !', margin, 38);
+    doc.text('Aucun client à relancer. Excellent travail !', margin, yPos);
   } else {
     autoTable(doc, {
       startY: yPos + 8,
