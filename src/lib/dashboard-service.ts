@@ -814,7 +814,7 @@ export async function getDashboardDataForDateRange(
         nbEnseignesActives: enseignesActives.length, enseignesActives,
       },
       previous: null,
-      evolution: { caHT: 0, caHTPercent: 0, commission: 0, commissionPercent: 0, nbBl: 0, nbBlPercent: 0 },
+      evolution: { caHT: 0, caHTPercent: 0, caDirectPercent: 0, caCentralePercent: 0, commission: 0, commissionPercent: 0, nbBl: 0, nbBlPercent: 0 },
     },
     monthlySeries, agents, agentPeriodTotals, enseignes, topEnseignesPeriod,
     customerFollowup, availablePeriods,
