@@ -9,6 +9,12 @@ import {
   formatDate,
   monthLabel,
 } from '@/lib/dashboard-service';
+import type {
+  AgentStat,
+  CustomerFollowup,
+  DashboardData,
+  EnseigneStat,
+} from '@/lib/dashboard-types';
 
 // Fix: jsPDF's default Helvetica font doesn't render non-breaking spaces (U+00A0)
 // produced by Intl.NumberFormat. Replace them with regular spaces.
@@ -19,12 +25,6 @@ function pdfEuro(n: number): string { return pdfSafe(formatEuro(n)); }
 function pdfNum(n: number): string { return pdfSafe(formatNumber(n)); }
 function pdfPct(n: number): string { return pdfSafe(formatPercent(n)); }
 function pdfDate(s: string | null): string { return pdfSafe(formatDate(s)); }
-import type {
-  AgentStat,
-  CustomerFollowup,
-  DashboardData,
-  EnseigneStat,
-} from '@/lib/dashboard-types';
 
 interface BilanPdfOptions {
   data: DashboardData;
