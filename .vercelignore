@@ -1,0 +1,15 @@
+.zscripts/
+db/
+download/
+upload/
+examples/
+mini-services/
+skills/
+tests/
+Caddyfile
+dev.log
+server.log
+*.log
+scripts/_seed_data.json
+agent-ctx/
+tool-results/

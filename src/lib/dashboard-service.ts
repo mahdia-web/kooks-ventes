@@ -140,12 +140,14 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
   const prevWhere = agentFilter ? { year: prev.year, month: prev.month, agent: agentFilter } : { year: prev.year, month: prev.month };
   const prevSales = await db.sale.findMany({
     where: prevWhere,
-    select: { amountHT: true, amountTTC: true, commission: true },
+    select: { amountHT: true, amountTTC: true, commission: true, type: true },
   });
 
   const prevCaHT = prevSales.reduce((s, r) => s + r.amountHT, 0);
   const prevCommission = prevSales.reduce((s, r) => s + r.commission, 0);
   const prevNbBl = prevSales.length;
+  const prevCaDirect = prevSales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0);
+  const prevCaCentrale = prevSales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
 
   const previous = prevSales.length > 0
     ? {
@@ -155,12 +157,16 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
         caTTC: prevSales.reduce((s, r) => s + r.amountTTC, 0),
         commission: prevCommission,
         nbBl: prevNbBl,
+        caDirect: prevCaDirect,
+        caCentrale: prevCaCentrale,
       }
     : null;
 
   const evolution = {
     caHT: caHT - prevCaHT,
     caHTPercent: prevCaHT > 0 ? (caHT - prevCaHT) / prevCaHT : 0,
+    caDirectPercent: prevCaDirect > 0 ? (caDirect - prevCaDirect) / prevCaDirect : 0,
+    caCentralePercent: prevCaCentrale > 0 ? (caCentrale - prevCaCentrale) / prevCaCentrale : 0,
     commission: commission - prevCommission,
     commissionPercent: prevCommission > 0 ? (commission - prevCommission) / prevCommission : 0,
     nbBl: nbBl - prevNbBl,
