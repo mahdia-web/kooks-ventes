@@ -103,6 +103,7 @@ export default function ChargesPage() {
   const [enseignes, setEnseignes] = useState<string[]>([]);
   const [previousPeriod, setPreviousPeriod] = useState<PreviousPeriod | null>(null);
   const [marginPreview, setMarginPreview] = useState<MarginPreview | null>(null);
+  const [monthlySeries, setMonthlySeries] = useState<Array<{ year: number; month: number; totalHT: number; count: number; label: string; }>>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -153,6 +154,7 @@ export default function ChargesPage() {
         setCharges(json.data);
         setTopVendors(json.topVendors || []);
         setTopCategories(json.topCategories || []);
+        setMonthlySeries(json.monthlySeries || []);
         setCategories(json.categories || []);
         setVendors(json.vendors || []);
         setEnseignes(json.enseignes || []);
@@ -660,6 +662,83 @@ export default function ChargesPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* === ÉVOLUTION MENSUELLE DES CHARGES === */}
+          {monthlySeries.length > 0 && (
+            <Card className="rounded-2xl shadow-sm border-border">
+              <CardHeader>
+                <CardTitle className="font-title flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Évolution mensuelle des dépenses
+                </CardTitle>
+                <CardDescription>
+                  {filterEnseigne !== 'all'
+                    ? `Charges HT par mois — ${filterEnseigne}`
+                    : 'Charges HT par mois — vue totale'}
+                  {' '}{monthlySeries.length} mois de données
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlySeries} margin={{ top: 5, right: 20, left: 5, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 10, fill: '#7a654a' }}
+                        stroke="#e8d6a4"
+                        angle={-45}
+                        textAnchor="end"
+                        height={50}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: '#7a654a' }}
+                        stroke="#e8d6a4"
+                        tickFormatter={(v) => formatNumber(Math.round(v / 1000)) + 'k€'}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fffaf0',
+                          border: '1px solid #e8d6a4',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                        }}
+                        formatter={(value: number) => [formatEuro(value), 'Charges HT']}
+                        labelFormatter={(label) => {
+                          const item = monthlySeries.find(m => m.label === label);
+                          return item ? `${label} (${item.count} factures)` : label;
+                        }}
+                      />
+                      <Bar dataKey="totalHT" name="Charges HT" fill="#f7a941" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Stats résumé */}
+                <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-4">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total période</p>
+                    <p className="text-sm font-bold text-primary">{formatEuro(monthlySeries.reduce((s, m) => s + m.totalHT, 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Moyenne / mois</p>
+                    <p className="text-sm font-bold">{formatEuro(monthlySeries.reduce((s, m) => s + m.totalHT, 0) / Math.max(monthlySeries.length, 1))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mois le plus cher</p>
+                    <p className="text-sm font-bold text-destructive">
+                      {monthlySeries.reduce((max, m) => m.totalHT > max.totalHT ? m : max, monthlySeries[0])?.label}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mois le moins cher</p>
+                    <p className="text-sm font-bold text-emerald-600">
+                      {monthlySeries.reduce((min, m) => m.totalHT < min.totalHT ? m : min, monthlySeries[0])?.label}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* === ANALYSE VISUELLE (2 COLONNES) === */}
           {topCategories.length > 0 && (

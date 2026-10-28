@@ -162,6 +162,22 @@ export async function GET(req: NextRequest) {
       };
     }
 
+    // Série mensuelle: charges par mois (sur la période filtrée)
+    const monthlyMap = new Map<string, { year: number; month: number; totalHT: number; count: number }>();
+    for (const c of charges) {
+      const key = `${c.year}-${c.month}`;
+      const m = monthlyMap.get(key) ?? { year: c.year, month: c.month, totalHT: 0, count: 0 };
+      m.totalHT += c.amountHT;
+      m.count += 1;
+      monthlyMap.set(key, m);
+    }
+    const monthlySeries = Array.from(monthlyMap.values())
+      .sort((a, b) => (a.year - b.year) || (a.month - b.month))
+      .map(m => ({
+        ...m,
+        label: `${String(m.month).padStart(2, '0')}/${m.year}`,
+      }));
+
     // Catégories / Fournisseurs / Enseignes distinctes (pour dropdowns)
     const [allCategories, allVendors, allEnseignes] = await Promise.all([
       db.charge.findMany({ select: { category: true }, distinct: ['category'], orderBy: { category: 'asc' } }),
@@ -184,6 +200,7 @@ export async function GET(req: NextRequest) {
       data: charges,
       topVendors,
       topCategories,
+      monthlySeries,
       categories: allCategories.map((c) => c.category),
       vendors: allVendors.map((v) => v.vendor).filter(Boolean),
       enseignes: allEnseignes.map((e) => e.enseigne).filter(Boolean),
