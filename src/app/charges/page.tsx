@@ -25,6 +25,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip,
 } from 'recharts';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 interface Charge {
   id: string;
@@ -453,13 +455,12 @@ export default function ChargesPage() {
                   {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={filterVendor} onValueChange={setFilterVendor}>
-                <SelectTrigger className="h-9 text-sm w-[180px] rounded-lg"><SelectValue placeholder="Tous fournisseurs" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous fournisseurs</SelectItem>
-                  {vendors.slice(0, 100).map((v) => <SelectItem key={v} value={v}>{v.length > 40 ? v.slice(0, 40) + '…' : v}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {/* Fournisseur avec recherche (combobox) */}
+              <VendorCombobox
+                vendors={vendors}
+                value={filterVendor}
+                onChange={setFilterVendor}
+              />
               <Select value={filterEnseigne} onValueChange={setFilterEnseigne}>
                 <SelectTrigger className="h-9 text-sm w-[160px] rounded-lg"><SelectValue placeholder="Tous clients" /></SelectTrigger>
                 <SelectContent>
@@ -980,6 +981,104 @@ export default function ChargesPage() {
           </SheetContent>
         </Sheet>
       </div>
+    </div>
+  );
+}
+
+// Combobox avec recherche pour les fournisseurs (363+ items, la liste déroulante simple ne suffit pas)
+function VendorCombobox({ vendors, value, onChange }: {
+  vendors: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const normalize = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[''`]/g, '').trim();
+
+  const filtered = useMemo(() => {
+    const q = normalize(search);
+    if (!q) return vendors;
+    return vendors.filter(v => normalize(v).includes(q));
+  }, [vendors, search]);
+
+  const displayLabel = value === 'all' ? 'Tous fournisseurs' : value;
+
+  useEffect(() => {
+    if (!open) {
+      const t = setTimeout(() => setSearch(''), 200);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between h-9 px-3 rounded-lg border border-input bg-background text-sm w-[200px] hover:bg-muted/50 transition-colors"
+      >
+        <span className="truncate">{displayLabel.length > 28 ? displayLabel.slice(0, 28) + '…' : displayLabel}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 mt-1 z-50 w-[400px] bg-card border border-border rounded-lg shadow-xl">
+            <div className="flex items-center border-b px-3">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher un fournisseur..."
+                className="h-9 flex-1 bg-transparent text-sm outline-none"
+                autoFocus
+              />
+              {value !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => { onChange('all'); setOpen(false); }}
+                  className="text-xs text-primary hover:underline shrink-0 ml-2"
+                >
+                  Réinitialiser
+                </button>
+              )}
+            </div>
+            <div className="max-h-[300px] overflow-y-auto">
+              {filtered.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Aucun fournisseur trouvé.</p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => { onChange('all'); setOpen(false); }}
+                    className={`w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors ${value === 'all' ? 'font-medium text-primary' : ''}`}
+                  >
+                    Tous les fournisseurs
+                  </button>
+                  {filtered.slice(0, 200).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => { onChange(v); setOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors truncate ${value === v ? 'font-medium text-primary' : ''}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                  {filtered.length > 200 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      {filtered.length} résultats, affinez avec la recherche…
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
