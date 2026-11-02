@@ -27,12 +27,27 @@ export function normalizeEnseigne(name: string): string {
   );
   n = n.replace(
     /SOCIETE\s+COOPERATIVE\s+D'?APPROVISIONNEMENT\s+PARIS\s*-?\s*EST\b/g,
-    'SCAPAEST'
+    'SCAPEST'
   );
   n = n.replace(
     /SOCIETE\s+COOPERATIVE\s+D'?APPROVISIONNEMENT\s+DU\s+PAYS\s+DE\s+RETZ\b/g,
     'SCAPDR'
   );
+  n = n.replace(
+    /SOCIETE\s+COOPERATIVE\s+D'?APPROVISIONNEMENT\s+RHONE\s*-?\s*ALPES\b/g,
+    'SCARA'
+  );
+  n = n.replace(
+    /SOC\s+COOP\s+APPROVISIONNEMENT\s+PARIS\s*NORD\b/g,
+    'SCAPNOR'
+  );
+  n = n.replace(
+    /SOCIETE\s+COOPERATIVE\s+D'?APPROVISIONNEMENT\s+ILE\s+DE\s+FRANCE\b/g,
+    'SCADIF'
+  );
+  // Also normalize location variants for SCAPEST
+  n = n.replace(/CHALLON\s+EN\s+CHAMPAGNE/g, 'CHALONS');
+  n = n.replace(/CHALONS\s+EN\s+CHAMPAGNE/g, 'CHALONS');
 
   // 2. Joindre les lettres séparées par apostrophe (O'TERA → OTERA, D'AVELIN → DAVELIN)
   //    On boucle car on peut avoir des cas comme D'L'OUEST

@@ -235,6 +235,20 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     }
   };
 
+  const deleteEnseigne = async (id: string, name: string) => {
+    if (!confirm(`Supprimer "${name}" ?\n\nATTENTION: toutes les ventes et volumes liés à ce client seront définitivement supprimés.\n\nCette action est irréversible.`)) return;
+    try {
+      const res = await fetch(`/api/enseignes/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error);
+      toast.success(`Client supprimé`, {
+        description: `${json.deleted.sales} ventes et ${json.deleted.volumes} volumes supprimés`,
+      });
+      loadEnseignes();
+      loadDuplicates();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const addClient = async () => {
     if (!newClient.name.trim()) {
       toast.error('Nom requis');
@@ -575,7 +589,8 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                 <TableHead className="w-28">Type</TableHead>
                 <TableHead className="w-28">Agent</TableHead>
                 <TableHead className="text-right w-20">Taux</TableHead>
-                <TableHead className="text-center w-16">Actif</TableHead>
+                <TableHead className="text-center w-20">Actif</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -653,10 +668,21 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                     })()}
                   </TableCell>
                   <TableCell className="text-center">
-                    <Switch
-                      checked={e.isActive}
-                      onCheckedChange={(c) => updateEnseigne(e.id, { isActive: c })}
-                    />
+                    <div className="flex items-center justify-center gap-1">
+                      <Switch
+                        checked={e.isActive}
+                        onCheckedChange={(c) => updateEnseigne(e.id, { isActive: c })}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteEnseigne(e.id, e.name)}
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10 ml-1"
+                        title="Supprimer ce client et toutes ses ventes"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
