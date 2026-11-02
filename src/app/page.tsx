@@ -37,6 +37,7 @@ import { EvolutionCaCentrale } from '@/components/evolution-ca-centrale';
 import { AgentTable, CustomerFollowupTable, EnseigneTable } from '@/components/followup-tables';
 import { SalesDetailTable } from '@/components/sales-detail-table';
 import { SalesSearch } from '@/components/sales-search';
+import { MessageSummary } from '@/components/message-summary';
 import { ImportDialog } from '@/components/import-dialog';
 import { PeriodSelector } from '@/components/period-selector';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -312,6 +313,15 @@ export default function Home() {
                   Bilan PDF
                 </Button>
 
+                {/* Message prêt à copier-coller (utilise l'agent filtré ou vue globale) */}
+                {data && (
+                  <MessageSummary
+                    data={data}
+                    agent={agentFilter === 'all' ? null : agentFilter}
+                    variant="full"
+                  />
+                )}
+
                 <ImportDialog onImported={handleImported} />
 
                 <Button
@@ -519,10 +529,21 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="agents" className="space-y-4">
+                <div className="flex justify-end gap-2 flex-wrap items-center">
+                  <span className="text-xs text-muted-foreground mr-1">Messages prêts à copier :</span>
+                  {(viewMode === 'global' ? data.agentPeriodTotals : data.agents).map((a: any) => (
+                    <MessageSummary
+                      key={`msg-${a.agent}`}
+                      data={data}
+                      agent={a.agent}
+                      variant="compact"
+                    />
+                  ))}
+                </div>
                 <div className="flex justify-end gap-2 flex-wrap">
                   {(viewMode === 'global' ? data.agentPeriodTotals : data.agents).map((a: any) => (
                     <Button
-                      key={a.agent}
+                      key={`pdf-${a.agent}`}
                       variant="outline"
                       size="sm"
                       onClick={() => handleGeneratePdf(a.agent)}
@@ -544,8 +565,15 @@ export default function Home() {
                 <Card>
                   <CardContent className="p-4">
                     <p className="text-xs text-muted-foreground">
-                      {viewMode === 'global' ? 'Performance sur TOUTE la période.' : 'Performance sur la période sélectionnée.'} Cliquez sur
-                      « Bilan &lt;agent&gt; » pour générer un rapport PDF individuel à envoyer.
+                      {viewMode === 'global' ? 'Performance sur TOUTE la période.' : 'Performance sur la période sélectionnée.'}{' '}
+                      Cliquez sur <strong>« Message {`<agent>`} »</strong> pour un texte prêt à copier-coller,
+                      ou sur <strong>« Bilan {`<agent>`} »</strong> pour un rapport PDF individuel.
+                      {agentFilter !== 'all' && (
+                        <span className="block mt-1 text-amber-600 dark:text-amber-400">
+                          ⚠ Astuce : pour générer les messages de tous les agents, basculez en vue « Tous les agents »
+                          (les données par agent viennent de la vue globale).
+                        </span>
+                      )}
                     </p>
                   </CardContent>
                 </Card>
