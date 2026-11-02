@@ -42,6 +42,11 @@ const mockData: DashboardData = {
       nbBl: 12, nbBlDirect: 9, nbBlCentrale: 3,
       caDirect: 3800.00, caCentrale: 1400.00,
       aov: 433.33, share: 37.2, enseignesActives: 8,
+      centraleMonthlySeries: [
+        { year: 2026, month: 8, caCentrale: 1000, caDirect: 3200 },
+        { year: 2026, month: 9, caCentrale: 1200, caDirect: 3500 },
+        { year: 2026, month: 10, caCentrale: 1400, caDirect: 3800 },
+      ],
     },
     {
       agent: 'CAP FRAIS',
@@ -49,6 +54,11 @@ const mockData: DashboardData = {
       nbBl: 14, nbBlDirect: 11, nbBlCentrale: 3,
       caDirect: 5000.00, caCentrale: 1800.00,
       aov: 485.71, share: 48.7, enseignesActives: 10,
+      centraleMonthlySeries: [
+        { year: 2026, month: 8, caCentrale: 2200, caDirect: 4800 },
+        { year: 2026, month: 9, caCentrale: 2000, caDirect: 5200 },
+        { year: 2026, month: 10, caCentrale: 1800, caDirect: 5000 },
+      ],
     },
     {
       agent: "KOOK'S",
@@ -56,6 +66,11 @@ const mockData: DashboardData = {
       nbBl: 2, nbBlDirect: 2, nbBlCentrale: 0,
       caDirect: 1000.00, caCentrale: 970.50,
       aov: 985.25, share: 14.1, enseignesActives: 2,
+      centraleMonthlySeries: [
+        { year: 2026, month: 8, caCentrale: 0, caDirect: 500 },
+        { year: 2026, month: 9, caCentrale: 0, caDirect: 800 },
+        { year: 2026, month: 10, caCentrale: 970.50, caDirect: 1000 },
+      ],
     },
   ],
   agentPeriodTotals: [],
@@ -68,7 +83,14 @@ const mockData: DashboardData = {
     { enseigne: 'AUCHAN SEMECOURT', type: 'Direct', agent: 'CAP FRAIS', caHT: 1800.00, nbBl: 4, share: 12.9, lastOrder: '2026-10-22', prixVenteMoyen: 450 },
   ],
   topEnseignesPeriod: [],
-  customerFollowup: [],
+  customerFollowup: [
+    { enseigne: 'MONOPRIX PARIS', type: 'Direct', agent: 'BROCARD', nbBlTotal: 12, caTotal: 4500, lastOrder: '2026-10-15', monthsSinceLastOrder: 0, daysSinceLastOrder: 5, recurrence: 0.8, status: 'OK' },
+    { enseigne: 'AUCHAN SEMECOURT', type: 'Direct', agent: 'CAP FRAIS', nbBlTotal: 8, caTotal: 3800, lastOrder: '2026-10-22', monthsSinceLastOrder: 0, daysSinceLastOrder: 2, recurrence: 0.9, status: 'OK' },
+    { enseigne: 'CARREFOUR NANTERRE', type: 'Direct', agent: 'BROCARD', nbBlTotal: 4, caTotal: 1200, lastOrder: '2026-09-10', monthsSinceLastOrder: 1, daysSinceLastOrder: 45, recurrence: 0.5, status: 'A RELANCER' },
+    { enseigne: 'LECLERC QUIMPER', type: 'Direct', agent: 'CAP FRAIS', nbBlTotal: 3, caTotal: 900, lastOrder: '2026-08-15', monthsSinceLastOrder: 2, daysSinceLastOrder: 75, recurrence: 0.4, status: 'A RELANCER' },
+    { enseigne: 'INTERMARCHE ROUEN', type: 'Direct', agent: 'BROCARD', nbBlTotal: 1, caTotal: 400, lastOrder: '2026-05-20', monthsSinceLastOrder: 5, daysSinceLastOrder: 165, recurrence: 0.2, status: 'INACTIF' },
+    { enseigne: 'SUPER U AVIGNON', type: 'Direct', agent: 'CAP FRAIS', nbBlTotal: 2, caTotal: 700, lastOrder: '2026-06-10', monthsSinceLastOrder: 4, daysSinceLastOrder: 145, recurrence: 0.3, status: 'INACTIF' },
+  ],
   availablePeriods: [],
   currentPeriod: { year: 2026, month: 10 },
   global: {

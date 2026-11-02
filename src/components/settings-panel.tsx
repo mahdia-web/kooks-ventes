@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -100,7 +100,8 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
   const loadDismissed = useCallback(async () => {
     try {
-      const r = await fetch('/api/enseignes/dismiss-duplicate');
+      const url = `/api/enseignes/dismiss-duplicate?_t=${Date.now()}`;
+      const r = await fetch(url, { cache: 'no-store' });
       const j = await r.json();
       if (j.ok) setDismissed(j.data);
     } catch {}
@@ -108,7 +109,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
   const loadAgents = useCallback(async () => {
     try {
-      const r = await fetch('/api/agents');
+      const r = await fetch('/api/agents', { cache: 'no-store' });
       const j = await r.json();
       if (j.ok) setAgents(j.data);
     } catch {}
@@ -116,7 +117,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
   const loadEnseignes = useCallback(async () => {
     try {
-      const r = await fetch('/api/enseignes');
+      const r = await fetch('/api/enseignes', { cache: 'no-store' });
       const j = await r.json();
       if (j.ok) setEnseignes(j.data);
     } catch {}
@@ -124,7 +125,9 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
   const loadDuplicates = useCallback(async () => {
     try {
-      const r = await fetch('/api/enseignes/detect-duplicates');
+      // cache: 'no-store' + cache-busting query param pour éviter toute mise en cache
+      const url = `/api/enseignes/detect-duplicates?_t=${Date.now()}`;
+      const r = await fetch(url, { cache: 'no-store' });
       const j = await r.json();
       if (j.ok) setDuplicates(j.data);
     } catch {}
@@ -151,6 +154,43 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       loadDuplicates();
     } catch (e: any) {
       toast.error(e.message);
+    }
+  };
+
+  // Migration SEBASTIEN GASNIER : écrase les ventes existantes de SEBASTIEN
+  // et insère les 3 nouvelles ventes (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1)
+  // avec les bonnes données issues de l'ERP de l'utilisateur.
+  const [migrating, setMigrating] = useState(false);
+  const runSebastienMigration = async () => {
+    if (!confirm(
+      'Migration SEBASTIEN GASNIER ?\n\n' +
+      'Cette action va :\n' +
+      '1. Créer l\'agent SEBASTIEN GASNIER (s\'il n\'existe pas)\n' +
+      '2. Supprimer TOUTES les ventes actuellement attribuées à SEBASTIEN\n' +
+      '3. Insérer 3 nouvelles ventes :\n' +
+      '   • AUCHAN MANDELIEU — 02/11/2026 — 575,36€ (BL 26000623)\n' +
+      '   • AUCHAN MANDELIEU — 14/10/2026 — 723,84€ (BL 26000435, FV-00428)\n' +
+      '   • AUCHAN GRASSE — 07/10/2026 — 459,36€ (BL 26000381, FV-00365)\n' +
+      '4. Créer les enseignes AUCHAN MANDELIEU et AUCHAN GRASSE si besoin\n\n' +
+      'Le CA total des nouvelles ventes (1 758,56€) remplacera celui des ventes supprimées.\n' +
+      'Action atomique (transaction) — tout ou rien.'
+    )) return;
+    setMigrating(true);
+    try {
+      const r = await fetch('/api/migrations/sebastien-gasnier', { method: 'POST' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success('Migration SEBASTIEN GASNIER terminée', {
+        description: `${j.deletedSales} supprimée(s), ${j.insertedSales} insérée(s) — CA ${j.deletedCA.toFixed(2)}€ → ${j.insertedCA.toFixed(2)}€`,
+      });
+      // Recharge tout
+      loadAgents();
+      loadEnseignes();
+      loadDuplicates();
+    } catch (e: any) {
+      toast.error('Erreur migration', { description: e.message });
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -872,6 +912,52 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
               ))}
             </TableBody>
           </Table>
+        </div>
+
+        {/* === ZONE OUTILS DE MIGRATION === */}
+        <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Outils de migration
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                Réparation de données — utiliser quand une vente n'apparaît pas correctement dans le dashboard.
+              </p>
+            </div>
+          </div>
+
+          <div className="border-t border-amber-200 dark:border-amber-800 pt-2 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Migration SEBASTIEN GASNIER</p>
+                <p className="text-xs text-muted-foreground">
+                  Écrase les ventes de SEBASTIEN et insère les 3 nouvelles ventes
+                  (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1) — total 1 758,56€.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={runSebastienMigration}
+                disabled={migrating}
+                className="border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+              >
+                {migrating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Migration...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                    Lancer
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </TabsContent>
 

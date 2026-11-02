@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { ids, reason } = body as { ids: string[]; reason?: string };
 
+    console.log(`[dismiss-duplicate] POST received ids=${JSON.stringify(ids)} reason=${reason || '(none)'}`);
+
     if (!Array.isArray(ids) || ids.length < 2) {
       return NextResponse.json(
         { ok: false, error: 'ids (array de 2+ éléments) requis' },
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
       where: { id: { in: ids } },
       select: { id: true, name: true },
     });
+    console.log(`[dismiss-duplicate] Found ${enseignes.length} enseignes for ${ids.length} ids`);
     if (enseignes.length < 2) {
       return NextResponse.json(
         { ok: false, error: 'Au moins 2 enseignes doivent exister avec ces IDs' },
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Signature stable : IDs triés join "|"
     const signature = enseignes.map((e) => e.id).sort().join('|');
+    console.log(`[dismiss-duplicate] Computed signature: ${signature}`);
 
     // Charge la liste actuelle
     const existing = await db.parameter.findUnique({
@@ -62,6 +66,7 @@ export async function POST(req: NextRequest) {
         list = [];
       }
     }
+    console.log(`[dismiss-duplicate] Existing dismissed list: ${list.length} entries`);
 
     // Évite les doublons
     if (!list.some((e) => e.signature === signature)) {
@@ -73,11 +78,25 @@ export async function POST(req: NextRequest) {
         dismissedAt: new Date().toISOString(),
       });
 
-      await db.parameter.upsert({
-        where: { key: 'dismissedDuplicateGroups' },
-        create: { key: 'dismissedDuplicateGroups', value: JSON.stringify(list) },
-        update: { value: JSON.stringify(list) },
+      // Transaction : écrit + vérifie que ça a bien été persisté
+      await db.$transaction(async (tx) => {
+        await tx.parameter.upsert({
+          where: { key: 'dismissedDuplicateGroups' },
+          create: { key: 'dismissedDuplicateGroups', value: JSON.stringify(list) },
+          update: { value: JSON.stringify(list) },
+        });
+
+        // Vérification : relit immédiatement pour confirmer l'écriture
+        const verify = await tx.parameter.findUnique({
+          where: { key: 'dismissedDuplicateGroups' },
+        });
+        if (!verify || !verify.value.includes(signature)) {
+          throw new Error(`Échec persistance : signature ${signature} non trouvée après écriture`);
+        }
+        console.log(`[dismiss-duplicate] Verified: signature persisted (length=${verify.value.length})`);
       });
+    } else {
+      console.log(`[dismiss-duplicate] Signature already in dismissed list — skipping`);
     }
 
     return NextResponse.json({
@@ -88,11 +107,14 @@ export async function POST(req: NextRequest) {
         reason,
       },
       totalDismissed: list.length,
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (e) {
+    console.error('[dismiss-duplicate] POST error:', e);
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : 'Erreur' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

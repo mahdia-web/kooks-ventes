@@ -256,10 +256,13 @@ Kooks`;
 
 /**
  * Génère une courte analyse (3-5 lignes max) avec :
- * - Évolution vs mois précédent (si dispo)
- * - Part Centrale dans le CA
- * - Top enseigne du mois
- * - Nombre de clients actifs
+ * - Tendance des ventes Centrales (hausse/baisse/stable vs mois précédent)
+ * - Nombre de clients inactifs + date de dernière commande (pas de listing)
+ * - Nombre de clients à relancer + date de dernière commande (pas de listing)
+ *
+ * Format demandé par l'utilisateur : dire s'il y a une baisse au niveau des
+ * centrales, et donner les comptes (inactifs / à relancer) avec la date de
+ * dernière commande la plus récente (sans lister chaque client).
  */
 function buildAnalysis(
   data: DashboardData,
@@ -270,59 +273,110 @@ function buildAnalysis(
   const lines: string[] = [];
   const isAgentSpecific = !!agent;
 
-  // 1. Évolution vs mois précédent (si données dispo)
-  if (data.kpis.previous && data.kpis.evolution) {
-    const caEvolPct = data.kpis.evolution.caHTPercent;
-    const sign = caEvolPct >= 0 ? '+' : '';
-    const trend = caEvolPct >= 0 ? 'en hausse' : 'en baisse';
-    // Pour un agent spécifique, on ne peut pas utiliser l'évolution globale (qui est calculée sur l'ensemble)
-    // Donc on l'affiche seulement en mode global
-    if (!isAgentSpecific) {
-      lines.push(`📈 Le CA est ${trend} de ${sign}${caEvolPct.toFixed(1)}% vs ${data.kpis.previous.label} (${fmtEuroLocal(data.kpis.previous.caHT)}).`);
+  // 1. Tendance des ventes Centrales (vs mois précédent)
+  //    Pour l'analyse globale : on compare data.kpis.previous.caCentrale à kpis.caCentrale
+  //    Pour un agent spécifique : on utilise l'agent.centraleMonthlySeries (12 derniers mois)
+  let centraleTrend = '';
+  if (isAgentSpecific) {
+    // Récupère la série mensuelle de l'agent
+    const agentStat = data.agents.find((a) => a.agent === agent);
+    const series = (agentStat as any)?.centraleMonthlySeries as
+      | Array<{ year: number; month: number; caCentrale: number; caDirect: number }>
+      | undefined;
+    if (series && series.length >= 2) {
+      const last = series[series.length - 1];
+      const prev = series[series.length - 2];
+      if (prev.caCentrale > 0) {
+        const pct = ((last.caCentrale - prev.caCentrale) / prev.caCentrale) * 100;
+        const sign = pct >= 0 ? '+' : '';
+        const trendLabel = pct > 5 ? 'en hausse' : pct < -5 ? 'en baisse' : 'stable';
+        centraleTrend = `🏭 Centrales ${trendLabel} (${sign}${pct.toFixed(1)}% vs ${monthLabelShort(prev.month)} ${prev.year}).`;
+      } else if (last.caCentrale > 0) {
+        centraleTrend = `🏭 Centrales : nouvelles ventes ce mois-ci (${fmtEuroLocal(last.caCentrale)}), aucune le mois précédent.`;
+      } else {
+        centraleTrend = `🏭 Centrales : aucune vente ce mois-ci.`;
+      }
+    }
+  } else {
+    // Mode global : utilise data.kpis.previous.caCentrale
+    if (data.kpis.previous && data.kpis.previous.caCentrale !== undefined) {
+      const currentCentrale = kpis.caCentrale;
+      const prevCentrale = data.kpis.previous.caCentrale;
+      if (prevCentrale > 0) {
+        const pct = ((currentCentrale - prevCentrale) / prevCentrale) * 100;
+        const sign = pct >= 0 ? '+' : '';
+        const trendLabel = pct > 5 ? 'en hausse' : pct < -5 ? 'en baisse' : 'stable';
+        centraleTrend = `🏭 Centrales ${trendLabel} (${sign}${pct.toFixed(1)}% vs ${data.kpis.previous.label}).`;
+      } else if (currentCentrale > 0) {
+        centraleTrend = `🏭 Centrales : nouvelles ventes ce mois-ci (${fmtEuroLocal(currentCentrale)}), aucune le mois précédent.`;
+      } else {
+        centraleTrend = `🏭 Centrales : aucune vente ce mois-ci.`;
+      }
+    }
+  }
+  if (centraleTrend) lines.push(centraleTrend);
+
+  // 2. Clients inactifs (status = 'INACTIF') — nombre + date de dernière commande (pas de listing)
+  //    Filtré par agent si spécifié
+  const inactifs = data.customerFollowup.filter(
+    (c) => c.status === 'INACTIF' && (!isAgentSpecific || c.agent === agent),
+  );
+  if (inactifs.length > 0) {
+    // Date de dernière commande la plus récente parmi les inactifs
+    const dates = inactifs.map((c) => c.lastOrder).filter((d): d is string => !!d);
+    if (dates.length > 0) {
+      const latestDate = dates.reduce((latest, d) => (d > latest ? d : latest), dates[0]);
+      lines.push(`🔴 ${inactifs.length} client(s) inactif(s) — dernière commande le ${formatDateFr(latestDate)}.`);
+    } else {
+      lines.push(`🔴 ${inactifs.length} client(s) inactif(s).`);
     }
   }
 
-  // 2. Part Centrale dans le CA
+  // 3. Clients à relancer (status = 'A RELANCER') — nombre + date de dernière commande (pas de listing)
+  const aRelancer = data.customerFollowup.filter(
+    (c) => c.status === 'A RELANCER' && (!isAgentSpecific || c.agent === agent),
+  );
+  if (aRelancer.length > 0) {
+    const dates = aRelancer.map((c) => c.lastOrder).filter((d): d is string => !!d);
+    if (dates.length > 0) {
+      // Pour les relances, la date la PLUS ANCIENNE est la plus urgente
+      const oldestDate = dates.reduce((oldest, d) => (d < oldest ? d : oldest), dates[0]);
+      lines.push(`⏰ ${aRelancer.length} client(s) à relancer — dernière commande la plus ancienne le ${formatDateFr(oldestDate)}.`);
+    } else {
+      lines.push(`⏰ ${aRelancer.length} client(s) à relancer.`);
+    }
+  }
+
+  // 4. Clients actifs (status = 'OK')
+  const actifs = data.customerFollowup.filter(
+    (c) => c.status === 'OK' && (!isAgentSpecific || c.agent === agent),
+  );
+  if (actifs.length > 0) {
+    lines.push(`✅ ${actifs.length} client(s) actif(s) ce mois-ci.`);
+  }
+
+  // 5. Répartition Direct/Centrale (info complémentaire)
   if (kpis.caHT > 0) {
     const partCentrale = (kpis.caCentrale / kpis.caHT) * 100;
     const partDirect = 100 - partCentrale;
     lines.push(`📊 Répartition : ${partDirect.toFixed(0)}% Direct / ${partCentrale.toFixed(0)}% Centrale.`);
   }
 
-  // 3. Top enseigne du mois (pour cet agent, ou globale)
-  const topEnseignes = data.enseignes
-    .filter((e) => !isAgentSpecific || e.agent === agent)
-    .sort((a, b) => b.caHT - a.caHT);
-  if (topEnseignes.length > 0) {
-    const top = topEnseignes[0];
-    lines.push(`🥇 Top client : ${top.enseigne} avec ${fmtEuroLocal(top.caHT)} (${top.nbBl} BL).`);
-  }
-
-  // 4. Top centrale (si au moins 1)
-  if (centrales.length > 0) {
-    const topCentrale = centrales[0];
-    lines.push(`🏭 Coopérative principale : ${topCentrale.enseigne} (${fmtEuroLocal(topCentrale.caHT)}).`);
-  }
-
-  // 5. Nombre de clients actifs
-  const activeEnseignes = data.enseignes
-    .filter((e) => !isAgentSpecific || e.agent === agent)
-    .length;
-  if (activeEnseignes > 0) {
-    lines.push(`👥 ${activeEnseignes} client(s) actif(s) ce mois-ci.`);
-  }
-
-  // 6. Message de fin selon performance
-  if (kpis.caHT > 0) {
-    const aov = kpis.nbBl > 0 ? kpis.caHT / kpis.nbBl : 0;
-    if (aov > 500) {
-      lines.push(`✅ Panier moyen solide (${fmtEuroLocal(aov)}), bonne dynamique commerciale.`);
-    } else if (aov > 0) {
-      lines.push(`💡 Panier moyen : ${fmtEuroLocal(aov)} — opportunité de montée en gamme.`);
-    }
-  }
-
   return lines.length > 0
     ? `Analyse :\n${lines.map((l) => `${l}`).join('\n')}`
     : 'Analyse : données insuffisantes pour ce mois-ci.';
+}
+
+/** Format court JJ/MM/AAAA depuis une date ISO YYYY-MM-DD */
+function formatDateFr(isoDate: string): string {
+  if (!isoDate) return '—';
+  const m = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return isoDate;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+/** Libellé court du mois (Janv, Févr, etc.) */
+function monthLabelShort(month: number): string {
+  const labels = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+  return labels[month - 1] ?? `M${month}`;
 }

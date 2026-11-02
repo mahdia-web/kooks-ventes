@@ -16,14 +16,8 @@ import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
  * POST /api/enseignes/dismiss-duplicate) sont exclus de la réponse.
  * Une signature de groupe = IDs triés join "|".
  *
- * Chaque groupe contient :
- *   - normalized : la forme canonique calculée
- *   - matchType : "exact" ou "similar"
- *   - score : score de similarité (1.0 pour exact)
- *   - signature : signature stable (IDs triés join "|") pour undo
- *   - items : les enseignes (id, name, type, agent, isActive, salesCount)
- *
- * Un groupe n'est renvoyé que s'il a 2+ enseignes.
+ * Cache désactivé (Cache-Control: no-store) car la réponse change après
+ * chaque dismiss/merge — sinon le navigateur retourne une version périmée.
  */
 export async function GET() {
   try {
@@ -40,6 +34,7 @@ export async function GET() {
         }
       } catch {}
     }
+    console.log(`[detect-duplicates] dismissed signatures loaded: ${dismissedSignatures.size}`);
 
     const enseignes = await db.enseigne.findMany({
       select: {
@@ -142,6 +137,10 @@ export async function GET() {
         return b.score - a.score;
       });
 
+    console.log(`[detect-duplicates] ${allGroups.length} groups detected, ${duplicates.length} after filter (dismissed ${dismissedSignatures.size})`);
+
+    // Cache-Control: no-store — critical pour que la réponse soit toujours fraîche
+    // après un dismiss/merge. Sans ça, le navigateur peut retourner une ancienne version.
     return NextResponse.json({
       ok: true,
       data: duplicates,
@@ -154,11 +153,20 @@ export async function GET() {
         totalEnseignes: enriched.length,
         dismissed: dismissedSignatures.size,
       },
+      // Timestamp pour debug et cache-busting
+      generatedAt: new Date().toISOString(),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
     });
   } catch (e) {
+    console.error('[detect-duplicates] Error:', e);
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : 'Erreur' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }
