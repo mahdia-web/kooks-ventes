@@ -32,6 +32,97 @@ interface BilanPdfOptions {
   logoDataUrl?: string | null;
 }
 
+// ============================================================
+// Mini-graphique d'évolution — dessine un histogramme à barres
+// pour la série mensuelle (12 derniers mois) du CA Centrale d'un agent.
+// ============================================================
+function drawCentraleEvolutionChart(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  series: Array<{ year: number; month: number; caCentrale: number; caDirect: number }>,
+  agentName: string,
+): number {
+  // Filtrer les valeurs nulles (si la série est vide)
+  const values = series.map((s) => s.caCentrale);
+  const valuesDirect = series.map((s) => s.caDirect);
+  if (values.every((v) => v === 0)) {
+    // Aucune donnée — affiche juste un message
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.setFont('helvetica', 'italic');
+    doc.text(`Aucun CA Centrale pour ${agentName} sur les 12 derniers mois`, x + 2, y + h / 2);
+    return h;
+  }
+  const maxVal = Math.max(...values, ...valuesDirect, 1);
+  const barAreaW = w - 4; // 2mm padding chaque côté
+  const barAreaH = h - 14; // laisse 14mm pour labels bas + titre
+  const n = series.length;
+  const barW = barAreaW / n;
+  const barUnitH = barAreaH / maxVal;
+
+  // Titre du graphique
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Évolution CA Centrale (12 mois) — ${agentName}`, x + 2, y + 4);
+
+  // Axe Y max (label à gauche) — format compact en K€ ou M€
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(100, 116, 139);
+  const maxLabel = maxVal >= 1000000
+    ? `${(maxVal / 1000000).toFixed(1)}M€`
+    : maxVal >= 1000
+    ? `${(maxVal / 1000).toFixed(0)}K€`
+    : `${maxVal.toFixed(0)}€`;
+  doc.text(maxLabel, x, y + 10, { align: 'left' });
+
+  // Dessine chaque barre (CA Centrale en orange, CA Direct en bleu plus fin derrière)
+  const chartTop = y + 8;
+  for (let i = 0; i < n; i++) {
+    const bx = x + 2 + i * barW;
+    // Barre Direct (bleu, en fond)
+    const dH = valuesDirect[i] * barUnitH;
+    if (dH > 0) {
+      doc.setFillColor(54, 116, 181); // Kooks cobalt
+      doc.rect(bx + 0.5, chartTop + barAreaH - dH, barW * 0.4, dH, 'F');
+    }
+    // Barre Centrale (orange, devant)
+    const cH = values[i] * barUnitH;
+    if (cH > 0) {
+      doc.setFillColor(247, 169, 65); // Kooks orange
+      doc.rect(bx + barW * 0.45, chartTop + barAreaH - cH, barW * 0.45, cH, 'F');
+    }
+    // Label mois (initiale du mois)
+    const monthLabel = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][series[i].month - 1];
+    doc.setFontSize(5.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(monthLabel, bx + barW / 2, y + h - 3, { align: 'center' });
+  }
+
+  // Légende en haut à droite
+  const legY = y + 4;
+  const legX = x + w - 50;
+  doc.setFillColor(54, 116, 181);
+  doc.rect(legX, legY - 1, 2.5, 2, 'F');
+  doc.setFontSize(6);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Direct', legX + 4, legY + 0.5);
+  doc.setFillColor(247, 169, 65);
+  doc.rect(legX + 18, legY - 1, 2.5, 2, 'F');
+  doc.text('Centrale', legX + 22, legY + 0.5);
+
+  // Bordure du graphique
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.2);
+  doc.rect(x, y, w, h, 'S');
+
+  return h;
+}
+
 // Charge le logo depuis /public/logo-kooks.png et le convertit en data URL
 async function loadLogo(): Promise<string | null> {
   try {
@@ -319,30 +410,61 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
 
   autoTable(doc, {
     startY: yPos,
-    head: [['#', 'Enseigne', 'Type', 'BL', 'CA HT', 'Prix moy.', 'Part']],
-    body: top10.map((e, idx) => [
-      String(idx + 1),
-      e.enseigne,
-      e.type,
-      String(e.nbBl),
-      pdfEuro(e.caHT),
-      pdfEuro(e.prixVenteMoyen),
-      pdfPct(e.share / 100),
-    ]),
+    head: [['#', 'Enseigne', 'Type', 'BL', 'CA HT', 'CA M-1', 'Évol.', 'Part']],
+    body: top10.map((e, idx) => {
+      const prevCa = (e as any).previousMonthCa ?? 0;
+      // Calcul évolution vs mois précédent
+      let evolStr = '—';
+      if (prevCa > 0) {
+        const pct = ((e.caHT - prevCa) / prevCa) * 100;
+        const sign = pct >= 0 ? '+' : '';
+        evolStr = `${sign}${pct.toFixed(1)}%`;
+      } else if (e.caHT > 0) {
+        // Pas de CA le mois d'avant = nouveau client ce mois-ci
+        evolStr = 'Nouveau';
+      }
+      return [
+        String(idx + 1),
+        e.enseigne,
+        e.type,
+        String(e.nbBl),
+        pdfEuro(e.caHT),
+        prevCa > 0 ? pdfEuro(prevCa) : '—',
+        evolStr,
+        pdfPct(e.share / 100),
+      ];
+    }),
     theme: 'striped',
     headStyles: { fillColor: [187, 126, 64], textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
     columnStyles: {
       0: { cellWidth: 7, halign: 'center' },
       1: { cellWidth: 'auto' },
-      2: { cellWidth: 16, halign: 'center' },
-      3: { cellWidth: 10, halign: 'right' },
-      4: { cellWidth: 24, halign: 'right' },
+      2: { cellWidth: 14, halign: 'center' },
+      3: { cellWidth: 9, halign: 'right' },
+      4: { cellWidth: 22, halign: 'right' },
       5: { cellWidth: 22, halign: 'right' },
-      6: { cellWidth: 16, halign: 'right' },
+      6: { cellWidth: 18, halign: 'right' },
+      7: { cellWidth: 14, halign: 'right' },
     },
     styles: { overflow: 'linebreak' },
     margin: { left: margin, right: margin },
+    didParseCell: (data) => {
+      // Colorise la colonne évolution (index 6) en vert/rouge
+      if (data.section === 'body' && data.column.index === 6) {
+        const txt = String(data.cell.text[0] ?? '');
+        if (txt.startsWith('+')) {
+          data.cell.styles.textColor = [5, 150, 105]; // vert
+          data.cell.styles.fontStyle = 'bold';
+        } else if (txt.startsWith('-')) {
+          data.cell.styles.textColor = [220, 38, 38]; // rouge
+          data.cell.styles.fontStyle = 'bold';
+        } else if (txt === 'Nouveau') {
+          data.cell.styles.textColor = [54, 116, 181]; // bleu
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
   });
 
   yPos = (doc as any).lastAutoTable.finalY + 14;
@@ -455,6 +577,9 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   // ============================================================
   // Performance par agent (seulement en bilan global)
   // ============================================================
+  // yPosAfterAgentTable est déclaré ici pour pouvoir être réutilisé
+  // après le bloc if (pour le classement complet des enseignes)
+  let yPosAfterAgentTable = yPosAfterRelance;
   if (!isAgentSpecific && agents.length > 0) {
     yPosAfterRelance = (doc as any).lastAutoTable?.finalY ?? yPosAfterRelance;
     yPosAfterRelance += 14;
@@ -494,13 +619,74 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },
     });
+
+    // === Graphiques d'évolution CA Centrale par agent ===
+    // Chaque agent a son propre mini-graphique montrant l'évolution mensuelle
+    // sur les 12 derniers mois du CA Centrale (orange) et CA Direct (bleu).
+    yPosAfterAgentTable = (doc as any).lastAutoTable?.finalY ?? yPosAfterRelance;
+    yPosAfterAgentTable += 8;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Évolution du CA Centrale par agent (12 derniers mois)', margin, yPosAfterAgentTable);
+    yPosAfterAgentTable += 6;
+
+    // Pour chaque agent : dessine un mini-graphique de 38mm de haut
+    // 2 graphiques par ligne (largeur moitié de la page chacun)
+    const chartW = (contentWidth - 4) / 2; // 2 colonnes avec 4mm gap
+    const chartH = 38;
+    const agentsWithCentrale = agents.filter((a) =>
+      (a as any).centraleMonthlySeries &&
+      ((a as any).centraleMonthlySeries as any[]).some((s) => s.caCentrale > 0 || s.caDirect > 0)
+    );
+
+    let currentRow = 0;
+    let currentCol = 0;
+    for (let i = 0; i < agentsWithCentrale.length; i++) {
+      const a = agentsWithCentrale[i];
+      // Calcul position sur la page courante
+      const chartX = margin + currentCol * (chartW + 4);
+      const chartY = yPosAfterAgentTable + currentRow * (chartH + 4);
+
+      // Si le graphique déborde en bas → nouvelle page
+      if (chartY + chartH > pageHeight - 14) {
+        doc.addPage();
+        yPosAfterAgentTable = 20;
+        currentRow = 0;
+        currentCol = 0;
+      }
+
+      const finalX = margin + currentCol * (chartW + 4);
+      const finalY = yPosAfterAgentTable + currentRow * (chartH + 4);
+      drawCentraleEvolutionChart(doc, finalX, finalY, chartW, chartH, (a as any).centraleMonthlySeries, a.agent);
+
+      // Avance la position : colonne suivante, ou ligne suivante
+      currentCol++;
+      if (currentCol >= 2) {
+        currentCol = 0;
+        currentRow++;
+      }
+    }
+    // Met à jour yPosAfterAgentTable pour la suite (pour le classement complet)
+    const totalRowsUsed = currentRow + (currentCol > 0 ? 1 : 0);
+    yPosAfterAgentTable = yPosAfterAgentTable + totalRowsUsed * (chartH + 4);
+
+    // Si aucun agent n'a de données Centrale, avance quand même le curseur
+    if (agentsWithCentrale.length === 0) {
+      yPosAfterAgentTable += 10;
+    }
   }
 
   // ============================================================
   // Classement complet des enseignes (Direct + Centrale)
   // — ne force pas un addPage si on a encore de la place
   // ============================================================
-  let yPosAfterAgent = (doc as any).lastAutoTable?.finalY ?? yPosAfterRelance;
+  // Si on vient de dessiner les graphiques d'évolution par agent,
+  // yPosAfterAgentTable contient la position finale. Sinon, on retombe
+  // sur yPosAfterRelance (cas bilan spécifique à un agent).
+  let yPosAfterAgent = yPosAfterAgentTable > yPosAfterRelance + 14
+    ? yPosAfterAgentTable
+    : ((doc as any).lastAutoTable?.finalY ?? yPosAfterRelance);
   yPosAfterAgent += 14;
   if (yPosAfterAgent > pageHeight - 80) {
     doc.addPage();

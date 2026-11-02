@@ -107,9 +107,9 @@ export function EnseigneTable({ enseignes }: EnseigneTableProps) {
   return (
     <Card className="border-border">
       <CardHeader>
-        <CardTitle className="font-title">Top enseignes — prix de vente moyen</CardTitle>
+        <CardTitle className="font-title">Top enseignes — CA du mois précédent</CardTitle>
         <CardDescription>
-          {enseignes.length} enseignes actives sur la période — prix de vente moyen = CA HT / nb BL
+          {enseignes.length} enseignes actives sur la période — comparaison CA HT vs mois précédent (M-1)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -123,13 +123,27 @@ export function EnseigneTable({ enseignes }: EnseigneTableProps) {
                 <TableHead className="hidden lg:table-cell">Agent</TableHead>
                 <TableHead className="text-right">BL</TableHead>
                 <TableHead className="text-right">CA HT</TableHead>
-                <TableHead className="text-right hidden md:table-cell">Prix moy.</TableHead>
+                <TableHead className="text-right hidden md:table-cell">CA M-1</TableHead>
+                <TableHead className="text-right hidden md:table-cell">Évol.</TableHead>
                 <TableHead className="text-right">Part</TableHead>
                 <TableHead className="text-right hidden sm:table-cell">Dern. cmd</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {enseignes.map((e, idx) => (
+              {enseignes.map((e, idx) => {
+                const prevCa = (e as any).previousMonthCa ?? 0;
+                let evolStr = '—';
+                let evolClass = 'text-muted-foreground';
+                if (prevCa > 0) {
+                  const pct = ((e.caHT - prevCa) / prevCa) * 100;
+                  const sign = pct >= 0 ? '+' : '';
+                  evolStr = `${sign}${pct.toFixed(1)}%`;
+                  evolClass = pct >= 0 ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-destructive font-medium';
+                } else if (e.caHT > 0) {
+                  evolStr = 'Nouveau';
+                  evolClass = 'text-primary font-medium';
+                }
+                return (
                 <TableRow key={e.enseigne} className="hover:bg-muted/50">
                   <TableCell className="text-center text-sm text-muted-foreground">
                     {idx + 1}
@@ -146,7 +160,10 @@ export function EnseigneTable({ enseignes }: EnseigneTableProps) {
                     {formatEuro(e.caHT)}
                   </TableCell>
                   <TableCell className="text-right hidden md:table-cell font-medium">
-                    {formatEuro(e.prixVenteMoyen)}
+                    {prevCa > 0 ? formatEuro(prevCa) : '—'}
+                  </TableCell>
+                  <TableCell className={`text-right hidden md:table-cell ${evolClass}`}>
+                    {evolStr}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="secondary" className="font-mono">
@@ -157,7 +174,8 @@ export function EnseigneTable({ enseignes }: EnseigneTableProps) {
                     {formatDate(e.lastOrder)}
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>

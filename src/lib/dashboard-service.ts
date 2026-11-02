@@ -290,6 +290,47 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     byAgent.set(r.agent, s);
   }
 
+  // === Évolution mensuelle du CA Centrale par agent (12 derniers mois) ===
+  // Calcule la fenêtre de 12 mois se terminant par (year, month)
+  const monthWindow: Array<{ year: number; month: number }> = [];
+  for (let i = 11; i >= 0; i--) {
+    let y = year;
+    let m = month - i;
+    while (m <= 0) { m += 12; y -= 1; }
+    while (m > 12) { m -= 12; y += 1; }
+    monthWindow.push({ year: y, month: m });
+  }
+  const windowKeys = new Set(monthWindow.map((w) => `${w.year}-${w.month}`));
+  // Charge les ventes des 12 derniers mois (tous agents)
+  const last12Sales = await db.sale.findMany({
+    where: {
+      OR: monthWindow.map((w) => ({ year: w.year, month: w.month })),
+    },
+    select: { agent: true, year: true, month: true, type: true, amountHT: true },
+  });
+  // Agrège par agent × mois × type
+  const agentMonthly = new Map<string, Map<string, { caDirect: number; caCentrale: number }>>();
+  for (const r of last12Sales) {
+    const key = `${r.year}-${r.month}`;
+    if (!windowKeys.has(key)) continue;
+    if (!agentMonthly.has(r.agent)) agentMonthly.set(r.agent, new Map());
+    const monthlyMap = agentMonthly.get(r.agent)!;
+    const entry = monthlyMap.get(key) ?? { caDirect: 0, caCentrale: 0 };
+    if (r.type === 'Direct') entry.caDirect += r.amountHT;
+    else entry.caCentrale += r.amountHT;
+    monthlyMap.set(key, entry);
+  }
+  // Construit la série mensuelle ordonnée par agent
+  const agentSeriesMap = new Map<string, Array<{ year: number; month: number; caCentrale: number; caDirect: number }>>();
+  for (const [agent, monthlyMap] of agentMonthly.entries()) {
+    const series = monthWindow.map((w) => {
+      const key = `${w.year}-${w.month}`;
+      const e = monthlyMap.get(key);
+      return { year: w.year, month: w.month, caCentrale: e?.caCentrale ?? 0, caDirect: e?.caDirect ?? 0 };
+    });
+    agentSeriesMap.set(agent, series);
+  }
+
   return Array.from(byAgent.values())
     .map((s) => ({
       agent: s.agent,
@@ -304,6 +345,9 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
       aov: s.nbBl > 0 ? s.caHT / s.nbBl : 0,
       share: totalCa > 0 ? (s.caHT / totalCa) * 100 : 0,
       enseignesActives: s.enseignes.size,
+      centraleMonthlySeries: agentSeriesMap.get(s.agent) ?? monthWindow.map((w) => ({
+        year: w.year, month: w.month, caCentrale: 0, caDirect: 0,
+      })),
     }))
     .sort((a, b) => b.caHT - a.caHT);
 }
@@ -337,11 +381,29 @@ async function computeEnseigneStats(year: number, month: number, agentFilter?: s
     byEnseigne.set(r.enseigne, s);
   }
 
+  // === CA du mois précédent par enseigne (pour le bilan PDF) ===
+  // Calcule (year, month-1) en gérant le passage d'année
+  let prevYear = year;
+  let prevMonth = month - 1;
+  if (prevMonth === 0) { prevMonth = 12; prevYear = year - 1; }
+  const prevWhere = agentFilter
+    ? { year: prevYear, month: prevMonth, agent: agentFilter }
+    : { year: prevYear, month: prevMonth };
+  const prevSales = await db.sale.findMany({
+    where: prevWhere,
+    select: { enseigne: true, amountHT: true },
+  });
+  const prevCaByEnseigne = new Map<string, number>();
+  for (const r of prevSales) {
+    prevCaByEnseigne.set(r.enseigne, (prevCaByEnseigne.get(r.enseigne) ?? 0) + r.amountHT);
+  }
+
   return Array.from(byEnseigne.values())
     .map((s) => ({
       ...s,
       share: totalCa > 0 ? (s.caHT / totalCa) * 100 : 0,
       prixVenteMoyen: s.nbBl > 0 ? s.caHT / s.nbBl : 0, // CA / nbBL = prix de vente moyen observé
+      previousMonthCa: prevCaByEnseigne.get(s.enseigne) ?? 0,
       lastOrder: s.lastOrder ? s.lastOrder.toISOString().split('T')[0] : null,
     }))
     .sort((a, b) => b.caHT - a.caHT);
@@ -758,6 +820,44 @@ export async function getDashboardDataForDateRange(
     else { a.nbBlCentrale += 1; a.caCentrale += r.amountHT; }
     byAgent.set(r.agent, a);
   }
+
+  // === Évolution mensuelle CA Centrale par agent (12 derniers mois avant fin de plage) ===
+  const endYearMonth = endDate.getFullYear();
+  const endMonthNum = endDate.getMonth() + 1;
+  const agentWindow: Array<{ year: number; month: number }> = [];
+  for (let i = 11; i >= 0; i--) {
+    let y = endYearMonth;
+    let m = endMonthNum - i;
+    while (m <= 0) { m += 12; y -= 1; }
+    while (m > 12) { m -= 12; y += 1; }
+    agentWindow.push({ year: y, month: m });
+  }
+  const agentWindowKeys = new Set(agentWindow.map((w) => `${w.year}-${w.month}`));
+  const last12AgentSales = await db.sale.findMany({
+    where: {
+      OR: agentWindow.map((w) => ({ year: w.year, month: w.month })),
+    },
+    select: { agent: true, year: true, month: true, type: true, amountHT: true },
+  });
+  const agentMonthlyForRange = new Map<string, Map<string, { caDirect: number; caCentrale: number }>>();
+  for (const r of last12AgentSales) {
+    const key = `${r.year}-${r.month}`;
+    if (!agentWindowKeys.has(key)) continue;
+    if (!agentMonthlyForRange.has(r.agent)) agentMonthlyForRange.set(r.agent, new Map());
+    const monthlyMap = agentMonthlyForRange.get(r.agent)!;
+    const entry = monthlyMap.get(key) ?? { caDirect: 0, caCentrale: 0 };
+    if (r.type === 'Direct') entry.caDirect += r.amountHT;
+    else entry.caCentrale += r.amountHT;
+    monthlyMap.set(key, entry);
+  }
+  const agentSeriesForRange = new Map<string, Array<{ year: number; month: number; caCentrale: number; caDirect: number }>>();
+  for (const [agent, monthlyMap] of agentMonthlyForRange.entries()) {
+    agentSeriesForRange.set(agent, agentWindow.map((w) => {
+      const key = `${w.year}-${w.month}`;
+      const e = monthlyMap.get(key);
+      return { year: w.year, month: w.month, caCentrale: e?.caCentrale ?? 0, caDirect: e?.caDirect ?? 0 };
+    }));
+  }
   const agents = Array.from(byAgent.values()).map(a => ({
     agent: a.agent, caHT: a.caHT, caTTC: a.caTTC, commission: a.commission,
     nbBl: a.nbBl, nbBlDirect: a.nbBlDirect, nbBlCentrale: a.nbBlCentrale,
@@ -766,6 +866,9 @@ export async function getDashboardDataForDateRange(
     share: caHT > 0 ? (a.caHT / caHT) * 100 : 0,
     aov: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
     prixVenteMoyen: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+    centraleMonthlySeries: agentSeriesForRange.get(a.agent) ?? agentWindow.map((w) => ({
+      year: w.year, month: w.month, caCentrale: 0, caDirect: 0,
+    })),
   })).sort((a, b) => b.caHT - a.caHT);
 
   // Stats par enseigne dans la plage
@@ -776,9 +879,25 @@ export async function getDashboardDataForDateRange(
     if (!e.lastOrder || r.date > e.lastOrder) e.lastOrder = r.date;
     byEnseigne.set(r.enseigne, e);
   }
+  // CA période précédente (même durée, juste avant la plage) par enseigne
+  const rangeDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const prevEndDate = new Date(startDate.getTime() - 1);
+  const prevStartDate = new Date(prevEndDate.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000);
+  const prevRangeWhere = agentFilter
+    ? { date: { gte: prevStartDate, lte: prevEndDate }, agent: agentFilter }
+    : { date: { gte: prevStartDate, lte: prevEndDate } };
+  const prevRangeSales = await db.sale.findMany({
+    where: prevRangeWhere,
+    select: { enseigne: true, amountHT: true },
+  });
+  const prevCaByEnseigne = new Map<string, number>();
+  for (const r of prevRangeSales) {
+    prevCaByEnseigne.set(r.enseigne, (prevCaByEnseigne.get(r.enseigne) ?? 0) + r.amountHT);
+  }
   const enseignes = Array.from(byEnseigne.values()).map(e => ({
     ...e, share: caHT > 0 ? (e.caHT / caHT) * 100 : 0,
     prixVenteMoyen: e.nbBl > 0 ? e.caHT / e.nbBl : 0,
+    previousMonthCa: prevCaByEnseigne.get(e.enseigne) ?? 0,
     lastOrder: e.lastOrder ? e.lastOrder.toISOString().split('T')[0] : null,
   })).sort((a, b) => b.caHT - a.caHT);
 

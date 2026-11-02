@@ -72,6 +72,9 @@ export interface AgentStat {
   aov: number;
   share: number;
   enseignesActives: number;
+  // Évolution mensuelle du CA Centrale de cet agent (12 derniers mois)
+  // Utilisé dans le bilan PDF pour afficher un mini-graphique d'évolution
+  centraleMonthlySeries?: Array<{ year: number; month: number; caCentrale: number; caDirect: number }>;
 }
 
 export interface EnseigneStat {
@@ -83,6 +86,7 @@ export interface EnseigneStat {
   share: number;
   lastOrder: string | null;
   prixVenteMoyen: number; // CA HT / nbBL — prix de vente moyen observé
+  previousMonthCa?: number; // CA HT du mois précédent (pour comparaison dans le bilan)
 }
 
 export interface CustomerFollowup {
