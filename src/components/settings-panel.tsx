@@ -70,7 +70,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [merging, setMerging] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'Direct' | 'Centrale'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'Direct' | 'Centrale' | 'CHR'>('all');
   const [filterAgent, setFilterAgent] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newClient, setNewClient] = useState({
@@ -274,6 +274,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     .filter((e) => {
       if (filterType === 'Direct') return e.type === 'Direct';
       if (filterType === 'Centrale') return e.type === 'Centrale';
+      if (filterType === 'CHR') return e.type === 'CHR';
       return true;
     })
     .filter((e) => {
@@ -431,6 +432,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                 <SelectItem value="all">Tous types</SelectItem>
                 <SelectItem value="Direct">Direct</SelectItem>
                 <SelectItem value="Centrale">Centrale</SelectItem>
+                <SelectItem value="CHR">CHR</SelectItem>
               </SelectContent>
             </Select>
             {/* Sélecteur d'agent (filtre par commercial) */}
@@ -497,6 +499,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                   <SelectContent>
                     <SelectItem value="Direct">Direct</SelectItem>
                     <SelectItem value="Centrale">Centrale</SelectItem>
+                    <SelectItem value="CHR">CHR</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -598,6 +601,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                       <SelectContent>
                         <SelectItem value="Direct">Direct</SelectItem>
                         <SelectItem value="Centrale">Centrale</SelectItem>
+                        <SelectItem value="CHR">CHR</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>
