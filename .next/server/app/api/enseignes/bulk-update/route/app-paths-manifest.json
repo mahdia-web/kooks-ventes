@@ -1,0 +1,3 @@
+{
+  "/api/enseignes/bulk-update/route": "app/api/enseignes/bulk-update/route.js"
+}

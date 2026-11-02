@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Agent {
   id: string;
@@ -53,9 +54,12 @@ interface DuplicateItem {
   type: string;
   agent: string;
   isActive: boolean;
+  salesCount?: number;
 }
 interface DuplicateGroup {
   normalized: string;
+  matchType?: 'exact' | 'similar';
+  score?: number;
   items: DuplicateItem[];
 }
 
@@ -80,6 +84,10 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     commissionRate: '',
     isActive: true,
   });
+  // Sélection multiple pour bulk-update de type
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkType, setBulkType] = useState<'Direct' | 'Centrale' | 'CHR'>('Centrale');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const loadAgents = useCallback(async () => {
     try {
@@ -183,6 +191,59 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     } catch (e: any) {
       toast.error(e.message);
       loadEnseignes();
+    }
+  };
+
+  // Bulk update : change le type de plusieurs enseignes en un seul appel API
+  // (utilise UPDATE SQL natif pour recalculer les commissions en masse — instantané
+  // même pour 30+ MONOPRIX avec des milliers de ventes)
+  const bulkUpdateType = async () => {
+    if (selectedIds.size === 0) {
+      toast.error('Sélectionnez au moins un client');
+      return;
+    }
+    const ids = Array.from(selectedIds);
+    if (!confirm(
+      `Changer le type de ${ids.length} client(s) vers « ${bulkType} » ?\n\n` +
+      `Toutes leurs ventes seront mises à jour (type + agent + taux + commission recalculée).\n` +
+      `Action instantanée grâce à un UPDATE SQL en masse.`
+    )) return;
+    setBulkUpdating(true);
+    try {
+      const r = await fetch('/api/enseignes/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, type: bulkType }),
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success(`${j.updated.enseignes} client(s) mis à jour`, {
+        description: `${j.updated.sales} ventes recalculées en masse (SQL UPDATE)`,
+      });
+      setSelectedIds(new Set());
+      // Recharge les données
+      loadEnseignes();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((p) => {
+      const next = new Set(p);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((e) => e.id)));
     }
   };
 
@@ -581,10 +642,57 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
           </div>
         )}
 
+        {/* === TOOLBAR SÉLECTION MULTIPLE (bulk type reassign) === */}
+        {selectedIds.size > 0 && (
+          <div className="rounded-lg border border-primary bg-primary/10 p-3 flex items-center gap-3 flex-wrap sticky top-0 z-20">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <CheckSquare className="h-5 w-5 text-primary shrink-0" />
+              <span className="text-sm font-medium">
+                {selectedIds.size} client(s) sélectionné(s)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Forcer le type :</span>
+              <Select value={bulkType} onValueChange={(v: any) => setBulkType(v)}>
+                <SelectTrigger className="w-32 h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Direct">Direct</SelectItem>
+                  <SelectItem value="Centrale">Centrale</SelectItem>
+                  <SelectItem value="CHR">CHR</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={bulkUpdateType}
+                disabled={bulkUpdating}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {bulkUpdating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                {bulkUpdating ? 'Maj en cours...' : `Forcer ${bulkType}`}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Annuler
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="rounded-md border border-border overflow-y-auto max-h-[55vh]">
           <Table>
             <TableHeader className="sticky top-0 bg-muted z-10">
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead className="w-28">Type</TableHead>
                 <TableHead className="w-28">Agent</TableHead>
@@ -596,6 +704,12 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
             <TableBody>
               {filtered.map((e) => (
                 <TableRow key={e.id} className={!e.isActive ? 'opacity-50' : ''}>
+                  <TableCell className="pr-0">
+                    <Checkbox
+                      checked={selectedIds.has(e.id)}
+                      onCheckedChange={() => toggleSelect(e.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium text-sm">
                     <Input
                       defaultValue={e.name}
@@ -696,10 +810,12 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 flex items-start gap-2">
           <Sparkles className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground">
-            <strong>Détection intelligente :</strong> les noms sont normalisés (suppression des préfixes SA/SAS/SARL, O'TERA = OTERA, formes longues coopératives → acronyme comme SCAOUEST).
+            <strong>Détection intelligente :</strong> les noms sont normalisés (suppression des préfixes SA/SAS/SARL,
+            O'TERA = OTERA, formes longues coopératives → acronyme comme SCAPEST/SCAOUEST, variantes de villes
+            comme CHALLON EN CHAMPAGNE = CHALONS, dédoublonnage des tokens répétés).
             Les groupes ci-dessous contiennent des clients qui sont <strong>probablement le même magasin</strong> sous des écritures différentes.
             Sélectionnez le nom canonique à garder, puis cliquez sur « Fusionner ».
-            Toutes les ventes seront rattachées au nom canonique.
+            Toutes les ventes, volumes et charges seront rattachés au nom canonique.
           </p>
         </div>
 
@@ -766,11 +882,15 @@ function DuplicateGroupCard({
   merging: boolean;
   onMerge: (canonicalId: string) => void;
 }) {
-  // Par défaut, on sélectionne le 1er item comme canonique (le plus court nom souvent)
+  // Par défaut, on sélectionne le client qui a le PLUS de ventes comme canonique
+  // (cela évite de perdre l'historique principal en changeant le nom)
   const [canonicalId, setCanonicalId] = useState<string>(
-    // Choisir automatiquement le nom le plus "propre" : le plus court non-préfixé
     group.items.slice().sort((a, b) => {
-      // Privilégier les noms sans "SAS" / "SA" / "SARL" en début
+      // Privilégier celui qui a le plus de ventes (historique principal)
+      const salesA = a.salesCount ?? 0;
+      const salesB = b.salesCount ?? 0;
+      if (salesA !== salesB) return salesB - salesA;
+      // Sinon, sans préfixe juridique
       const aHasPrefix = /^(SAS|SA|SARL|EURL|SASU)\b/i.test(a.name) ? 1 : 0;
       const bHasPrefix = /^(SAS|SA|SARL|EURL|SASU)\b/i.test(b.name) ? 1 : 0;
       if (aHasPrefix !== bHasPrefix) return aHasPrefix - bHasPrefix;
@@ -778,6 +898,14 @@ function DuplicateGroupCard({
       return a.name.length - b.name.length;
     })[0]?.id ?? group.items[0].id
   );
+
+  const matchTypeLabel = group.matchType === 'similar'
+    ? `Similaire (${((group.score ?? 0) * 100).toFixed(0)}%)`
+    : 'Exact (normalisé)';
+  const matchTypeColor = group.matchType === 'similar'
+    ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400'
+    : 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400';
+  const totalSales = group.items.reduce((s, i) => s + (i.salesCount ?? 0), 0);
 
   return (
     <div className="rounded-md border border-border bg-card overflow-hidden">
@@ -788,8 +916,11 @@ function DuplicateGroupCard({
             <p className="text-sm font-medium truncate">
               {group.items.length} doublons → « {group.normalized} »
             </p>
-            <p className="text-xs text-muted-foreground">
-              Forme normalisée commune détectée
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${matchTypeColor}`}>
+                {matchTypeLabel}
+              </span>
+              {totalSales > 0 && <span>• {totalSales} ventes cumulées</span>}
             </p>
           </div>
         </div>
@@ -829,13 +960,22 @@ function DuplicateGroupCard({
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.type} • {item.agent || "KOOK'S"} •{' '}
-                    {item.isActive ? 'Actif' : 'Inactif'}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span>{item.type}</span>
+                    <span>•</span>
+                    <span>{item.agent || "KOOK'S"}</span>
+                    <span>•</span>
+                    <span>{item.isActive ? 'Actif' : 'Inactif'}</span>
+                    {(item.salesCount ?? 0) > 0 && (
+                      <>
+                        <span>•</span>
+                        <span className="font-medium">{item.salesCount} ventes</span>
+                      </>
+                    )}
                   </p>
                 </div>
                 {isCanonical && (
-                  <span className="text-[10px] font-medium text-primary bg-primary/15 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-medium text-primary bg-primary/15 px-1.5 py-0.5 rounded whitespace-nowrap">
                     À GARDER
                   </span>
                 )}

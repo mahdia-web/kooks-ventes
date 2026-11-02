@@ -24,16 +24,20 @@ function PeriodEnseigneList({ items }: { items: EnseignePeriodStat[] }) {
   }
   const maxCa = items[0]?.caHT || 1;
   return (
-    <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2">
       {items.map((e, idx) => {
         const colors = e.type === 'Direct' ? COLORS_DIRECT : COLORS_CENTRALE;
+        // Tronquer intelligemment les noms longs tout en gardant la lisibilité
+        const displayName = e.enseigne.length > 42
+          ? e.enseigne.slice(0, 40) + '…'
+          : e.enseigne;
         return (
-          <div key={e.enseigne} className="space-y-1">
+          <div key={e.enseigne} className="space-y-1" title={e.enseigne}>
             <div className="flex items-center justify-between text-sm gap-2">
-              <span className="font-medium truncate">
-                <span className="text-muted-foreground mr-1.5">{idx + 1}.</span>
-                {e.enseigne}
-                <span className="ml-2 text-[10px] text-muted-foreground">({e.nbBl} BL)</span>
+              <span className="font-medium min-w-0 flex-1" title={e.enseigne}>
+                <span className="text-muted-foreground mr-1.5 shrink-0">{idx + 1}.</span>
+                <span className="break-words">{displayName}</span>
+                <span className="ml-2 text-[10px] text-muted-foreground shrink-0">({e.nbBl} BL)</span>
               </span>
               <span className="shrink-0 font-mono font-semibold">
                 {formatEuro(e.caHT)}

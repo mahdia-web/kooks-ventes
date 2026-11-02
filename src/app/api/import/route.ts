@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
 import { setCurrentPeriod } from '@/lib/dashboard-service';
+import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
 
 // Augmente le timeout Vercel à 60s (au lieu de 10s par défaut)
 export const maxDuration = 60;
@@ -211,6 +212,62 @@ export async function POST(req: NextRequest) {
     const existingEnseignes = await db.enseigne.findMany({ select: { name: true, type: true, agent: true } });
     const enseigneTypeMap = new Map(existingEnseignes.map((e) => [e.name, e.type]));
     const enseigneAgentMap = new Map(existingEnseignes.map((e) => [e.name, e.agent]));
+
+    // === Détection intelligente des doublons d'enseignes ===
+    // Pour chaque nom entrant, on résout le nom canonique à utiliser en
+    // comparant avec les enseignes déjà en base (match exact / normalisé / similaire).
+    // - Si un match est trouvé : on utilise le nom canonique existant (pas de création de doublon)
+    // - Si aucun match : on crée une nouvelle enseigne avec le nom entrant
+    // Les substitutions sont enregistrées pour reporting dans la réponse.
+    const existingNames = existingEnseignes.map((e) => e.name);
+    // Pré-calcule les formes normalisées des enseignes existantes pour gagner du temps
+    const existingNormMap = new Map<string, string>(); // normalized → original name
+    for (const name of existingNames) {
+      const n = normalizeEnseigne(name);
+      if (n && !existingNormMap.has(n)) existingNormMap.set(n, name);
+    }
+    const canonicalResolutions = new Map<string, { incoming: string; canonical: string; confidence: number; status: string }>();
+    let duplicateDetectedCount = 0;
+    const resolveIncoming = (incoming: string): string => {
+      if (!incoming?.trim()) return incoming;
+      const trimmed = incoming.trim();
+      // Cache
+      if (canonicalResolutions.has(trimmed)) {
+        return canonicalResolutions.get(trimmed)!.canonical;
+      }
+      const lower = trimmed.toLowerCase();
+      // 1. Exact case-insensitive
+      const exact = existingNames.find((n) => n.toLowerCase() === lower);
+      if (exact) {
+        canonicalResolutions.set(trimmed, { incoming: trimmed, canonical: exact, confidence: 1, status: 'exact' });
+        return exact;
+      }
+      // 2. Normalized match
+      const incomingNorm = normalizeEnseigne(trimmed);
+      if (incomingNorm) {
+        const normMatch = existingNormMap.get(incomingNorm);
+        if (normMatch) {
+          canonicalResolutions.set(trimmed, { incoming: trimmed, canonical: normMatch, confidence: 0.95, status: 'normalized' });
+          duplicateDetectedCount++;
+          return normMatch;
+        }
+      }
+      // 3. Similar match (seuil 0.85)
+      let bestMatch: string | null = null;
+      let bestScore = 0;
+      for (const n of existingNames) {
+        const score = similarityScore(trimmed, n);
+        if (score > bestScore) { bestScore = score; bestMatch = n; }
+      }
+      if (bestMatch && bestScore >= 0.85) {
+        canonicalResolutions.set(trimmed, { incoming: trimmed, canonical: bestMatch, confidence: bestScore, status: 'similar' });
+        duplicateDetectedCount++;
+        return bestMatch;
+      }
+      // 4. Nouveau
+      canonicalResolutions.set(trimmed, { incoming: trimmed, canonical: trimmed, confidence: 0, status: 'new' });
+      return trimmed;
+    };
     const allAgents = await db.agent.findMany({ where: { isActive: true } });
     const activeAgents = allAgents.map((a) => ({ name: a.name }));
     // Récupère les taux par agent (pour KOOK'S = 0% / 0%)
@@ -292,11 +349,15 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const enseigne = toStr(enseigneRaw);
-      if (!enseigne || /^(total|totaux|somme)$/i.test(enseigne)) {
+      const enseigneRaw2 = toStr(enseigneRaw);
+      if (!enseigneRaw2 || /^(total|totaux|somme)$/i.test(enseigneRaw2)) {
         skippedInvalid++;
         continue;
       }
+      // === Résolution intelligente du nom canonique ===
+      // Si le nom entrant correspond à un client déjà en base (par normalisation ou similarité),
+      // on utilise le nom canonique existant — éviter la création de doublons à l'import.
+      const enseigne = resolveIncoming(enseigneRaw2);
 
       const amountHT = toNum(htRaw);
       const amountTTC = toNum(ttcRaw);
@@ -556,6 +617,20 @@ export async function POST(req: NextRequest) {
       totals: {
         commission: toInsert.reduce((s, v) => s + v.commission, 0),
         caHT: toInsert.reduce((s, v) => s + v.amountHT, 0),
+      },
+      // Résumé de la détection intelligente des doublons d'enseignes
+      duplicateDetection: {
+        totalResolved: canonicalResolutions.size,
+        duplicatesResolved: duplicateDetectedCount,
+        newClients: Array.from(canonicalResolutions.values()).filter((r) => r.status === 'new').length,
+        substitutions: Array.from(canonicalResolutions.values())
+          .filter((r) => r.status !== 'exact' && r.status !== 'new')
+          .map((r) => ({
+            incoming: r.incoming,
+            canonical: r.canonical,
+            confidence: r.confidence,
+            method: r.status,
+          })),
       },
     });
   } catch (e) {

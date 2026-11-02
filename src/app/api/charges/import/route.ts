@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
 import { labelForCompte, isChargeDirecte } from '@/lib/compte-comptable';
+import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
 
 // Augmente le timeout Vercel à 60s
 export const maxDuration = 60;
@@ -205,6 +206,50 @@ export async function POST(req: NextRequest) {
     );
     console.log(`Clés déjà en base : ${existingKeys.size}`);
 
+    // Charge les enseignes existantes pour résoudre les doublons intelligemment
+    const existingEnseignes = await db.enseigne.findMany({ select: { name: true } });
+    const existingNames = existingEnseignes.map((e) => e.name);
+    const existingNormMap = new Map<string, string>();
+    for (const name of existingNames) {
+      const n = normalizeEnseigne(name);
+      if (n && !existingNormMap.has(n)) existingNormMap.set(n, name);
+    }
+    const enseigneResolutions = new Map<string, { canonical: string; status: string }>();
+    const resolveChargeEnseigne = (incoming: string): string => {
+      if (!incoming?.trim()) return incoming;
+      const trimmed = incoming.trim();
+      if (enseigneResolutions.has(trimmed)) return enseigneResolutions.get(trimmed)!.canonical;
+      const lower = trimmed.toLowerCase();
+      // 1. Exact case-insensitive
+      const exact = existingNames.find((n) => n.toLowerCase() === lower);
+      if (exact) {
+        enseigneResolutions.set(trimmed, { canonical: exact, status: 'exact' });
+        return exact;
+      }
+      // 2. Normalized match
+      const incomingNorm = normalizeEnseigne(trimmed);
+      if (incomingNorm) {
+        const normMatch = existingNormMap.get(incomingNorm);
+        if (normMatch) {
+          enseigneResolutions.set(trimmed, { canonical: normMatch, status: 'normalized' });
+          return normMatch;
+        }
+      }
+      // 3. Similar match
+      let bestMatch: string | null = null;
+      let bestScore = 0;
+      for (const n of existingNames) {
+        const score = similarityScore(trimmed, n);
+        if (score > bestScore) { bestScore = score; bestMatch = n; }
+      }
+      if (bestMatch && bestScore >= 0.85) {
+        enseigneResolutions.set(trimmed, { canonical: bestMatch, status: 'similar' });
+        return bestMatch;
+      }
+      enseigneResolutions.set(trimmed, { canonical: trimmed, status: 'new' });
+      return trimmed;
+    };
+
     const toInsert: Array<{
       date: Date; month: number; year: number;
       category: string; subLabel: string | null; vendor: string | null;
@@ -333,7 +378,10 @@ export async function POST(req: NextRequest) {
       if (!category) category = 'Autres charges';
 
       // Enseigne + BL (optionnels)
-      const enseigne = auto.enseigne ? toStr(row[auto.enseigne]) : '';
+      // Résolution intelligente : si l'enseigne entrante correspond à un client déjà en base,
+      // on utilise le nom canonique existant — éviter les incohérences entre ventes et charges.
+      const enseigneRawStr = auto.enseigne ? toStr(row[auto.enseigne]) : '';
+      const enseigne = enseigneRawStr ? resolveChargeEnseigne(enseigneRawStr) : '';
       const blNumber = auto.bl ? toStr(row[auto.bl]) : '';
 
       // Allocation method intelligent basé sur la compta analytique:

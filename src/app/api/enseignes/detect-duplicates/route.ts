@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { normalizeEnseigne } from '@/lib/normalize-enseigne';
+import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
 
 /**
  * GET /api/enseignes/detect-duplicates
@@ -8,9 +8,15 @@ import { normalizeEnseigne } from '@/lib/normalize-enseigne';
  * Retourne les groupes d'enseignes qui sont des doublons (mêmes magasins
  * avec des écritures différentes).
  *
+ * Deux types de détection :
+ *   1. "exact" : même forme normalisée après normalizeEnseigne()
+ *   2. "similar" : similarité Jaccard >= 0.85 (ex: légères variations résiduelles)
+ *
  * Chaque groupe contient :
  *   - normalized : la forme canonique calculée
- *   - items : les enseignes (id, name, type, agent, isActive) qui partagent cette forme
+ *   - matchType : "exact" ou "similar"
+ *   - score : score de similarité (1.0 pour exact)
+ *   - items : les enseignes (id, name, type, agent, isActive, salesCount) qui partagent cette forme
  *
  * Un groupe n'est renvoyé que s'il a 2+ enseignes.
  */
@@ -28,28 +34,100 @@ export async function GET() {
       orderBy: { name: 'asc' },
     });
 
-    // Grouper par nom normalisé
-    const groups = new Map<string, typeof enseignes>();
-    for (const e of enseignes) {
+    // Récupère le nombre de ventes par enseigne (group by name)
+    const salesCountAgg = await db.sale.groupBy({
+      by: ['enseigne'],
+      _count: { _all: true },
+    });
+    const salesCountMap = new Map<string, number>(
+      salesCountAgg.map((s) => [s.enseigne, s._count._all])
+    );
+
+    type EnseigneWithCount = typeof enseignes[number] & { salesCount: number };
+    const enriched: EnseigneWithCount[] = enseignes.map((e) => ({
+      ...e,
+      salesCount: salesCountMap.get(e.name) ?? 0,
+    }));
+
+    // === 1. Détection EXACTE par clé normalisée ===
+    const exactGroups = new Map<string, EnseigneWithCount[]>();
+    for (const e of enriched) {
       const key = normalizeEnseigne(e.name);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(e);
+      if (!key) continue;
+      if (!exactGroups.has(key)) exactGroups.set(key, []);
+      exactGroups.get(key)!.push(e);
     }
 
-    // Ne garder que les groupes avec 2+ enseignes
-    const duplicates = Array.from(groups.entries())
-      .filter(([, items]) => items.length > 1)
-      .map(([normalized, items]) => ({
-        normalized,
-        items: items.sort((a, b) => a.name.localeCompare(b.name)),
-      }))
-      .sort((a, b) => b.items.length - a.items.length);
+    // === 2. Détection SIMILAR (Jaccard >= 0.85) entre les éléments non déjà groupés ===
+    // On marque les éléments déjà dans un groupe exact pour ne pas les re-suggérer
+    const inExactGroup = new Set<string>();
+    for (const items of exactGroups.values()) {
+      if (items.length > 1) {
+        for (const i of items) inExactGroup.add(i.id);
+      }
+    }
+
+    const similarGroups: Array<{
+      normalized: string;
+      matchType: 'similar';
+      score: number;
+      items: EnseigneWithCount[];
+    }> = [];
+
+    // Comparaison tous-à-tous sur les éléments pas déjà dans un groupe exact
+    const orphans = enriched.filter((e) => !inExactGroup.has(e.id));
+    const matched = new Set<string>();
+    for (let i = 0; i < orphans.length; i++) {
+      if (matched.has(orphans[i].id)) continue;
+      const group: EnseigneWithCount[] = [orphans[i]];
+      let bestScore = 1;
+      for (let j = i + 1; j < orphans.length; j++) {
+        if (matched.has(orphans[j].id)) continue;
+        const score = similarityScore(orphans[i].name, orphans[j].name);
+        if (score >= 0.85) {
+          group.push(orphans[j]);
+          matched.add(orphans[j].id);
+          if (score < bestScore) bestScore = score;
+        }
+      }
+      if (group.length > 1) {
+        matched.add(orphans[i].id);
+        similarGroups.push({
+          normalized: normalizeEnseigne(orphans[i].name),
+          matchType: 'similar',
+          score: bestScore,
+          items: group.sort((a, b) => a.name.localeCompare(b.name)),
+        });
+      }
+    }
+
+    // Combine les deux types
+    const duplicates = [
+      ...Array.from(exactGroups.entries())
+        .filter(([, items]) => items.length > 1)
+        .map(([normalized, items]) => ({
+          normalized,
+          matchType: 'exact' as const,
+          score: 1,
+          items: items.sort((a, b) => a.name.localeCompare(b.name)),
+        })),
+      ...similarGroups,
+    ].sort((a, b) => {
+      // Trier par nombre d'items décroissant, puis par score décroissant
+      if (b.items.length !== a.items.length) return b.items.length - a.items.length;
+      return b.score - a.score;
+    });
 
     return NextResponse.json({
       ok: true,
       data: duplicates,
       total: duplicates.length,
       totalDuplicates: duplicates.reduce((s, g) => s + g.items.length, 0),
+      stats: {
+        exact: duplicates.filter((g) => g.matchType === 'exact').length,
+        similar: duplicates.filter((g) => g.matchType === 'similar').length,
+        totalEnseignes: enriched.length,
+      },
     });
   } catch (e) {
     return NextResponse.json(

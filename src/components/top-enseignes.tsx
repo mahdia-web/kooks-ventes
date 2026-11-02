@@ -25,29 +25,34 @@ function EnseigneList({ items }: { items: EnseigneStat[] }) {
   }
   const maxCa = items[0]?.caHT || 1;
   return (
-    <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-      {items.map((e, idx) => (
-        <div key={e.enseigne} className="space-y-1">
-          <div className="flex items-center justify-between text-sm gap-2">
-            <span className="font-medium text-slate-900 dark:text-slate-100 truncate">
-              <span className="text-slate-400 mr-1.5">{idx + 1}.</span>
-              {e.enseigne}
-            </span>
-            <span className="text-slate-700 dark:text-slate-300 shrink-0 font-mono">
-              {formatEuro(e.caHT)}
-            </span>
+    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-2">
+      {items.map((e, idx) => {
+        const displayName = e.enseigne.length > 42
+          ? e.enseigne.slice(0, 40) + '…'
+          : e.enseigne;
+        return (
+          <div key={e.enseigne} className="space-y-1" title={e.enseigne}>
+            <div className="flex items-center justify-between text-sm gap-2">
+              <span className="font-medium text-slate-900 dark:text-slate-100 min-w-0 flex-1" title={e.enseigne}>
+                <span className="text-slate-400 mr-1.5 shrink-0">{idx + 1}.</span>
+                <span className="break-words">{displayName}</span>
+              </span>
+              <span className="text-slate-700 dark:text-slate-300 shrink-0 font-mono">
+                {formatEuro(e.caHT)}
+              </span>
+            </div>
+            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${(e.caHT / maxCa) * 100}%`,
+                  backgroundColor: COLORS[idx % COLORS.length],
+                }}
+              />
+            </div>
           </div>
-          <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${(e.caHT / maxCa) * 100}%`,
-                backgroundColor: COLORS[idx % COLORS.length],
-              }}
-            />
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
