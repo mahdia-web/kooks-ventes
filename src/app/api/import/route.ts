@@ -295,6 +295,12 @@ export async function POST(req: NextRequest) {
     }> = [];
     const newEnseignes = new Map<string, { name: string; type: string; agent: string }>();
     let skippedNoDate = 0, skippedNoAmount = 0, skippedDuplicate = 0, skippedInvalid = 0;
+    // Log détaillé des ventes skippées comme doublons — aide au debug
+    // si l'utilisateur ne retrouve pas une vente après import
+    const skippedDuplicatesLog: Array<{
+      row: number; date: string; enseigne: string; agent: string;
+      amountHT: number; blNumber: string | null; reason: string;
+    }> = [];
     const errors: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
@@ -438,10 +444,33 @@ export async function POST(req: NextRequest) {
       // Vérifie doublons
       if (!replaceDuplicates && existingKeys.has(deduplicationKey)) {
         skippedDuplicate++;
+        // Garde une trace pour debug (max 20 entrées pour éviter réponse trop grosse)
+        if (skippedDuplicatesLog.length < 20) {
+          skippedDuplicatesLog.push({
+            row: i + 1,
+            date: date.toISOString().split('T')[0],
+            enseigne,
+            agent,
+            amountHT: finalHT,
+            blNumber,
+            reason: 'deduplicationKey collision (BL+agent existe déjà)',
+          });
+        }
         continue;
       }
       if (toInsert.some((v) => v.deduplicationKey === deduplicationKey)) {
         skippedDuplicate++;
+        if (skippedDuplicatesLog.length < 20) {
+          skippedDuplicatesLog.push({
+            row: i + 1,
+            date: date.toISOString().split('T')[0],
+            enseigne,
+            agent,
+            amountHT: finalHT,
+            blNumber,
+            reason: 'doublon interne au fichier (même BL+agent que ligne précédente)',
+          });
+        }
         continue;
       }
 
@@ -632,6 +661,10 @@ export async function POST(req: NextRequest) {
             method: r.status,
           })),
       },
+      // Log détaillé des ventes skippées comme doublons — aide l'utilisateur
+      // à comprendre pourquoi une vente attendue n'apparaît pas après import.
+      // Surtout utile pour les cas "je ne retrouve pas la vente de AUCHAN MANDELIEU".
+      skippedDuplicatesLog: skippedDuplicatesLog.length > 0 ? skippedDuplicatesLog : undefined,
     });
   } catch (e) {
     console.error('Erreur non gérée /api/import:', e);

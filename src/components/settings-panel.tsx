@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2 } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -60,6 +60,7 @@ interface DuplicateGroup {
   normalized: string;
   matchType?: 'exact' | 'similar';
   score?: number;
+  signature?: string;
   items: DuplicateItem[];
 }
 
@@ -88,6 +89,22 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkType, setBulkType] = useState<'Direct' | 'Centrale' | 'CHR'>('Centrale');
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  // Non-doublons déclarés (dismissed) — pour affichage + undo
+  const [dismissed, setDismissed] = useState<Array<{
+    signature: string;
+    ids: string[];
+    names: string[];
+    reason?: string;
+    dismissedAt: string;
+  }>>([]);
+
+  const loadDismissed = useCallback(async () => {
+    try {
+      const r = await fetch('/api/enseignes/dismiss-duplicate');
+      const j = await r.json();
+      if (j.ok) setDismissed(j.data);
+    } catch {}
+  }, []);
 
   const loadAgents = useCallback(async () => {
     try {
@@ -117,7 +134,25 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     loadAgents();
     loadEnseignes();
     loadDuplicates();
-  }, [loadAgents, loadEnseignes, loadDuplicates]);
+    loadDismissed();
+  }, [loadAgents, loadEnseignes, loadDuplicates, loadDismissed]);
+
+  // Annule un dismiss (restore le groupe dans la détection)
+  const restoreDismissed = async (signature: string) => {
+    if (!confirm('Restaurer ce groupe dans la détection des doublons ?')) return;
+    try {
+      const r = await fetch(`/api/enseignes/dismiss-duplicate?signature=${encodeURIComponent(signature)}`, {
+        method: 'DELETE',
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success('Groupe restauré');
+      loadDismissed();
+      loadDuplicates();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
   const addAgent = async () => {
     const name = prompt('Nom du nouvel agent :');
@@ -296,6 +331,41 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     }
   };
 
+  // Marque un groupe comme "PAS un doublon" — l'utilisateur a validé que les
+  // enseignes sont des magasins distincts (par exemple 2 AUCHAN en villes
+  // différentes). Le groupe disparaît de la liste des doublons à valider.
+  const dismissGroup = async (group: DuplicateGroup) => {
+    const names = group.items.map((i) => i.name).join(' ≠ ');
+    if (!confirm(
+      `Marquer ces ${group.items.length} clients comme "PAS des doublons" ?\n\n` +
+      `${names}\n\n` +
+      `Ils seront considérés comme des magasins distincts et ce groupe ne sera plus proposé.\n` +
+      `Vous pourrez annuler cette décision via la liste "Non-doublons déclarés" ci-dessous.`
+    )) return;
+    setMerging((p) => ({ ...p, [group.normalized + '_dismiss']: true }));
+    try {
+      const r = await fetch('/api/enseignes/dismiss-duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: group.items.map((i) => i.id),
+          reason: 'Magasins distincts validés par l\'utilisateur',
+        }),
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success('Marqué comme non-doublon', {
+        description: `${group.items.length} clients conservés séparément`,
+      });
+      loadDuplicates();
+      loadDismissed();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setMerging((p) => ({ ...p, [group.normalized + '_dismiss']: false }));
+    }
+  };
+
   const deleteEnseigne = async (id: string, name: string) => {
     if (!confirm(`Supprimer "${name}" ?\n\nATTENTION: toutes les ventes et volumes liés à ce client seront définitivement supprimés.\n\nCette action est irréversible.`)) return;
     try {
@@ -383,7 +453,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
         >
           <Store className="h-4 w-4 mr-2" /> Clients ({enseignes.length})
         </TabsTrigger>
-        {duplicates.length > 0 && (
+        {(duplicates.length > 0 || dismissed.length > 0) && (
           <TabsTrigger
             value="doublons"
             className="data-[state=active]:bg-card data-[state=active]:text-primary"
@@ -822,7 +892,11 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
         {duplicates.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <GitMerge className="h-8 w-8 mx-auto mb-2 opacity-40" />
-            <p className="text-sm">Aucun doublon détecté. Base propre ! 🎉</p>
+            <p className="text-sm">
+              {dismissed.length > 0
+                ? `Aucun doublon à valider. ${dismissed.length} groupe(s) marqué(s) "non-doublon" ci-dessous.`
+                : 'Aucun doublon détecté. Base propre ! 🎉'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -831,9 +905,55 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                 key={group.normalized}
                 group={group}
                 merging={!!merging[group.normalized]}
+                dismissing={!!merging[group.normalized + '_dismiss']}
                 onMerge={(canonicalId) => mergeGroup(group, canonicalId)}
+                onDismiss={() => dismissGroup(group)}
               />
             ))}
+          </div>
+        )}
+
+        {/* === NON-DOUBLONS DÉCLARÉS (avec possibilité d'annuler) === */}
+        {dismissed.length > 0 && (
+          <div className="mt-6 rounded-md border border-muted-foreground/20 bg-muted/30 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  Non-doublons déclarés ({dismissed.length})
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Ces groupes ont été marqués comme magasins distincts
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              {dismissed.map((d) => (
+                <div
+                  key={d.signature}
+                  className="flex items-center justify-between gap-2 p-2 rounded border border-border bg-card"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm truncate">
+                      {d.names.join(' ≠ ')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {d.reason} • {new Date(d.dismissedAt).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => restoreDismissed(d.signature)}
+                    title="Restaurer ce groupe dans la détection"
+                    className="text-muted-foreground hover:bg-muted"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                    Restaurer
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </TabsContent>
@@ -876,25 +996,25 @@ function TauxInput({
 function DuplicateGroupCard({
   group,
   merging,
+  dismissing,
   onMerge,
+  onDismiss,
 }: {
   group: DuplicateGroup;
   merging: boolean;
+  dismissing: boolean;
   onMerge: (canonicalId: string) => void;
+  onDismiss: () => void;
 }) {
   // Par défaut, on sélectionne le client qui a le PLUS de ventes comme canonique
-  // (cela évite de perdre l'historique principal en changeant le nom)
   const [canonicalId, setCanonicalId] = useState<string>(
     group.items.slice().sort((a, b) => {
-      // Privilégier celui qui a le plus de ventes (historique principal)
       const salesA = a.salesCount ?? 0;
       const salesB = b.salesCount ?? 0;
       if (salesA !== salesB) return salesB - salesA;
-      // Sinon, sans préfixe juridique
       const aHasPrefix = /^(SAS|SA|SARL|EURL|SASU)\b/i.test(a.name) ? 1 : 0;
       const bHasPrefix = /^(SAS|SA|SARL|EURL|SASU)\b/i.test(b.name) ? 1 : 0;
       if (aHasPrefix !== bHasPrefix) return aHasPrefix - bHasPrefix;
-      // Sinon le plus court
       return a.name.length - b.name.length;
     })[0]?.id ?? group.items[0].id
   );
@@ -924,20 +1044,33 @@ function DuplicateGroupCard({
             </p>
           </div>
         </div>
-        <Button
-          size="sm"
-          onClick={() => onMerge(canonicalId)}
-          disabled={merging}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <GitMerge className="h-3.5 w-3.5 mr-1.5" />
-          {merging ? 'Fusion en cours...' : 'Fusionner'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDismiss}
+            disabled={dismissing || merging}
+            className="border-muted-foreground/30 text-muted-foreground hover:bg-muted"
+            title="Marquer comme magasins distincts (pas un doublon)"
+          >
+            <XCircle className="h-3.5 w-3.5 mr-1.5" />
+            {dismissing ? '...' : 'Pas un doublon'}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => onMerge(canonicalId)}
+            disabled={merging || dismissing}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <GitMerge className="h-3.5 w-3.5 mr-1.5" />
+            {merging ? 'Fusion...' : 'Fusionner'}
+          </Button>
+        </div>
       </div>
 
       <div className="p-3 space-y-2">
         <p className="text-xs font-medium text-muted-foreground">
-          Sélectionnez le nom canonique à conserver :
+          Sélectionnez le nom canonique à conserver (ou cliquez « Pas un doublon » si ce sont des magasins distincts) :
         </p>
         <div className="space-y-1.5">
           {group.items.map((item) => {

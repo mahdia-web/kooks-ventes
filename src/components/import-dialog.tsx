@@ -76,6 +76,16 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
     inserted: number;
     skipped: number;
     detail?: string;
+    duplicateDetection?: {
+      totalResolved: number;
+      duplicatesResolved: number;
+      newClients: number;
+      substitutions: Array<{ incoming: string; canonical: string; confidence: number; method: string }>;
+    };
+    skippedDuplicatesLog?: Array<{
+      row: number; date: string; enseigne: string; agent: string;
+      amountHT: number; blNumber: string | null; reason: string;
+    }>;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
@@ -192,11 +202,22 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `Erreur HTTP ${res.status}`);
       }
-      setResult({ ...data.result, detail: data.detail });
+      setResult({
+        ...data.result,
+        detail: data.detail,
+        duplicateDetection: data.duplicateDetection,
+        skippedDuplicatesLog: data.skippedDuplicatesLog,
+      });
       if (data.result.inserted > 0 || (data.result.updated ?? 0) > 0) {
         toast.success('Import réussi', {
           description: data.detail || `${data.result.inserted} nouvelles ventes.`,
         });
+        // Si détection de doublons intelligente, info supplémentaire
+        if (data.duplicateDetection?.duplicatesResolved > 0) {
+          toast.info(`${data.duplicateDetection.duplicatesResolved} client(s) rattaché(s) à des clients existants`, {
+            description: 'Évite la création de doublons à l\'import',
+          });
+        }
         onImported();
       } else {
         toast.info('Aucune nouvelle vente', {
@@ -445,6 +466,51 @@ export function ImportDialog({ onImported }: ImportDialogProps) {
                 {result.inserted > 0 ? 'Import terminé' : 'Aucune nouvelle vente détectée'}
               </AlertTitle>
               <AlertDescription className="text-sm">{result.detail}</AlertDescription>
+
+              {/* Détection intelligente des doublons d'enseignes */}
+              {result.duplicateDetection && result.duplicateDetection.substitutions.length > 0 && (
+                <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800 p-2">
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">
+                    🔍 {result.duplicateDetection.duplicatesResolved} client(s) rattaché(s) à des clients existants (anti-doublons)
+                  </p>
+                  <ul className="text-xs text-blue-800 dark:text-blue-300 space-y-0.5 max-h-32 overflow-y-auto">
+                    {result.duplicateDetection.substitutions.slice(0, 10).map((s, i) => (
+                      <li key={i}>
+                        <span className="font-mono">« {s.incoming} »</span> → <span className="font-medium">« {s.canonical} »</span>
+                        <span className="ml-1 text-blue-500">({(s.confidence * 100).toFixed(0)}%, {s.method})</span>
+                      </li>
+                    ))}
+                    {result.duplicateDetection.substitutions.length > 10 && (
+                      <li className="text-blue-500 italic">+ {result.duplicateDetection.substitutions.length - 10} autre(s)…</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Log des ventes skippées comme doublons (utile pour debug "je ne retrouve pas ma vente") */}
+              {result.skippedDuplicatesLog && result.skippedDuplicatesLog.length > 0 && (
+                <details className="mt-3">
+                  <summary className="text-xs font-medium text-amber-700 dark:text-amber-400 cursor-pointer hover:underline">
+                    ⚠ {result.skippedDuplicatesLog.length} vente(s) skippée(s) comme doublon(s) — cliquez pour voir le détail
+                  </summary>
+                  <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-2 max-h-48 overflow-y-auto">
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">
+                      Ces ventes n'ont pas été importées car leur clé de dédoublonnage (N° BL + agent, ou date + enseigne + type + montant + agent) existe déjà en base. Si vous pensiez en voir une, vérifiez si elle n'a pas déjà été importée sous un agent ou BL différent.
+                    </p>
+                    <ul className="text-xs space-y-1">
+                      {result.skippedDuplicatesLog.map((s, i) => (
+                        <li key={i} className="border-l-2 border-amber-300 dark:border-amber-700 pl-2">
+                          <div className="font-medium">Ligne {s.row} : {s.enseigne} — {s.amountHT.toFixed(2)}€ HT</div>
+                          <div className="text-amber-700 dark:text-amber-400">
+                            {s.date} • Agent: {s.agent} • BL: {s.blNumber || '(aucun)'}
+                          </div>
+                          <div className="text-amber-600 dark:text-amber-500 italic">{s.reason}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </details>
+              )}
             </Alert>
           )}
 

@@ -36,6 +36,7 @@ import { SyntheseGlobale } from '@/components/synthese-globale';
 import { EvolutionCaCentrale } from '@/components/evolution-ca-centrale';
 import { AgentTable, CustomerFollowupTable, EnseigneTable } from '@/components/followup-tables';
 import { SalesDetailTable } from '@/components/sales-detail-table';
+import { SalesSearch } from '@/components/sales-search';
 import { ImportDialog } from '@/components/import-dialog';
 import { PeriodSelector } from '@/components/period-selector';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -581,6 +582,9 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="data" className="space-y-4">
+                <div className="flex items-center justify-end gap-2">
+                  <SalesSearch agentFilter={agentFilter} />
+                </div>
                 {loadingSales ? (
                   <Skeleton className="h-96 rounded-xl" />
                 ) : (

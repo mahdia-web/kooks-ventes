@@ -12,16 +12,35 @@ import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
  *   1. "exact" : même forme normalisée après normalizeEnseigne()
  *   2. "similar" : similarité Jaccard >= 0.85 (ex: légères variations résiduelles)
  *
+ * Filtre : les groupes marqués comme "pas un doublon" (via
+ * POST /api/enseignes/dismiss-duplicate) sont exclus de la réponse.
+ * Une signature de groupe = IDs triés join "|".
+ *
  * Chaque groupe contient :
  *   - normalized : la forme canonique calculée
  *   - matchType : "exact" ou "similar"
  *   - score : score de similarité (1.0 pour exact)
- *   - items : les enseignes (id, name, type, agent, isActive, salesCount) qui partagent cette forme
+ *   - signature : signature stable (IDs triés join "|") pour undo
+ *   - items : les enseignes (id, name, type, agent, isActive, salesCount)
  *
  * Un groupe n'est renvoyé que s'il a 2+ enseignes.
  */
 export async function GET() {
   try {
+    // Charge les groupes dismissés pour les filtrer
+    const dismissedParam = await db.parameter.findUnique({
+      where: { key: 'dismissedDuplicateGroups' },
+    });
+    let dismissedSignatures = new Set<string>();
+    if (dismissedParam) {
+      try {
+        const list = JSON.parse(dismissedParam.value);
+        if (Array.isArray(list)) {
+          dismissedSignatures = new Set(list.map((e: any) => e.signature));
+        }
+      } catch {}
+    }
+
     const enseignes = await db.enseigne.findMany({
       select: {
         id: true,
@@ -59,7 +78,6 @@ export async function GET() {
     }
 
     // === 2. Détection SIMILAR (Jaccard >= 0.85) entre les éléments non déjà groupés ===
-    // On marque les éléments déjà dans un groupe exact pour ne pas les re-suggérer
     const inExactGroup = new Set<string>();
     for (const items of exactGroups.values()) {
       if (items.length > 1) {
@@ -74,7 +92,6 @@ export async function GET() {
       items: EnseigneWithCount[];
     }> = [];
 
-    // Comparaison tous-à-tous sur les éléments pas déjà dans un groupe exact
     const orphans = enriched.filter((e) => !inExactGroup.has(e.id));
     const matched = new Set<string>();
     for (let i = 0; i < orphans.length; i++) {
@@ -101,8 +118,8 @@ export async function GET() {
       }
     }
 
-    // Combine les deux types
-    const duplicates = [
+    // Combine les deux types et calcule la signature pour chaque groupe
+    const allGroups = [
       ...Array.from(exactGroups.entries())
         .filter(([, items]) => items.length > 1)
         .map(([normalized, items]) => ({
@@ -112,21 +129,30 @@ export async function GET() {
           items: items.sort((a, b) => a.name.localeCompare(b.name)),
         })),
       ...similarGroups,
-    ].sort((a, b) => {
-      // Trier par nombre d'items décroissant, puis par score décroissant
-      if (b.items.length !== a.items.length) return b.items.length - a.items.length;
-      return b.score - a.score;
-    });
+    ].map((g) => ({
+      ...g,
+      signature: g.items.map((i) => i.id).sort().join('|'),
+    }));
+
+    // Filtre les groupes dismissés
+    const duplicates = allGroups
+      .filter((g) => !dismissedSignatures.has(g.signature))
+      .sort((a, b) => {
+        if (b.items.length !== a.items.length) return b.items.length - a.items.length;
+        return b.score - a.score;
+      });
 
     return NextResponse.json({
       ok: true,
       data: duplicates,
       total: duplicates.length,
       totalDuplicates: duplicates.reduce((s, g) => s + g.items.length, 0),
+      dismissedCount: dismissedSignatures.size,
       stats: {
         exact: duplicates.filter((g) => g.matchType === 'exact').length,
         similar: duplicates.filter((g) => g.matchType === 'similar').length,
         totalEnseignes: enriched.length,
+        dismissed: dismissedSignatures.size,
       },
     });
   } catch (e) {
