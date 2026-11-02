@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2 } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2, Stethoscope, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -255,6 +255,65 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       toast.error('Erreur nettoyage', { description: e.message });
     } finally {
       setCleaning(false);
+    }
+  };
+
+  // === DIAGNOSTIC ENSEIGNE ===
+  const [diagnoseQuery, setDiagnoseQuery] = useState('');
+  const [diagnoseLoading, setDiagnoseLoading] = useState(false);
+  const [diagnoseData, setDiagnoseData] = useState<any>(null);
+  const [fixing, setFixing] = useState(false);
+
+  const runDiagnose = async () => {
+    if (!diagnoseQuery.trim()) return;
+    setDiagnoseLoading(true);
+    setDiagnoseData(null);
+    try {
+      const r = await fetch(`/api/enseignes/diagnose?name=${encodeURIComponent(diagnoseQuery.trim())}`, { cache: 'no-store' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      setDiagnoseData(j);
+      if (j.issues && j.issues.length > 0) {
+        toast.info(`${j.issues.length} point(s) d'attention`);
+      } else if (j.exactMatch) {
+        toast.success(`"${j.exactMatch.name}" analysé — aucun problème`);
+      }
+    } catch (e: any) {
+      toast.error('Erreur diagnostic', { description: e.message });
+    } finally {
+      setDiagnoseLoading(false);
+    }
+  };
+
+  // Correction du type d'une enseigne (Direct → Centrale, etc.)
+  const fixEnseigneType = async (name: string, newType: 'Direct' | 'Centrale' | 'CHR') => {
+    if (!confirm(
+      `Forcer le type "${newType}" pour "${name}" ?\n\n` +
+      `Cela va :\n` +
+      `1. Changer le type de l'enseigne\n` +
+      `2. Mettre à jour TOUTES les ventes (type + taux + commission recalculée)\n` +
+      `Action atomique (transaction).`
+    )) return;
+    setFixing(true);
+    try {
+      const r = await fetch('/api/enseignes/diagnose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fix_type', name, newType }),
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success(`"${name}" → type "${newType}"`, {
+        description: `${j.salesUpdated} ventes mises à jour (taux ${j.newRate * 100}%)`,
+      });
+      // Re-diagnostic pour confirmer
+      runDiagnose();
+      loadEnseignes();
+      loadDuplicates();
+    } catch (e: any) {
+      toast.error('Erreur correction', { description: e.message });
+    } finally {
+      setFixing(false);
     }
   };
 
@@ -1145,6 +1204,199 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
               )}
             </div>
           </div>
+        </div>
+
+        {/* === ZONE DIAGNOSTIC ENSEIGNE === */}
+        <div className="rounded-md border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800 p-3 space-y-2">
+          <div className="flex items-start gap-2">
+            <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                Diagnostic enseigne
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                Vérifie le type, l'agent, et les ventes d'une enseigne. Identifie les liaisons manquantes
+                (ex: coopérative typée Direct, ventes mal réparties, magasins membres non liés).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Input
+              value={diagnoseQuery}
+              onChange={(e) => setDiagnoseQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && runDiagnose()}
+              placeholder="Nom de l'enseigne (ex: SCAOUEST, OTERA, MONOPRIX...)"
+              className="flex-1 h-8 text-sm"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={runDiagnose}
+              disabled={diagnoseLoading || !diagnoseQuery.trim()}
+              className="border-blue-500 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50"
+            >
+              {diagnoseLoading ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Search className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Diagnostiquer
+            </Button>
+          </div>
+
+          {/* Résultats du diagnostic */}
+          {diagnoseData && (
+            <div className="rounded-md border border-border bg-card p-3 text-xs space-y-3">
+              {/* Enseigne exacte */}
+              {diagnoseData.exactMatch ? (
+                <div>
+                  <p className="font-medium text-sm mb-1">Enseigne trouvée :</p>
+                  <div className="rounded border border-border p-2 bg-muted/30">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="font-medium">{diagnoseData.exactMatch.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={
+                          diagnoseData.exactMatch.type === 'Centrale' ? 'text-orange-700 dark:text-orange-400' :
+                          diagnoseData.exactMatch.type === 'CHR' ? 'text-purple-700 dark:text-purple-400' :
+                          'text-blue-700 dark:text-blue-400'
+                        }>
+                          {diagnoseData.exactMatch.type}
+                        </Badge>
+                        <span className="text-muted-foreground">{diagnoseData.exactMatch.agent}</span>
+                        <span className={diagnoseData.exactMatch.isActive ? 'text-emerald-600' : 'text-destructive'}>
+                          {diagnoseData.exactMatch.isActive ? 'Actif' : 'Inactif'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-amber-700 dark:text-amber-400">
+                  ⚠ Aucune enseigne avec ce nom exact n'existe en base
+                </p>
+              )}
+
+              {/* Problèmes détectés */}
+              {diagnoseData.issues && diagnoseData.issues.length > 0 && (
+                <div className="rounded border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-2">
+                  <p className="font-medium text-amber-800 dark:text-amber-400 mb-1">
+                    Analyse :
+                  </p>
+                  <ul className="space-y-1">
+                    {diagnoseData.issues.map((issue: string, i: number) => (
+                      <li key={i} className="text-amber-800 dark:text-amber-300">{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Ventes par agent et type */}
+              {diagnoseData.salesByAgent && diagnoseData.salesByAgent.length > 0 && (
+                <div>
+                  <p className="font-medium text-sm mb-1">Ventes par agent :</p>
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-1">Agent</th>
+                        <th className="text-left p-1">Type</th>
+                        <th className="text-right p-1">BL</th>
+                        <th className="text-right p-1">CA HT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {diagnoseData.salesByAgent.map((s: any, i: number) => (
+                        <tr key={i} className="border-t border-border">
+                          <td className="p-1 font-medium">{s.agent}</td>
+                          <td className="p-1">
+                            <Badge variant="outline" className="text-[10px]">{s.type}</Badge>
+                          </td>
+                          <td className="p-1 text-right">{s.count}</td>
+                          <td className="p-1 text-right font-mono">{s.ca.toFixed(2)}€</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Enseignes apparentées (magasins membres potentiels) */}
+              {diagnoseData.relatedEnseignes && diagnoseData.relatedEnseignes.length > 1 && (
+                <div>
+                  <p className="font-medium text-sm mb-1">
+                    Enseignes apparentées ({diagnoseData.relatedEnseignes.length}) :
+                  </p>
+                  <div className="max-h-40 overflow-y-auto rounded border border-border">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted sticky top-0">
+                        <tr>
+                          <th className="text-left p-1">Nom</th>
+                          <th className="text-left p-1">Type</th>
+                          <th className="text-left p-1">Agent</th>
+                          <th className="text-right p-1">BL</th>
+                          <th className="text-right p-1">CA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {diagnoseData.relatedEnseignes.map((e: any) => (
+                          <tr key={e.id} className="border-t border-border hover:bg-muted/50">
+                            <td className="p-1 font-medium truncate max-w-[180px]" title={e.name}>{e.name}</td>
+                            <td className="p-1">{e.type}</td>
+                            <td className="p-1 text-muted-foreground">{e.agent}</td>
+                            <td className="p-1 text-right">{e.totalSales}</td>
+                            <td className="p-1 text-right font-mono">{e.totalCA.toFixed(0)}€</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Boutons de correction */}
+              {diagnoseData.exactMatch && (
+                <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border">
+                  <span className="text-xs text-muted-foreground">Corriger :</span>
+                  {diagnoseData.exactMatch.type !== 'Centrale' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fixEnseigneType(diagnoseData.exactMatch.name, 'Centrale')}
+                      disabled={fixing}
+                      className="border-orange-500 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-950/50 h-7 text-xs"
+                    >
+                      <Wrench className="h-3 w-3 mr-1" />
+                      Forcer Centrale
+                    </Button>
+                  )}
+                  {diagnoseData.exactMatch.type !== 'Direct' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fixEnseigneType(diagnoseData.exactMatch.name, 'Direct')}
+                      disabled={fixing}
+                      className="border-blue-500 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 h-7 text-xs"
+                    >
+                      <Wrench className="h-3 w-3 mr-1" />
+                      Forcer Direct
+                    </Button>
+                  )}
+                  {diagnoseData.exactMatch.type !== 'CHR' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fixEnseigneType(diagnoseData.exactMatch.name, 'CHR')}
+                      disabled={fixing}
+                      className="border-purple-500 text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-950/50 h-7 text-xs"
+                    >
+                      <Wrench className="h-3 w-3 mr-1" />
+                      Forcer CHR
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </TabsContent>
 
