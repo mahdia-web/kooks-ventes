@@ -161,12 +161,18 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   // et insère les 3 nouvelles ventes (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1)
   // avec les bonnes données issues de l'ERP de l'utilisateur.
   const [migrating, setMigrating] = useState(false);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  const [diagnoseResult, setDiagnoseResult] = useState<any>(null);
+  const [cleanupResult, setCleanupResult] = useState<any>(null);
+
   const runSebastienMigration = async () => {
     if (!confirm(
       'Migration SEBASTIEN GASNIER ?\n\n' +
       'Cette action va :\n' +
       '1. Créer l\'agent SEBASTIEN GASNIER (s\'il n\'existe pas)\n' +
-      '2. Supprimer TOUTES les ventes actuellement attribuées à SEBASTIEN\n' +
+      '2. Supprimer TOUTES les ventes avec agent contenant SEBASTIEN/GASNIER\n' +
+      '   ET les ventes avec BL 26000623/26000435/26000381 (évite double comptage)\n' +
       '3. Insérer 3 nouvelles ventes :\n' +
       '   • AUCHAN MANDELIEU — 02/11/2026 — 575,36€ (BL 26000623)\n' +
       '   • AUCHAN MANDELIEU — 14/10/2026 — 723,84€ (BL 26000435, FV-00428)\n' +
@@ -183,14 +189,72 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       toast.success('Migration SEBASTIEN GASNIER terminée', {
         description: `${j.deletedSales} supprimée(s), ${j.insertedSales} insérée(s) — CA ${j.deletedCA.toFixed(2)}€ → ${j.insertedCA.toFixed(2)}€`,
       });
-      // Recharge tout
+      // Recharge tout + diagnostic pour vérifier
       loadAgents();
       loadEnseignes();
       loadDuplicates();
+      setDiagnoseResult(null);
+      setCleanupResult(null);
+      // Auto-diagnostic après migration
+      setTimeout(() => diagnoseSebastien(), 500);
     } catch (e: any) {
       toast.error('Erreur migration', { description: e.message });
     } finally {
       setMigrating(false);
+    }
+  };
+
+  // Diagnostic : liste toutes les ventes SEBASTIEN/GASNIER et identifie les doublons
+  const diagnoseSebastien = async () => {
+    setDiagnosing(true);
+    setDiagnoseResult(null);
+    setCleanupResult(null);
+    try {
+      const r = await fetch('/api/migrations/sebastien-diagnose', { cache: 'no-store' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      setDiagnoseResult(j);
+      if (j.summary.duplicatesCount > 0) {
+        toast.warning(`${j.summary.duplicatesCount} doublon(s) détecté(s)`, {
+          description: `${j.summary.totalSales} ventes au total, CA ${j.summary.totalCA.toFixed(2)}€`,
+        });
+      } else {
+        toast.success(`${j.summary.totalSales} vente(s), aucun doublon`, {
+          description: `CA total : ${j.summary.totalCA.toFixed(2)}€`,
+        });
+      }
+    } catch (e: any) {
+      toast.error('Erreur diagnostic', { description: e.message });
+    } finally {
+      setDiagnosing(false);
+    }
+  };
+
+  // Nettoyage : supprime les doublons (garde 1 vente par BL)
+  const cleanupSebastien = async () => {
+    if (!confirm(
+      'Nettoyer les doublons SEBASTIEN ?\n\n' +
+      'Pour chaque BL qui a 2+ ventes, garde uniquement la plus récente\n' +
+      'et supprime les autres. Les ventes sans BL ne sont pas touchées.'
+    )) return;
+    setCleaning(true);
+    setCleanupResult(null);
+    try {
+      const r = await fetch('/api/migrations/sebastien-diagnose', { method: 'POST' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      setCleanupResult(j);
+      if (j.deletedCount > 0) {
+        toast.success(`${j.deletedCount} doublon(s) supprimé(s)`);
+        // Re-diagnostic après nettoyage
+        setTimeout(() => diagnoseSebastien(), 500);
+      } else {
+        toast.info('Aucun doublon à supprimer');
+      }
+    } catch (e: any) {
+      toast.error('Erreur nettoyage', { description: e.message });
+    } finally {
+      setCleaning(false);
     }
   };
 
@@ -935,6 +999,8 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                 <p className="text-xs text-muted-foreground">
                   Écrase les ventes de SEBASTIEN et insère les 3 nouvelles ventes
                   (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1) — total 1 758,56€.
+                  Supprime aussi les ventes avec les BL 26000623/26000435/26000381
+                  même si l'agent est différent (évite le double comptage).
                 </p>
               </div>
               <Button
@@ -956,6 +1022,127 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                   </>
                 )}
               </Button>
+            </div>
+
+            {/* === DIAGNOSTIC & NETTOYAGE === */}
+            <div className="border-t border-amber-200 dark:border-amber-800 pt-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Diagnostic & nettoyage</p>
+                  <p className="text-xs text-muted-foreground">
+                    Liste toutes les ventes SEBASTIEN/GASNIER, identifie les doublons
+                    (même BL enregistré plusieurs fois), et permet de les nettoyer.
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={diagnoseSebastien}
+                    disabled={diagnosing}
+                    className="text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                  >
+                    {diagnosing ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Search className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Diagnostiquer
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={cleanupSebastien}
+                    disabled={cleaning}
+                    className="text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  >
+                    {cleaning ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    Nettoyer
+                  </Button>
+                </div>
+              </div>
+
+              {/* Résultat du diagnostic */}
+              {diagnoseResult && (
+                <div className="mt-2 rounded-md border border-border bg-card p-2 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      {diagnoseResult.summary.totalSales} vente(s) trouvée(s)
+                    </span>
+                    <span className="text-muted-foreground">
+                      CA total : {diagnoseResult.summary.totalCA.toFixed(2)}€
+                      {' '}• Commission : {diagnoseResult.summary.totalCommission.toFixed(2)}€
+                    </span>
+                  </div>
+                  {diagnoseResult.summary.duplicatesCount > 0 ? (
+                    <div className="rounded border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-2">
+                      <p className="text-red-700 dark:text-red-400 font-medium">
+                        ⚠ {diagnoseResult.summary.duplicatesCount} doublon(s) détecté(s) !
+                      </p>
+                      {diagnoseResult.summary.duplicates.map((d: any) => (
+                        <div key={d.bl} className="mt-1 text-red-800 dark:text-red-300">
+                          BL {d.bl} : {d.sales.length} ventes —{' '}
+                          {d.sales.map((s: any) => `${s.enseigne} (${s.amountHT}€, ${s.agent})`).join(' | ')}
+                        </div>
+                      ))}
+                      <p className="mt-1 text-red-600 dark:text-red-400">
+                        Cliquez sur « Nettoyer » pour supprimer les doublons (garde 1 vente par BL).
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-emerald-700 dark:text-emerald-400">
+                      ✓ Aucun doublon — base propre.
+                    </p>
+                  )}
+                  {/* Liste détaillée */}
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                      Voir le détail des {diagnoseResult.sales.length} vente(s)
+                    </summary>
+                    <table className="w-full mt-1 text-[10px]">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-1">BL</th>
+                          <th className="text-left p-1">Date</th>
+                          <th className="text-left p-1">Enseigne</th>
+                          <th className="text-left p-1">Agent</th>
+                          <th className="text-right p-1">HT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {diagnoseResult.sales.map((s: any) => (
+                          <tr key={s.id} className="border-t border-border">
+                            <td className="p-1 font-mono">{s.blNumber ?? '—'}</td>
+                            <td className="p-1">{new Date(s.date).toLocaleDateString('fr-FR')}</td>
+                            <td className="p-1">{s.enseigne}</td>
+                            <td className="p-1">{s.agent}</td>
+                            <td className="p-1 text-right font-mono">{s.amountHT.toFixed(2)}€</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </details>
+                </div>
+              )}
+
+              {/* Résultat du nettoyage */}
+              {cleanupResult && (
+                <div className="mt-2 rounded-md border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800 p-2 text-xs">
+                  <p className="text-emerald-700 dark:text-emerald-400 font-medium">
+                    ✓ {cleanupResult.deletedCount} doublon(s) supprimé(s)
+                  </p>
+                  {cleanupResult.cleanedGroups?.map((g: any) => (
+                    <div key={g.bl} className="mt-1 text-emerald-800 dark:text-emerald-300">
+                      BL {g.bl} : gardé « {g.kept.enseigne} » ({g.kept.amountHT}€, {g.kept.agent})
+                      — supprimé {g.deleted.length} doublon(s)
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

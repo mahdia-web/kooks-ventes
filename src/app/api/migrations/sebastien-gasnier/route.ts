@@ -95,15 +95,29 @@ export async function POST(_req: NextRequest) {
         console.log(`[migration/sebastien-gasnier] Agent ${AGENT_NAME} already exists`);
       }
 
-      // 2. Supprime toutes les ventes existantes avec agent contenant "SEBASTIEN"
-      //    (catch all variants : "SEBASTIEN", "SEBASTIEN GASNIER", "Sébastien Gasnier", etc.)
+      // 2. Supprime TOUTES les ventes qui pourraient causer un double comptage :
+      //    a) Ventes avec agent contenant "SEBASTIEN" ou "GASNIER" (toutes variantes)
+      //    b) Ventes avec les BL 26000623, 26000435, 26000381 (même si agent différent)
+      //       → évite le double comptage si l'utilisateur a importé avec un agent mal mappé
+      const blNumbers = salesToInsert.map((s) => s.blNumber);
+
       const existingSales = await tx.sale.findMany({
-        where: { agent: { contains: 'SEBASTIEN', mode: 'insensitive' } },
-        select: { id: true, blNumber: true, enseigne: true, amountHT: true, agent: true, date: true },
+        where: {
+          OR: [
+            { agent: { contains: 'SEBASTIEN', mode: 'insensitive' } },
+            { agent: { contains: 'GASNIER', mode: 'insensitive' } },
+            { blNumber: { in: blNumbers } },
+          ],
+        },
+        select: { id: true, blNumber: true, enseigne: true, amountHT: true, agent: true, date: true, deduplicationKey: true },
       });
-      console.log(`[migration/sebastien-gasnier] Found ${existingSales.length} existing SEBASTIEN sales to delete`);
+      console.log(`[migration/sebastien-gasnier] Found ${existingSales.length} existing sales to delete (SEBASTIEN/GASNIER or matching BLs)`);
       const totalDeletedCA = existingSales.reduce((s, v) => s + v.amountHT, 0);
       console.log(`[migration/sebastien-gasnier] Total CA of deleted sales: ${totalDeletedCA.toFixed(2)}€`);
+      // Log détaillé pour debug
+      for (const s of existingSales) {
+        console.log(`[migration/sebastien-gasnier]   deleting: BL=${s.blNumber} enseigne=${s.enseigne} agent=${s.agent} CA=${s.amountHT}€ key=${s.deduplicationKey}`);
+      }
 
       const deleteResult = await tx.sale.deleteMany({
         where: { id: { in: existingSales.map((s) => s.id) } },
