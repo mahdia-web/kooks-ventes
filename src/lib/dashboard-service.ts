@@ -930,18 +930,98 @@ export async function getDashboardDataForDateRange(
       return { year: w.year, month: w.month, caCentrale: e?.caCentrale ?? 0, caDirect: e?.caDirect ?? 0 };
     }));
   }
-  const agents = Array.from(byAgent.values()).map(a => ({
-    agent: a.agent, caHT: a.caHT, caTTC: a.caTTC, commission: a.commission,
-    nbBl: a.nbBl, nbBlDirect: a.nbBlDirect, nbBlCentrale: a.nbBlCentrale,
-    caDirect: a.caDirect, caCentrale: a.caCentrale,
-    enseignesActives: a.enseignes.size,
-    share: caHT > 0 ? (a.caHT / caHT) * 100 : 0,
-    aov: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
-    prixVenteMoyen: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
-    centraleMonthlySeries: agentSeriesForRange.get(a.agent) ?? agentWindow.map((w) => ({
-      year: w.year, month: w.month, caCentrale: 0, caDirect: 0,
-    })),
-  })).sort((a, b) => b.caHT - a.caHT);
+  // === Stats période précédente par agent (pour comparatif bilan PDF) ===
+  // Récupère les ventes de la plage précédente (même durée, juste avant)
+  // agrégées par agent — pour que le bilan par agent puisse afficher
+  // "Comparatif vs mois précédent"
+  // Note : rangeDays/prevStartDate/prevEndDate sont calculés ici (avant agents)
+  // car ils sont aussi utilisés plus bas pour les enseignes.
+  const _rangeDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const _prevEndDate = new Date(startDate.getTime() - 1);
+  const _prevStartDate = new Date(_prevEndDate.getTime() - (_rangeDays - 1) * 24 * 60 * 60 * 1000);
+
+  const prevRangeAgentSales = await db.sale.findMany({
+    where: { date: { gte: _prevStartDate, lte: _prevEndDate } },
+    select: {
+      agent: true, amountHT: true, amountTTC: true, commission: true,
+      type: true, enseigne: true,
+    },
+  });
+  const prevRangeByAgent = new Map<string, {
+    caHT: number; caTTC: number; commission: number;
+    nbBl: number; nbBlDirect: number; nbBlCentrale: number;
+    caDirect: number; caCentrale: number;
+  }>();
+  for (const r of prevRangeAgentSales) {
+    const s = prevRangeByAgent.get(r.agent) ?? {
+      caHT: 0, caTTC: 0, commission: 0,
+      nbBl: 0, nbBlDirect: 0, nbBlCentrale: 0,
+      caDirect: 0, caCentrale: 0,
+    };
+    s.caHT += r.amountHT;
+    s.caTTC += r.amountTTC;
+    s.commission += r.commission;
+    s.nbBl += 1;
+    if (r.type === 'Direct') {
+      s.nbBlDirect += 1;
+      s.caDirect += r.amountHT;
+    } else {
+      s.nbBlCentrale += 1;
+      s.caCentrale += r.amountHT;
+    }
+    prevRangeByAgent.set(r.agent, s);
+  }
+
+  const agents = Array.from(byAgent.values()).map(a => {
+    // Période précédente pour cet agent
+    const prevStats = prevRangeByAgent.get(a.agent);
+    const prevLabel = `${_prevStartDate.toLocaleDateString('fr-FR')} - ${_prevEndDate.toLocaleDateString('fr-FR')}`;
+    const previous = prevStats
+      ? {
+          month: _prevEndDate.getMonth() + 1,
+          year: _prevEndDate.getFullYear(),
+          label: prevLabel,
+          caHT: prevStats.caHT,
+          caTTC: prevStats.caTTC,
+          commission: prevStats.commission,
+          nbBl: prevStats.nbBl,
+          nbBlDirect: prevStats.nbBlDirect,
+          nbBlCentrale: prevStats.nbBlCentrale,
+          caDirect: prevStats.caDirect,
+          caCentrale: prevStats.caCentrale,
+        }
+      : null;
+    // Évolution
+    const prevCaHT = prevStats?.caHT ?? 0;
+    const prevCommission = prevStats?.commission ?? 0;
+    const prevNbBl = prevStats?.nbBl ?? 0;
+    const prevCaDirect = prevStats?.caDirect ?? 0;
+    const prevCaCentrale = prevStats?.caCentrale ?? 0;
+    const evolution = {
+      caHT: a.caHT - prevCaHT,
+      caHTPercent: prevCaHT > 0 ? (a.caHT - prevCaHT) / prevCaHT : 0,
+      commission: a.commission - prevCommission,
+      commissionPercent: prevCommission > 0 ? (a.commission - prevCommission) / prevCommission : 0,
+      nbBl: a.nbBl - prevNbBl,
+      nbBlPercent: prevNbBl > 0 ? (a.nbBl - prevNbBl) / prevNbBl : 0,
+      caDirectPercent: prevCaDirect > 0 ? (a.caDirect - prevCaDirect) / prevCaDirect : 0,
+      caCentralePercent: prevCaCentrale > 0 ? (a.caCentrale - prevCaCentrale) / prevCaCentrale : 0,
+    };
+    return {
+      agent: a.agent, caHT: a.caHT, caTTC: a.caTTC, commission: a.commission,
+      nbBl: a.nbBl, nbBlDirect: a.nbBlDirect, nbBlCentrale: a.nbBlCentrale,
+      caDirect: a.caDirect, caCentrale: a.caCentrale,
+      enseignesActives: a.enseignes.size,
+      share: caHT > 0 ? (a.caHT / caHT) * 100 : 0,
+      aov: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+      prixVenteMoyen: a.nbBl > 0 ? a.caHT / a.nbBl : 0,
+      centraleMonthlySeries: agentSeriesForRange.get(a.agent) ?? agentWindow.map((w) => ({
+        year: w.year, month: w.month, caCentrale: 0, caDirect: 0,
+      })),
+      previous,
+      evolution,
+    };
+  }).sort((a, b) => b.caHT - a.caHT);
 
   // Stats par enseigne dans la plage
   const byEnseigne = new Map<string, any>();
@@ -952,12 +1032,10 @@ export async function getDashboardDataForDateRange(
     byEnseigne.set(r.enseigne, e);
   }
   // CA période précédente (même durée, juste avant la plage) par enseigne
-  const rangeDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  const prevEndDate = new Date(startDate.getTime() - 1);
-  const prevStartDate = new Date(prevEndDate.getTime() - (rangeDays - 1) * 24 * 60 * 60 * 1000);
+  // _rangeDays, _prevStartDate, _prevEndDate déjà calculés ci-dessus (avant agents)
   const prevRangeWhere = agentFilter
-    ? { date: { gte: prevStartDate, lte: prevEndDate }, agent: agentFilter }
-    : { date: { gte: prevStartDate, lte: prevEndDate } };
+    ? { date: { gte: _prevStartDate, lte: _prevEndDate }, agent: agentFilter }
+    : { date: { gte: _prevStartDate, lte: _prevEndDate } };
   const prevRangeSales = await db.sale.findMany({
     where: prevRangeWhere,
     select: { enseigne: true, amountHT: true },

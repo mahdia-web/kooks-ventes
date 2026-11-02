@@ -22,12 +22,15 @@ export async function GET(req: NextRequest) {
         : null;
 
     const sales = await getSales(year, month, agentFilter);
-    return NextResponse.json({ ok: true, data: sales });
+    return NextResponse.json(
+      { ok: true, data: sales },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } }
+    );
   } catch (e) {
     console.error('Erreur /api/sales:', e);
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : 'Erreur serveur' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

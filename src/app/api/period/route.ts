@@ -4,7 +4,10 @@ import { getCurrentPeriod, setCurrentPeriod } from '@/lib/dashboard-service';
 // GET /api/period → renvoie la période courante
 export async function GET() {
   const period = await getCurrentPeriod();
-  return NextResponse.json({ ok: true, data: period });
+  return NextResponse.json(
+    { ok: true, data: period },
+    { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } }
+  );
 }
 
 // POST /api/period → met à jour la période courante

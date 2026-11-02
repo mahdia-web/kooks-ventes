@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentPeriod, getDashboardData, getDashboardDataForDateRange } from '@/lib/dashboard-service';
 
+// Cache-Control: no-store — CRITICAL pour que les données soient toujours fraîches
+// après un import / merge / migration / changement de période.
+// Sans ça, Vercel edge cache peut retourner une version périmée sans les
+// nouveaux champs (previous, evolution, etc.)
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+};
+
 // GET /api/dashboard?year=2026&month=8&agent=CAP%20FRAIS
 // GET /api/dashboard?startDate=01/10/2025&endDate=30/09/2026&agent=CAP%20FRAIS
 // Si pas de params, utilise la période courante stockée en base.
@@ -22,7 +32,7 @@ export async function GET(req: NextRequest) {
     // Mode date range (startDate/endDate en DD/MM/YYYY)
     if (startDateParam && endDateParam) {
       const data = await getDashboardDataForDateRange(startDateParam, endDateParam, agentFilter);
-      return NextResponse.json({ ok: true, data });
+      return NextResponse.json({ ok: true, data }, { headers: NO_STORE_HEADERS });
     }
 
     // Mode year/month (classique)
@@ -38,12 +48,12 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await getDashboardData(year, month, agentFilter);
-    return NextResponse.json({ ok: true, data });
+    return NextResponse.json({ ok: true, data }, { headers: NO_STORE_HEADERS });
   } catch (e) {
     console.error('Erreur /api/dashboard:', e);
     return NextResponse.json(
       { ok: false, error: e instanceof Error ? e.message : 'Erreur serveur' },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     );
   }
 }

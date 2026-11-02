@@ -64,7 +64,7 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/period');
+        const res = await fetch('/api/period', { cache: 'no-store' });
         const json = await res.json();
         if (json.ok) {
           setYear(json.data.year);
@@ -80,7 +80,7 @@ export default function Home() {
         setMonth(now.getMonth() + 1);
       }
       try {
-        const res = await fetch('/api/agents');
+        const res = await fetch('/api/agents', { cache: 'no-store' });
         const json = await res.json();
         if (json.ok && Array.isArray(json.data)) {
           setAvailableAgents(
@@ -105,7 +105,9 @@ export default function Home() {
       } else {
         url = `/api/dashboard?year=${y}&month=${m}&agent=${encodeURIComponent(agent)}`;
       }
-      const res = await fetch(url);
+      // cache: 'no-store' — CRITICAL pour récupérer les dernières données
+      // (notamment les champs previous/evolution par agent pour le bilan PDF)
+      const res = await fetch(url, { cache: 'no-store' });
       const text = await res.text();
       let json;
       try { json = JSON.parse(text); } catch { throw new Error('Réponse serveur invalide'); }
@@ -133,7 +135,8 @@ export default function Home() {
     setLoadingSales(true);
     try {
       const res = await fetch(
-        `/api/sales?year=${year}&month=${month}&agent=${encodeURIComponent(agentFilter)}`
+        `/api/sales?year=${year}&month=${month}&agent=${encodeURIComponent(agentFilter)}`,
+        { cache: 'no-store' }
       );
       const json = await res.json();
       if (json.ok) setSalesRows(json.data);
@@ -157,7 +160,7 @@ export default function Home() {
   const handleHome = async () => {
     setAgentFilter('all');
     try {
-      const res = await fetch('/api/period');
+      const res = await fetch('/api/period', { cache: 'no-store' });
       const json = await res.json();
       if (json.ok) {
         setYear(json.data.year);
@@ -177,7 +180,7 @@ export default function Home() {
 
   const handleImported = async () => {
     try {
-      const res = await fetch('/api/period');
+      const res = await fetch('/api/period', { cache: 'no-store' });
       const json = await res.json();
       if (json.ok) {
         setYear(json.data.year);
@@ -187,7 +190,7 @@ export default function Home() {
       if (year && month) loadDashboard(year, month, agentFilter);
     }
     try {
-      const res = await fetch('/api/agents');
+      const res = await fetch('/api/agents', { cache: 'no-store' });
       const json = await res.json();
       if (json.ok && Array.isArray(json.data)) {
         setAvailableAgents(

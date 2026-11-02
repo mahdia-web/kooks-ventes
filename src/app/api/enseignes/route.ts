@@ -3,7 +3,10 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     const enseignes = await db.enseigne.findMany({ orderBy: [{ isActive: 'desc' }, { name: 'asc' }] });
-    return NextResponse.json({ ok: true, data: enseignes });
+    return NextResponse.json(
+      { ok: true, data: enseignes },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } }
+    );
   } catch (e) { return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'Erreur' }, { status: 500 }); }
 }
 export async function POST(req: NextRequest) {
