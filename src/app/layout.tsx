@@ -1,21 +1,11 @@
 import type { Metadata } from "next";
-import { Fredoka, Archivo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
-// Fredoka ≈ alternative libre à Coco Goose (titres Kooks)
-const fredoka = Fredoka({
-  variable: "--font-kooks-title",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-// Archivo ≈ alternative libre à Univers LT STD (corps de texte Kooks)
-const archivo = Archivo({
-  variable: "--font-kooks-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+// Polices chargées via CSS @font-face dans globals.css
+// (fichiers .ttf dans /public/fonts/)
+// au lieu de next/font/google qui nécessite un accès réseau à Google Fonts
+// pendant le build — cet accès échoue sur Vercel de façon intermittente.
 
 export const metadata: Metadata = {
   title: "Kooks — Suivi Ventes Agents",
@@ -31,9 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body
-        className={`${fredoka.variable} ${archivo.variable} antialiased bg-background text-foreground`}
-      >
+      <body className="font-body antialiased bg-background text-foreground">
         {children}
         <Toaster richColors position="top-right" />
       </body>

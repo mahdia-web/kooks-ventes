@@ -3,6 +3,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* === Polices locales (plus de next/font/google qui échoue sur Vercel) === */
+@font-face {
+  font-family: 'Fredoka';
+  src: url('/fonts/fredoka.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/archivo.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+/* Variables CSS pour les polices (utilisé par Tailwind et par les styles base) */
+:root {
+  --font-kooks-title: 'Fredoka', system-ui, -apple-system, sans-serif;
+  --font-kooks-body: 'Archivo', system-ui, -apple-system, sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -137,11 +159,18 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-kooks-body), 'Archivo', system-ui, sans-serif;
+    font-family: 'Archivo', var(--font-kooks-body), system-ui, -apple-system, sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-kooks-title), 'Fredoka', system-ui, sans-serif;
+    font-family: 'Fredoka', var(--font-kooks-title), system-ui, -apple-system, sans-serif;
     font-weight: 600;
     letter-spacing: -0.01em;
+  }
+  /* Classe utilitaire pour le corps (utilisée par layout.tsx) */
+  .font-body {
+    font-family: 'Archivo', system-ui, -apple-system, sans-serif;
+  }
+  .font-title {
+    font-family: 'Fredoka', system-ui, -apple-system, sans-serif;
   }
 }
