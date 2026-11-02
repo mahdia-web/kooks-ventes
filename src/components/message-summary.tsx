@@ -275,26 +275,42 @@ function buildAnalysis(
 
   // 1. Tendance des ventes Centrales (vs mois précédent)
   //    Pour l'analyse globale : on compare data.kpis.previous.caCentrale à kpis.caCentrale
-  //    Pour un agent spécifique : on utilise l'agent.centraleMonthlySeries (12 derniers mois)
+  //    Pour un agent spécifique : on utilise agent.previous.caCentrale (plus précis que la série mensuelle)
   let centraleTrend = '';
   if (isAgentSpecific) {
-    // Récupère la série mensuelle de l'agent
     const agentStat = data.agents.find((a) => a.agent === agent);
-    const series = (agentStat as any)?.centraleMonthlySeries as
-      | Array<{ year: number; month: number; caCentrale: number; caDirect: number }>
-      | undefined;
-    if (series && series.length >= 2) {
-      const last = series[series.length - 1];
-      const prev = series[series.length - 2];
-      if (prev.caCentrale > 0) {
-        const pct = ((last.caCentrale - prev.caCentrale) / prev.caCentrale) * 100;
-        const sign = pct >= 0 ? '+' : '';
-        const trendLabel = pct > 5 ? 'en hausse' : pct < -5 ? 'en baisse' : 'stable';
-        centraleTrend = `🏭 Centrales ${trendLabel} (${sign}${pct.toFixed(1)}% vs ${monthLabelShort(prev.month)} ${prev.year}).`;
-      } else if (last.caCentrale > 0) {
-        centraleTrend = `🏭 Centrales : nouvelles ventes ce mois-ci (${fmtEuroLocal(last.caCentrale)}), aucune le mois précédent.`;
-      } else {
-        centraleTrend = `🏭 Centrales : aucune vente ce mois-ci.`;
+    // Utilise previous (récupéré spécifiquement pour le mois précédent de cet agent)
+    const prevData = (agentStat as any)?.previous as
+      | { caCentrale: number; caDirect: number; month: number; year: number; label: string }
+      | null | undefined;
+    const currentCentrale = kpis.caCentrale;
+    if (prevData && prevData.caCentrale > 0) {
+      const pct = ((currentCentrale - prevData.caCentrale) / prevData.caCentrale) * 100;
+      const sign = pct >= 0 ? '+' : '';
+      const trendLabel = pct > 5 ? 'en hausse' : pct < -5 ? 'en baisse' : 'stable';
+      centraleTrend = `🏭 Centrales ${trendLabel} (${sign}${pct.toFixed(1)}% vs ${prevData.label || monthLabelShort(prevData.month) + ' ' + prevData.year}).`;
+    } else if (prevData && currentCentrale > 0) {
+      centraleTrend = `🏭 Centrales : nouvelles ventes ce mois-ci (${fmtEuroLocal(currentCentrale)}), aucune le mois précédent.`;
+    } else if (prevData) {
+      centraleTrend = `🏭 Centrales : aucune vente ce mois-ci.`;
+    } else {
+      // Fallback : utilise la série mensuelle si previous n'est pas dispo
+      const series = (agentStat as any)?.centraleMonthlySeries as
+        | Array<{ year: number; month: number; caCentrale: number; caDirect: number }>
+        | undefined;
+      if (series && series.length >= 2) {
+        const last = series[series.length - 1];
+        const prev = series[series.length - 2];
+        if (prev.caCentrale > 0) {
+          const pct = ((last.caCentrale - prev.caCentrale) / prev.caCentrale) * 100;
+          const sign = pct >= 0 ? '+' : '';
+          const trendLabel = pct > 5 ? 'en hausse' : pct < -5 ? 'en baisse' : 'stable';
+          centraleTrend = `🏭 Centrales ${trendLabel} (${sign}${pct.toFixed(1)}% vs ${monthLabelShort(prev.month)} ${prev.year}).`;
+        } else if (last.caCentrale > 0) {
+          centraleTrend = `🏭 Centrales : nouvelles ventes ce mois-ci (${fmtEuroLocal(last.caCentrale)}), aucune le mois précédent.`;
+        } else {
+          centraleTrend = `🏭 Centrales : aucune vente ce mois-ci.`;
+        }
       }
     }
   } else {

@@ -142,14 +142,52 @@ async function loadLogo(): Promise<string | null> {
 
 export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOptions) {
   const { kpis, customerFollowup, enseignes, agents } = data;
-  const periodLabel = monthLabel(kpis.current.month) + ' ' + kpis.current.year;
-  const c = kpis.current;
+
+  const isAgentSpecific = !!agentFilter;
+  const targetAgent = isAgentSpecific ? agents.find((a) => a.agent === agentFilter) : null;
+
+  // === KPIs utilisés dans le PDF ===
+  // Si agent spécifique : on utilise les stats de l'agent (targetAgent) + son previous
+  // Si global : on utilise les KPIs globaux (kpis.current + kpis.previous)
+  // C'est CRUCIAL pour que le comparatif vs mois précédent soit correct par agent.
+  const c = isAgentSpecific && targetAgent
+    ? {
+        month: kpis.current.month,
+        year: kpis.current.year,
+        label: kpis.current.label,
+        caHT: targetAgent.caHT,
+        caTTC: targetAgent.caTTC,
+        commission: targetAgent.commission,
+        nbBl: targetAgent.nbBl,
+        nbBlDirect: targetAgent.nbBlDirect,
+        nbBlCentrale: targetAgent.nbBlCentrale,
+        caDirect: targetAgent.caDirect,
+        caCentrale: targetAgent.caCentrale,
+        aovDirect: targetAgent.nbBlDirect > 0 ? targetAgent.caDirect / targetAgent.nbBlDirect : 0,
+        aovCentrale: targetAgent.nbBlCentrale > 0 ? targetAgent.caCentrale / targetAgent.nbBlCentrale : 0,
+        aovGlobal: targetAgent.aov,
+        partCaDirect: targetAgent.caHT > 0 ? targetAgent.caDirect / targetAgent.caHT : 0,
+        partCaCentrale: targetAgent.caHT > 0 ? targetAgent.caCentrale / targetAgent.caHT : 0,
+        nbEnseignesActives: targetAgent.enseignesActives,
+        enseignesActives: [],
+      }
+    : kpis.current;
+
+  // Previous : agent-specific si dispo, sinon global
+  const previousData = isAgentSpecific
+    ? (targetAgent?.previous ?? null)
+    : kpis.previous;
+
+  // Evolution : agent-specific si dispo, sinon global
+  const evolutionData = isAgentSpecific
+    ? (targetAgent?.evolution ?? kpis.evolution)
+    : kpis.evolution;
+
+  const periodLabel = monthLabel(c.month) + ' ' + c.year;
 
   // Charge le logo
   const logoDataUrl = await loadLogo();
 
-  const isAgentSpecific = !!agentFilter;
-  const targetAgent = isAgentSpecific ? agents.find((a) => a.agent === agentFilter) : null;
   // IMPORTANT : on filtre les enseignes et clients à CEUX DE L'AGENT uniquement
   const targetEnseignes = isAgentSpecific
     ? enseignes.filter((e) => e.agent === agentFilter)
@@ -268,7 +306,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
 
   // Évolution vs mois précédent (si dispo)
   let evolY = kpiCardsY + cardH + 14;
-  if (kpis.previous) {
+  if (previousData) {
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(margin, evolY, contentWidth, 18, 2, 2, 'F');
 
@@ -276,10 +314,10 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setTextColor(100, 116, 139);
     doc.setFont('helvetica', 'bold');
     doc.text(
-      `Évolution vs ${kpis.previous.label}` +
-      `  •  CA HT: ${pdfPct(kpis.evolution.caHTPercent)}` +
-      `  •  Commission: ${pdfPct(kpis.evolution.commissionPercent)}` +
-      `  •  BL: ${pdfPct(kpis.evolution.nbBlPercent)}`,
+      `Évolution vs ${previousData.label}` +
+      `  •  CA HT: ${pdfPct(evolutionData.caHTPercent)}` +
+      `  •  Commission: ${pdfPct(evolutionData.commissionPercent)}` +
+      `  •  BL: ${pdfPct(evolutionData.nbBlPercent)}`,
       pageWidth / 2,
       evolY + 11,
       { align: 'center' }
@@ -356,15 +394,15 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     head: [['Indicateur', 'Valeur', 'Comparatif vs mois précédent']],
     body: [
       ['Chiffre d\'affaires HT', pdfEuro(c.caHT),
-        kpis.previous ? `${pdfEuro(kpis.previous.caHT)} (${pdfPct(kpis.evolution.caHTPercent)})` : '—'],
+        previousData ? `${pdfEuro(previousData.caHT)} (${pdfPct(evolutionData.caHTPercent)})` : '—'],
       ['CA Direct (7%)', pdfEuro(c.caDirect),
-        kpis.previous ? `${pdfEuro(kpis.previous.caDirect)} (${pdfPct(kpis.evolution.caDirectPercent)})` : '—'],
+        previousData ? `${pdfEuro(previousData.caDirect)} (${pdfPct(evolutionData.caDirectPercent)})` : '—'],
       ['CA Centrale (5%)', pdfEuro(c.caCentrale),
-        kpis.previous ? `${pdfEuro(kpis.previous.caCentrale)} (${pdfPct(kpis.evolution.caCentralePercent)})` : '—'],
+        previousData ? `${pdfEuro(previousData.caCentrale)} (${pdfPct(evolutionData.caCentralePercent)})` : '—'],
       ['Commission', pdfEuro(c.commission),
-        kpis.previous ? `${pdfEuro(kpis.previous.commission)} (${pdfPct(kpis.evolution.commissionPercent)})` : '—'],
+        previousData ? `${pdfEuro(previousData.commission)} (${pdfPct(evolutionData.commissionPercent)})` : '—'],
       ['Nombre de BL', pdfNum(c.nbBl),
-        kpis.previous ? `${pdfNum(kpis.previous.nbBl)} (${pdfPct(kpis.evolution.nbBlPercent)})` : '—'],
+        previousData ? `${pdfNum(previousData.nbBl)} (${pdfPct(evolutionData.nbBlPercent)})` : '—'],
       ['Panier moyen (AOV)', pdfEuro(c.aovGlobal),
         `Direct: ${pdfEuro(c.aovDirect)} / Centrale: ${pdfEuro(c.aovCentrale)}`],
       ['BL Direct / Centrale', `${c.nbBlDirect} / ${c.nbBlCentrale}`,
@@ -791,7 +829,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
 
   // Sauvegarde
   const filename = isAgentSpecific
-    ? `bilan-${(agentFilter as string).toLowerCase().replace(/\s+/g, '-')}-${kpis.current.year}-${String(kpis.current.month).padStart(2, '0')}.pdf`
-    : `bilan-global-${kpis.current.year}-${String(kpis.current.month).padStart(2, '0')}.pdf`;
+    ? `bilan-${(agentFilter as string).toLowerCase().replace(/\s+/g, '-')}-${c.year}-${String(c.month).padStart(2, '0')}.pdf`
+    : `bilan-global-${c.year}-${String(c.month).padStart(2, '0')}.pdf`;
   doc.save(filename);
 }

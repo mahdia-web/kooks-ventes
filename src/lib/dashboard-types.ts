@@ -75,6 +75,32 @@ export interface AgentStat {
   // Évolution mensuelle du CA Centrale de cet agent (12 derniers mois)
   // Utilisé dans le bilan PDF pour afficher un mini-graphique d'évolution
   centraleMonthlySeries?: Array<{ year: number; month: number; caCentrale: number; caDirect: number }>;
+  // Stats du mois précédent pour cet agent (pour le comparatif dans le bilan PDF)
+  // Si null → pas de ventes le mois précédent pour cet agent
+  previous?: {
+    month: number;
+    year: number;
+    label: string;
+    caHT: number;
+    caTTC: number;
+    commission: number;
+    nbBl: number;
+    nbBlDirect: number;
+    nbBlCentrale: number;
+    caDirect: number;
+    caCentrale: number;
+  } | null;
+  // Évolution vs mois précédent (en € et en %)
+  evolution?: {
+    caHT: number;
+    caHTPercent: number;
+    commission: number;
+    commissionPercent: number;
+    nbBl: number;
+    nbBlPercent: number;
+    caDirectPercent: number;
+    caCentralePercent: number;
+  };
 }
 
 export interface EnseigneStat {

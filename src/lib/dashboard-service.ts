@@ -331,24 +331,96 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     agentSeriesMap.set(agent, series);
   }
 
+  // === Stats du mois précédent par agent (pour le comparatif bilan PDF) ===
+  const prev = previousMonth(year, month);
+  const prevAgentSales = await db.sale.findMany({
+    where: { year: prev.year, month: prev.month },
+    select: {
+      agent: true, amountHT: true, amountTTC: true, commission: true,
+      type: true, enseigne: true,
+    },
+  });
+  // Agrège par agent
+  const prevByAgent = new Map<string, {
+    caHT: number; caTTC: number; commission: number;
+    nbBl: number; nbBlDirect: number; nbBlCentrale: number;
+    caDirect: number; caCentrale: number; enseignes: Set<string>;
+  }>();
+  for (const r of prevAgentSales) {
+    const s = prevByAgent.get(r.agent) ?? {
+      caHT: 0, caTTC: 0, commission: 0,
+      nbBl: 0, nbBlDirect: 0, nbBlCentrale: 0,
+      caDirect: 0, caCentrale: 0, enseignes: new Set<string>(),
+    };
+    s.caHT += r.amountHT;
+    s.caTTC += r.amountTTC;
+    s.commission += r.commission;
+    s.nbBl += 1;
+    s.enseignes.add(r.enseigne);
+    if (r.type === 'Direct') {
+      s.nbBlDirect += 1;
+      s.caDirect += r.amountHT;
+    } else {
+      s.nbBlCentrale += 1;
+      s.caCentrale += r.amountHT;
+    }
+    prevByAgent.set(r.agent, s);
+  }
+
   return Array.from(byAgent.values())
-    .map((s) => ({
-      agent: s.agent,
-      caHT: s.caHT,
-      caTTC: s.caTTC,
-      commission: s.commission,
-      nbBl: s.nbBl,
-      nbBlDirect: s.nbBlDirect,
-      nbBlCentrale: s.nbBlCentrale,
-      caDirect: s.caDirect,
-      caCentrale: s.caCentrale,
-      aov: s.nbBl > 0 ? s.caHT / s.nbBl : 0,
-      share: totalCa > 0 ? (s.caHT / totalCa) * 100 : 0,
-      enseignesActives: s.enseignes.size,
-      centraleMonthlySeries: agentSeriesMap.get(s.agent) ?? monthWindow.map((w) => ({
-        year: w.year, month: w.month, caCentrale: 0, caDirect: 0,
-      })),
-    }))
+    .map((s) => {
+      const prevStats = prevByAgent.get(s.agent);
+      const previous = prevStats
+        ? {
+            month: prev.month,
+            year: prev.year,
+            label: `${shortMonth(prev.month)} ${prev.year}`,
+            caHT: prevStats.caHT,
+            caTTC: prevStats.caTTC,
+            commission: prevStats.commission,
+            nbBl: prevStats.nbBl,
+            nbBlDirect: prevStats.nbBlDirect,
+            nbBlCentrale: prevStats.nbBlCentrale,
+            caDirect: prevStats.caDirect,
+            caCentrale: prevStats.caCentrale,
+          }
+        : null;
+      // Évolution vs mois précédent
+      const prevCaHT = prevStats?.caHT ?? 0;
+      const prevCommission = prevStats?.commission ?? 0;
+      const prevNbBl = prevStats?.nbBl ?? 0;
+      const prevCaDirect = prevStats?.caDirect ?? 0;
+      const prevCaCentrale = prevStats?.caCentrale ?? 0;
+      const evolution = {
+        caHT: s.caHT - prevCaHT,
+        caHTPercent: prevCaHT > 0 ? (s.caHT - prevCaHT) / prevCaHT : 0,
+        commission: s.commission - prevCommission,
+        commissionPercent: prevCommission > 0 ? (s.commission - prevCommission) / prevCommission : 0,
+        nbBl: s.nbBl - prevNbBl,
+        nbBlPercent: prevNbBl > 0 ? (s.nbBl - prevNbBl) / prevNbBl : 0,
+        caDirectPercent: prevCaDirect > 0 ? (s.caDirect - prevCaDirect) / prevCaDirect : 0,
+        caCentralePercent: prevCaCentrale > 0 ? (s.caCentrale - prevCaCentrale) / prevCaCentrale : 0,
+      };
+      return {
+        agent: s.agent,
+        caHT: s.caHT,
+        caTTC: s.caTTC,
+        commission: s.commission,
+        nbBl: s.nbBl,
+        nbBlDirect: s.nbBlDirect,
+        nbBlCentrale: s.nbBlCentrale,
+        caDirect: s.caDirect,
+        caCentrale: s.caCentrale,
+        aov: s.nbBl > 0 ? s.caHT / s.nbBl : 0,
+        share: totalCa > 0 ? (s.caHT / totalCa) * 100 : 0,
+        enseignesActives: s.enseignes.size,
+        centraleMonthlySeries: agentSeriesMap.get(s.agent) ?? monthWindow.map((w) => ({
+          year: w.year, month: w.month, caCentrale: 0, caDirect: 0,
+        })),
+        previous,
+        evolution,
+      };
+    })
     .sort((a, b) => b.caHT - a.caHT);
 }
 
