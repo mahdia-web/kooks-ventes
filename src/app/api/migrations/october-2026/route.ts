@@ -116,10 +116,12 @@ export async function POST(_req: NextRequest) {
 
       // === Détection intelligente d'agent ===
       // L'ERP peut déconner et ne pas affecter certaines ventes (marquées `*`).
-      // Si l'enseigne est déjà assignée à un agent en base (autre que KOOK'S),
-      // on garde cet agent même si l'ERP dit `*`.
-      // Ex: AUCHAN MANDELIEU est assignée à SEBASTIEN GASNIER en base →
-      //     les ventes `*` pour AUCHAN MANDELIEU seront attribuées à SEBASTIEN GASNIER.
+      // Stratégie :
+      // 1. Si l'enseigne est déjà assignée à un agent en base (autre que KOOK'S) → utiliser cet agent
+      // 2. Si l'enseigne a AU MOINS UNE vente avec un agent spécifique dans ce fichier
+      //    → réaffecter TOUTES ses ventes `*` à cet agent
+      // Ex: AUCHAN MANDELIEU a 2 ventes dans le fichier : une `*` et une SEBASTIEN GASNIER
+      //     → la vente `*` est réaffectée à SEBASTIEN GASNIER
       const enseigneAgentMap = new Map<string, string>();
       const allEnseignesForAgent = await tx.enseigne.findMany({
         select: { name: true, agent: true },
@@ -129,7 +131,24 @@ export async function POST(_req: NextRequest) {
           enseigneAgentMap.set(e.name.toLowerCase().trim(), e.agent);
         }
       }
-      console.log(`[october-2026] Loaded ${enseigneAgentMap.size} enseigne→agent mappings for intelligent detection`);
+      console.log(`[october-2026] Loaded ${enseigneAgentMap.size} enseigne→agent mappings from DB`);
+
+      // Étape 2: parcours le fichier pour trouver les enseignes qui ont des ventes
+      // avec un agent spécifique (non *). Ces enseignes doivent avoir TOUTES leurs
+      // ventes réaffectées à cet agent.
+      const fileAgentMap = new Map<string, string>(); // enseigne (lowercase) → agent
+      for (const row of octoberSales) {
+        if (row.ht === 0) continue; // skip placeholders
+        if (row.commercial && row.commercial !== '*') {
+          const agent = /sebastien/i.test(row.commercial) ? 'SEBASTIEN GASNIER' : row.commercial;
+          const key = row.client.toLowerCase().trim();
+          // On ne remplace pas si déjà assigné (premier agent trouvé gagne)
+          if (!fileAgentMap.has(key)) {
+            fileAgentMap.set(key, agent);
+          }
+        }
+      }
+      console.log(`[october-2026] Found ${fileAgentMap.size} enseigne→agent mappings from file (non-* sales)`);
 
       let reassignedCount = 0;
 
@@ -154,23 +173,29 @@ export async function POST(_req: NextRequest) {
         // Résolution canonique de l'enseigne (avant la résolution agent)
         const enseigne = resolveCanonical(row.client);
 
-        // Résolution agent INTELLIGENTE
+        // Résolution agent INTELLIGENTE (3 sources de priorité)
+        // 1. Fichier ERP dit un agent (non *) → l'utiliser
+        // 2. L'enseigne a d'autres ventes dans le fichier avec un agent → l'utiliser
+        // 3. L'enseigne est assignée en base à un agent → l'utiliser
+        // 4. Sinon → KOOK'S
         let agent: string;
-        if (row.commercial === '*' || !row.commercial) {
-          // L'ERP n'a pas affecté d'agent → vérifie si l'enseigne est déjà assignée
-          const existingAgent = enseigneAgentMap.get(enseigne.toLowerCase().trim());
-          if (existingAgent) {
-            // L'enseigne est déjà assignée à un agent spécifique → on garde cet agent
-            agent = existingAgent;
+        if (row.commercial && row.commercial !== '*') {
+          agent = /sebastien/i.test(row.commercial) ? 'SEBASTIEN GASNIER' : row.commercial;
+        } else {
+          const enseigneLower = enseigne.toLowerCase().trim();
+          const fileAgent = fileAgentMap.get(row.client.toLowerCase().trim()) ?? fileAgentMap.get(enseigneLower);
+          const dbAgent = enseigneAgentMap.get(enseigneLower);
+          if (fileAgent) {
+            agent = fileAgent;
             reassignedCount++;
-            console.log(`[october-2026] Reassigned: ${enseigne} → ${agent} (was *, detected from Enseigne table)`);
+            console.log(`[october-2026] Reassigned (file): ${enseigne} -> ${agent}`);
+          } else if (dbAgent) {
+            agent = dbAgent;
+            reassignedCount++;
+            console.log(`[october-2026] Reassigned (DB): ${enseigne} -> ${agent}`);
           } else {
             agent = kooksName;
           }
-        } else if (/sebastien/i.test(row.commercial)) {
-          agent = 'SEBASTIEN GASNIER';
-        } else {
-          agent = row.commercial;
         }
 
         // Détermination du type
