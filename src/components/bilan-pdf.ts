@@ -563,6 +563,21 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   }
 
   // --- Section 3: Colis vendus ---
+  // Helper: raccourcit le nom d'enseigne pour le tableau colis
+  const shortEnseigneName = (name: string): string => {
+    let n = name;
+    // Remplace les formes longues par acronymes
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT PARIS.?EST/i, 'SCAPEST');
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT DE L'?OUEST/i, 'SCAOUEST');
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT RHONE.?ALP/i, 'SOCARA');
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT ILE DE FRANCE/i, 'SCADIF');
+    n = n.replace(/SOC COOP APPROVISIONNEMENT PARIS NORD/i, 'SCAPNOR');
+    n = n.replace(/CENTRA APPROVI CHARENT POITOU/i, 'SCACHAP');
+    n = n.replace(/LECLERC APPROVISIONNEMENT SUD/i, 'LECASUD');
+    // Garde seulement les 30 premiers caractères si encore trop long
+    if (n.length > 35) n = n.slice(0, 33) + '..';
+    return n;
+  };
   // Filtre les colis par les enseignes de l'agent (match flou)
   const agentEnseigneNamesLower = new Set(
     targetEnseignes.map((e) => e.enseigne.toLowerCase().trim())
@@ -593,7 +608,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       head: [['#', 'Enseigne', 'Colis', '%']],
       body: agentColisData.slice(0, 20).map((c, idx) => [
         String(idx + 1),
-        c.enseigne.length > 50 ? c.enseigne.slice(0, 48) + '..' : c.enseigne,
+        shortEnseigneName(c.enseigne),
         String(c.totalColis),
         agentTotalColis > 0 ? `${(c.totalColis / agentTotalColis * 100).toFixed(1)}%` : '-',
       ]),

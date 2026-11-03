@@ -240,7 +240,20 @@ Kooks`;
     .filter((e) => !isAgentSpecific || e.agent === agent)
     .sort((a, b) => b.caHT - a.caHT);
 
-  // Construit les lignes "• ENSEIGNE : X€ (N colis)"
+  // Construit les lignes "• ENSEIGNE_COURT : X€ (N colis)"
+  // Raccourcit les noms de coopératives pour la lisibilité
+  const shortName = (name: string): string => {
+    let n = name;
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT PARIS.?EST/i, 'SCAPEST');
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT DE L'?OUEST/i, 'SCAOUEST');
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT RHONE.?ALP/i, 'SOCARA');
+    n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT ILE DE FRANCE/i, 'SCADIF');
+    n = n.replace(/SOC COOP APPROVISIONNEMENT PARIS NORD/i, 'SCAPNOR');
+    n = n.replace(/CENTRA APPROVI CHARENT POITOU/i, 'SCACHAP');
+    n = n.replace(/LECLERC APPROVISIONNEMENT SUD/i, 'LECASUD');
+    n = n.replace(/DISTRIBUTION FRANPRIX/i, 'FRANPRIX');
+    return n;
+  };
   const colisMap = new Map<string, number>();
   if (colisByEnseigne) {
     for (const c of colisByEnseigne) {
@@ -252,13 +265,12 @@ Kooks`;
         // Cherche les colis pour cette centrale (match exact ou partiel)
         let colis = colisMap.get(c.enseigne) ?? 0;
         if (colis === 0 && colisByEnseigne) {
-          // Fuzzy match: cherche par nom partiel
           const match = colisByEnseigne.find((v) =>
             v.enseigne.includes(c.enseigne) || c.enseigne.includes(v.enseigne)
           );
           if (match) colis = match.totalColis;
         }
-        return `• ${c.enseigne} : ${fmtEuroLocal(c.caHT)}${colis > 0 ? ` (${colis} colis)` : ''}`;
+        return `• ${shortName(c.enseigne)} : ${fmtEuroLocal(c.caHT)}${colis > 0 ? ` (${colis} colis)` : ''}`;
       }).join('\n')
     : '• (aucune vente Centrale ce mois-ci)';
 
@@ -282,7 +294,6 @@ NB BL Centrale : ${kpis.nbBlCentrale}
 NB BL Total : ${kpis.nbBl}
 
 Commission totale : ${fmtEuroLocal(kpis.commission)}
-${colisTotal && colisTotal > 0 ? `Colis vendus : ${colisTotal}` : ''}
 
 Détail des centrales :
 ${centralesLines}
