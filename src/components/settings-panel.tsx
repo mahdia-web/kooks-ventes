@@ -172,7 +172,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       'Cette action va :\n' +
       '1. Créer l\'agent SEBASTIEN GASNIER (s\'il n\'existe pas)\n' +
       '2. Supprimer TOUTES les ventes avec agent contenant SEBASTIEN/GASNIER\n' +
-      '   ET les ventes avec BL 26000623/26000435/26000381 (évite double comptage)\n' +
+      '   (uniquement par nom d\'agent — ne touche pas aux BL des autres agents)\n' +
       '3. Insérer 3 nouvelles ventes :\n' +
       '   • AUCHAN MANDELIEU — 02/11/2026 — 575,36€ (BL 26000623)\n' +
       '   • AUCHAN MANDELIEU — 14/10/2026 — 723,84€ (BL 26000435, FV-00428)\n' +
@@ -263,6 +263,33 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   const [diagnoseLoading, setDiagnoseLoading] = useState(false);
   const [diagnoseData, setDiagnoseData] = useState<any>(null);
   const [fixing, setFixing] = useState(false);
+  // === AUDIT CA ===
+  const [auditData, setAuditData] = useState<any>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const runAudit = async () => {
+    setAuditLoading(true);
+    setAuditData(null);
+    try {
+      const r = await fetch('/api/audit', { cache: 'no-store' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      setAuditData(j);
+      if (j.summary.status === 'OK') {
+        toast.success(`CA total : ${j.summary.totalCA.toFixed(2)}€ — conforme à l'attendu`);
+      } else if (j.summary.status === 'CA MANQUANT') {
+        toast.error(`CA MANQUANT : ${Math.abs(j.summary.difference).toFixed(2)}€`, {
+          description: `Total actuel ${j.summary.totalCA.toFixed(2)}€ vs attendu ${j.summary.expectedCA}€`,
+        });
+      } else {
+        toast.warning(`CA excédentaire : ${j.summary.difference.toFixed(2)}€`);
+      }
+    } catch (e: any) {
+      toast.error('Erreur audit', { description: e.message });
+    } finally {
+      setAuditLoading(false);
+    }
+  };
 
   const runDiagnose = async () => {
     if (!diagnoseQuery.trim()) return;
@@ -721,6 +748,154 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
       {/* === ONGLET CLIENTS === */}
       <TabsContent value="enseignes" className="space-y-3">
+        {/* === AUDIT CA === */}
+        <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  Audit du CA
+                </p>
+                <p className="text-xs text-red-700 dark:text-red-400 mt-1">
+                  Vérifie le CA total contre la valeur attendue (170 250,64€).
+                  Identifie quel mois / agent a perdu du CA.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={runAudit}
+              disabled={auditLoading}
+              className="border-red-500 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50"
+            >
+              {auditLoading ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Search className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Lancer l'audit
+            </Button>
+          </div>
+
+          {auditData && (
+            <div className="rounded-md border border-border bg-card p-3 text-xs space-y-3">
+              {/* Summary */}
+              <div className={`rounded p-2 font-medium ${
+                auditData.summary.status === 'OK'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400'
+                  : auditData.summary.status === 'CA MANQUANT'
+                  ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
+              }`}>
+                {auditData.summary.status === 'CA MANQUANT' ? '⚠' : auditData.summary.status === 'OK' ? '✓' : 'ℹ'}{' '}
+                CA actuel : <strong>{auditData.summary.totalCA.toFixed(2)}€</strong>
+                {' '} / Attendu : <strong>{auditData.summary.expectedCA}€</strong>
+                {' '} / Différence : <strong>
+                  {auditData.summary.difference > 0 ? '+' : ''}{auditData.summary.difference.toFixed(2)}€
+                  {' '}({auditData.summary.differencePercent.toFixed(1)}%)
+                </strong>
+                {' '} / {auditData.summary.totalSales} ventes
+                {' '} / Période : {auditData.dateRange.start} → {auditData.dateRange.end}
+              </div>
+
+              {/* CA par agent */}
+              <div>
+                <p className="font-medium text-sm mb-1">CA par agent :</p>
+                <table className="w-full text-xs">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-1">Agent</th>
+                      <th className="text-right p-1">Ventes</th>
+                      <th className="text-right p-1">CA HT</th>
+                      <th className="text-right p-1">Commission</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditData.byAgent.map((a: any) => (
+                      <tr key={a.agent} className="border-t border-border">
+                        <td className="p-1 font-medium">{a.agent}</td>
+                        <td className="p-1 text-right">{a.nbSales}</td>
+                        <td className="p-1 text-right font-mono font-medium">{a.caHT.toFixed(2)}€</td>
+                        <td className="p-1 text-right font-mono text-destructive">{a.commission.toFixed(2)}€</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* CA par mois (12 derniers) */}
+              <div>
+                <p className="font-medium text-sm mb-1">CA par mois (12 derniers) :</p>
+                <table className="w-full text-xs">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-1">Mois</th>
+                      <th className="text-right p-1">Ventes</th>
+                      <th className="text-right p-1">CA HT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditData.byMonth.map((m: any) => (
+                      <tr key={`${m.year}-${m.month}`} className="border-t border-border">
+                        <td className="p-1">{m.month}/{m.year}</td>
+                        <td className="p-1 text-right">{m.nbSales}</td>
+                        <td className="p-1 text-right font-mono">{m.caHT.toFixed(2)}€</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* CA par type */}
+              <div>
+                <p className="font-medium text-sm mb-1">CA par type :</p>
+                <div className="flex gap-2">
+                  {auditData.byType.map((t: any) => (
+                    <div key={t.type} className="rounded border border-border p-2 flex-1">
+                      <p className="font-medium">{t.type}</p>
+                      <p className="font-mono">{t.caHT.toFixed(2)}€</p>
+                      <p className="text-muted-foreground text-[10px]">{t.nbSales} ventes</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ventes SEBASTIEN GASNIER */}
+              {auditData.sebastienAgentSalesCount > 0 && (
+                <div>
+                  <p className="font-medium text-sm mb-1">
+                    Ventes SEBASTIEN/GASNIER ({auditData.sebastienAgentSalesCount}) :
+                  </p>
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-1">BL</th>
+                        <th className="text-left p-1">Date</th>
+                        <th className="text-left p-1">Enseigne</th>
+                        <th className="text-left p-1">Agent</th>
+                        <th className="text-right p-1">HT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditData.sebastienAgentSales.map((s: any) => (
+                        <tr key={s.id} className="border-t border-border">
+                          <td className="p-1 font-mono">{s.blNumber ?? '—'}</td>
+                          <td className="p-1">{s.date}</td>
+                          <td className="p-1">{s.enseigne}</td>
+                          <td className="p-1">{s.agent}</td>
+                          <td className="p-1 text-right font-mono">{s.amountHT.toFixed(2)}€</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
@@ -1056,10 +1231,9 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">Migration SEBASTIEN GASNIER</p>
                 <p className="text-xs text-muted-foreground">
-                  Écrase les ventes de SEBASTIEN et insère les 3 nouvelles ventes
-                  (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1) — total 1 758,56€.
-                  Supprime aussi les ventes avec les BL 26000623/26000435/26000381
-                  même si l'agent est différent (évite le double comptage).
+                  Écrase les ventes de SEBASTIEN (par nom d'agent uniquement) et insère
+                  les 3 nouvelles ventes (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1) — total 1 758,56€.
+                  Ne supprime PAS par BL (les BL sont partagés entre agents).
                 </p>
               </div>
               <Button

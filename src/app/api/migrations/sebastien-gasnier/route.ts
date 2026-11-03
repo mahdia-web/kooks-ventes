@@ -95,23 +95,20 @@ export async function POST(_req: NextRequest) {
         console.log(`[migration/sebastien-gasnier] Agent ${AGENT_NAME} already exists`);
       }
 
-      // 2. Supprime TOUTES les ventes qui pourraient causer un double comptage :
-      //    a) Ventes avec agent contenant "SEBASTIEN" ou "GASNIER" (toutes variantes)
-      //    b) Ventes avec les BL 26000623, 26000435, 26000381 (même si agent différent)
-      //       → évite le double comptage si l'utilisateur a importé avec un agent mal mappé
-      const blNumbers = salesToInsert.map((s) => s.blNumber);
-
+      // 2. Supprime les ventes existantes avec agent contenant "SEBASTIEN" ou "GASNIER"
+      //    IMPORTANT: On ne supprime PAS par BL number car les BL sont séquentiels
+      //    et partagés entre tous les agents — supprimer par BL détruirait les
+      //    ventes légitimes des autres agents qui ont les mêmes numéros de BL.
       const existingSales = await tx.sale.findMany({
         where: {
           OR: [
             { agent: { contains: 'SEBASTIEN', mode: 'insensitive' } },
             { agent: { contains: 'GASNIER', mode: 'insensitive' } },
-            { blNumber: { in: blNumbers } },
           ],
         },
         select: { id: true, blNumber: true, enseigne: true, amountHT: true, agent: true, date: true, deduplicationKey: true },
       });
-      console.log(`[migration/sebastien-gasnier] Found ${existingSales.length} existing sales to delete (SEBASTIEN/GASNIER or matching BLs)`);
+      console.log(`[migration/sebastien-gasnier] Found ${existingSales.length} existing SEBASTIEN/GASNIER sales to delete`);
       const totalDeletedCA = existingSales.reduce((s, v) => s + v.amountHT, 0);
       console.log(`[migration/sebastien-gasnier] Total CA of deleted sales: ${totalDeletedCA.toFixed(2)}€`);
       // Log détaillé pour debug
