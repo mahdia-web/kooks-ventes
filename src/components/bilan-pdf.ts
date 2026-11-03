@@ -397,6 +397,10 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   // PAGE 2+ : Top enseignes + Clients à relancer + Classement
   // (Plus de table "Indicateurs clés" — redondant avec les cartes KPI de la page 1)
   // ============================================================
+  // Sanitize agent name ONCE for all section titles
+  const safeAgentName = (targetAgent?.agent ?? '').replace(/[^\x20-\x7E]/g, '').trim();
+  // (Plus de table "Indicateurs clés" — redondant avec les cartes KPI de la page 1)
+  // ============================================================
   doc.addPage();
   let yPos = 18;
 
@@ -406,11 +410,8 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
-  doc.text(
-    `1. Top 10 enseignes ${isAgentSpecific ? `de ${targetAgent?.agent}` : ''}`,
-    margin,
-    yPos
-  );
+  const top10Title = `1. Top 10 enseignes${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
+  doc.text(doc.splitTextToSize(top10Title, contentWidth)[0], margin, yPos);
   yPos += 8;
 
   const top10 = targetEnseignes.slice(0, 10);
@@ -487,11 +488,8 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
-  doc.text(
-    `2. Clients à relancer ${isAgentSpecific ? `- ${targetAgent?.agent}` : ''}`,
-    margin,
-    yPos
-  );
+  const relanceTitle = `2. Clients à relancer${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
+  doc.text(doc.splitTextToSize(relanceTitle, contentWidth)[0], margin, yPos);
   yPos += 7;
 
   const toRelance = targetCustomers.filter((cu) => cu.status === 'A RELANCER');
@@ -706,8 +704,6 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  // Use splitTextToSize to avoid jsPDF rendering bugs with long text
-  const safeAgentName = (targetAgent?.agent ?? '').replace(/[^\x20-\x7E]/g, '').trim();
   const classementTitle = `${isAgentSpecific ? '' : '4. '}Classement des enseignes${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
   const titleLines = doc.splitTextToSize(classementTitle, contentWidth);
   doc.text(titleLines[0], margin, yPosAfterAgent);
@@ -728,7 +724,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       e.enseigne,
       String(e.nbBl),
       pdfEuro(e.caHT),
-      pdfPct(e.share / 100),
+      `${e.share.toFixed(1)}%`,
       pdfDate(e.lastOrder),
     ]),
     theme: 'striped',
@@ -769,7 +765,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       e.enseigne,
       String(e.nbBl),
       pdfEuro(e.caHT),
-      pdfPct(e.share / 100),
+      `${e.share.toFixed(1)}%`,
       pdfDate(e.lastOrder),
     ]),
     theme: 'striped',
