@@ -333,11 +333,33 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     window.open(url, '_blank');
   };
 
-  // === EXPORT PDF CLIENTS (page imprimable) ===
-  const exportClientsPDF = () => {
-    const agent = agentFilter === 'all' ? '' : agentFilter;
-    const url = `/api/clients/export-pdf${agent ? `?agent=${encodeURIComponent(agent)}` : ''}`;
-    window.open(url, '_blank');
+  // === EXPORT PDF CLIENTS (généré côté client avec jsPDF) ===
+  const [generatingClientsPdf, setGeneratingClientsPdf] = useState(false);
+  const exportClientsPDF = async () => {
+    setGeneratingClientsPdf(true);
+    try {
+      // Récupère la période courante
+      const periodRes = await fetch('/api/period', { cache: 'no-store' });
+      const periodJson = await periodRes.json();
+      const { year, month } = periodJson.ok ? periodJson.data : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+
+      // Récupère les données dashboard (filtrées par agent si applicable)
+      const agentParam = agentFilter === 'all' ? '' : `&agent=${encodeURIComponent(agentFilter)}`;
+      const res = await fetch(`/api/dashboard?year=${year}&month=${month}${agentParam}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error);
+
+      // Génère le PDF côté client
+      const { generateClientsPdf } = await import('@/components/clients-pdf');
+      await generateClientsPdf({ data: json.data, agentFilter: agentFilter === 'all' ? null : agentFilter });
+      toast.success('PDF généré', {
+        description: `Clients à relancer et inactifs — ${agentFilter === 'all' ? 'tous agents' : agentFilter}`,
+      });
+    } catch (e: any) {
+      toast.error('Erreur génération PDF', { description: e.message });
+    } finally {
+      setGeneratingClientsPdf(false);
+    }
   };
 
   // === IMPORT VOLUMES SCAPEST ===
@@ -889,11 +911,16 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
           <Button
             size="sm"
             onClick={exportClientsPDF}
+            disabled={generatingClientsPdf}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
-            title="Ouvre une page imprimable (Ctrl+P → Enregistrer en PDF)"
+            title="Génère un PDF avec les clients à relancer et inactifs"
           >
-            <FileDown className="h-3.5 w-3.5 mr-1.5" />
-            PDF Clients à relancer
+            {generatingClientsPdf ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <FileDown className="h-3.5 w-3.5 mr-1.5" />
+            )}
+            {generatingClientsPdf ? 'Génération...' : 'PDF Clients à relancer'}
           </Button>
           <Button
             size="sm"

@@ -15,6 +15,8 @@ import {
   Package,
   Globe,
 } from 'lucide-react';
+
+// FileDown already imported above
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -595,8 +597,26 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="clients" className="space-y-4">
-                <CustomerFollowupTable 
-                  customers={data.customerFollowup} 
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-xs text-muted-foreground">
+                    {data.customerFollowup.filter((c) => c.status === 'A RELANCER' && (agentFilter === 'all' || c.agent === agentFilter)).length} à relancer •{' '}
+                    {data.customerFollowup.filter((c) => c.status === 'INACTIF' && (agentFilter === 'all' || c.agent === agentFilter)).length} inactifs
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      const { generateClientsPdf } = await import('@/components/clients-pdf');
+                      await generateClientsPdf({ data, agentFilter: agentFilter === 'all' ? null : agentFilter });
+                    }}
+                    disabled={generatingPdf}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    PDF Clients à relancer
+                  </Button>
+                </div>
+                <CustomerFollowupTable
+                  customers={data.customerFollowup}
                   availableAgents={availableAgents}
                 />
                 <Card>
