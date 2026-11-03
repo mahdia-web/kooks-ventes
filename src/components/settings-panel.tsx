@@ -326,6 +326,68 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     }
   };
 
+  // === SYNC AGENTS (liaison enseignes ↔ ventes) ===
+  const [syncData, setSyncData] = useState<any>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const checkSyncIssues = async () => {
+    setSyncLoading(true);
+    setSyncData(null);
+    try {
+      const r = await fetch('/api/enseignes/sync-agents', { cache: 'no-store' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      setSyncData(j);
+      if (j.inconsistenciesCount > 0) {
+        toast.warning(`${j.inconsistenciesCount} incohérence(s) détectée(s)`, {
+          description: 'L\'agent de l\'enseigne ne correspond pas à l\'agent des ventes récentes',
+        });
+      } else {
+        toast.success('Aucune incohérence — toutes les liaisons sont correctes');
+      }
+    } catch (e: any) {
+      toast.error('Erreur', { description: e.message });
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const syncAllAgents = async () => {
+    if (!confirm(
+      'Synchroniser les agents ?\n\n' +
+      'Pour chaque enseigne :\n' +
+      '1. Prend l\'agent de la vente la plus récente (source de vérité ERP)\n' +
+      '2. Met à jour l\'enseigne avec cet agent\n' +
+      '3. Met à jour TOUTES les ventes de cette enseigne (agent + type + rate + commission)\n\n' +
+      'Cela garantit que la feuille clients et la feuille ventes sont liées correctement.\n' +
+      'Ex: SCAOUEST sera attribuée à CAP FRAIS partout (plus à BROCARD).'
+    )) return;
+    setSyncing(true);
+    try {
+      const r = await fetch('/api/enseignes/sync-agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false }),
+      });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success(`${j.totalSynced} enseigne(s) synchronisée(s)`, {
+        description: `${j.totalSalesUpdated} ventes mises à jour`,
+      });
+      // Recharge tout
+      loadAgents();
+      loadEnseignes();
+      loadDuplicates();
+      // Re-check
+      setTimeout(() => checkSyncIssues(), 500);
+    } catch (e: any) {
+      toast.error('Erreur sync', { description: e.message });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const runDiagnose = async () => {
     if (!diagnoseQuery.trim()) return;
     setDiagnoseLoading(true);
@@ -1262,6 +1324,101 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
           </div>
 
           <div className="border-t border-amber-200 dark:border-amber-800 pt-2 space-y-2">
+            {/* === SYNC AGENTS (liaison enseignes ↔ ventes) === */}
+            <div className="rounded-md border border-purple-200 bg-purple-50 dark:bg-purple-950/30 dark:border-purple-800 p-2 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
+                    Liaison Clients ↔ Ventes
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Vérifie que l'agent de chaque client correspond à l'agent de ses ventes récentes.
+                    Corrige les affectations erronées (ex: SCAOUEST chez BROCARD alors qu'elle est client CAP FRAIS).
+                  </p>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={checkSyncIssues}
+                    disabled={syncLoading}
+                    className="text-purple-700 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-950/50 h-7 text-xs"
+                  >
+                    {syncLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Search className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Vérifier
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={syncAllAgents}
+                    disabled={syncing}
+                    className="text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/50 h-7 text-xs"
+                  >
+                    {syncing ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Synchroniser
+                  </Button>
+                </div>
+              </div>
+
+              {/* Résultat du check */}
+              {syncData && (
+                <div className="rounded border border-border bg-card p-2 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      {syncData.inconsistenciesCount} incohérence(s) sur {syncData.totalEnseignes} enseignes
+                    </span>
+                  </div>
+                  {syncData.inconsistencies.length > 0 ? (
+                    <div className="max-h-48 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted sticky top-0">
+                          <tr>
+                            <th className="text-left p-1">Enseigne</th>
+                            <th className="text-left p-1">Agent actuel</th>
+                            <th className="text-left p-1">Agent récent</th>
+                            <th className="text-right p-1">Ventes</th>
+                            <th className="text-right p-1">CA</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {syncData.inconsistencies.map((inc: any) => (
+                            <tr key={inc.enseigne} className="border-t border-border">
+                              <td className="p-1 font-medium truncate max-w-[140px]" title={inc.enseigne}>
+                                {inc.enseigne}
+                              </td>
+                              <td className="p-1 text-red-600 dark:text-red-400 line-through">
+                                {inc.enseigneAgent}
+                              </td>
+                              <td className="p-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                                {inc.latestSaleAgent}
+                              </td>
+                              <td className="p-1 text-right">{inc.totalSales}</td>
+                              <td className="p-1 text-right font-mono">{inc.totalCA.toFixed(0)}€</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <p className="mt-1 text-muted-foreground">
+                        Cliquez « Synchroniser » pour aligner tous les agents sur la vente la plus récente.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-emerald-700 dark:text-emerald-400">
+                      ✓ Toutes les liaisons sont correctes — l'agent de chaque client correspond à ses ventes.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* === RESTAURATION OCTOBRE 2026 (CA = 170 250,64€) === */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex-1 min-w-0">
