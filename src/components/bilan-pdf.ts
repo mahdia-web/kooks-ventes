@@ -146,6 +146,20 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   const isAgentSpecific = !!agentFilter;
   const targetAgent = isAgentSpecific ? agents.find((a) => a.agent === agentFilter) : null;
 
+  // === Fetch colis data for the current month ===
+  let colisData: Array<{ enseigne: string; totalColis: number; nbLines: number }> = [];
+  let totalColis = 0;
+  try {
+    const colisRes = await fetch(`/api/volumes/colis-summary?year=${kpis.current.year}&month=${kpis.current.month}`, { cache: 'no-store' });
+    const colisJson = await colisRes.json();
+    if (colisJson.ok) {
+      colisData = colisJson.data || [];
+      totalColis = colisJson.grandTotal?.colis || 0;
+    }
+  } catch {
+    // Volumes non disponibles — on continue sans
+  }
+
   // === KPIs utilisés dans le PDF ===
   // Si agent spécifique : on utilise les stats de l'agent (targetAgent) + son previous
   // Si global : on utilise les KPIs globaux (kpis.current + kpis.previous)
@@ -581,6 +595,55 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },
     });
+  }
+
+  // ============================================================
+  // Colis vendus (volumes) — si des données de volumes existent
+  // ============================================================
+  // Filtre les colis par les enseignes de l'agent si spécifié
+  const agentEnseigneNames = new Set(targetEnseignes.map((e) => e.enseigne));
+  const agentColisData = isAgentSpecific
+    ? colisData.filter((c) => agentEnseigneNames.has(c.enseigne))
+    : colisData;
+  const agentTotalColis = agentColisData.reduce((s, c) => s + c.totalColis, 0);
+
+  if (agentColisData.length > 0) {
+    if (yPosAfterRelance > pageHeight - 60) {
+      doc.addPage();
+      yPosAfterRelance = 18;
+    }
+    yPosAfterRelance += 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(15, 23, 42);
+    const colisTitle = `Colis vendus — ${agentTotalColis} colis (${agentColisData.length} enseigne(s))`;
+    doc.text(doc.splitTextToSize(colisTitle, contentWidth)[0], margin, yPosAfterRelance);
+    yPosAfterRelance += 6;
+
+    autoTable(doc, {
+      startY: yPosAfterRelance,
+      head: [['#', 'Enseigne', 'Colis', 'Lignes', '% Colis']],
+      body: agentColisData.slice(0, 15).map((c, idx) => [
+        String(idx + 1),
+        c.enseigne,
+        String(c.totalColis),
+        String(c.nbLines),
+        agentTotalColis > 0 ? `${(c.totalColis / agentTotalColis * 100).toFixed(1)}%` : '—',
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 8 },
+      bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
+      columnStyles: {
+        0: { cellWidth: 7, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 20, halign: 'right' },
+        3: { cellWidth: 16, halign: 'right' },
+        4: { cellWidth: 18, halign: 'right' },
+      },
+      styles: { overflow: 'linebreak' },
+      margin: { left: margin, right: margin },
+    });
+    yPosAfterRelance = (doc as any).lastAutoTable.finalY + 10;
   }
 
   // ============================================================

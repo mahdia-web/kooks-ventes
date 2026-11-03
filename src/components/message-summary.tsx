@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -61,11 +61,29 @@ interface MessageSummaryProps {
 export function MessageSummary({ data, agent = null, variant = 'full', buttonLabel }: MessageSummaryProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [colisTotal, setColisTotal] = useState<number | undefined>(undefined);
+
+  // Fetch colis data for the current month
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/volumes/colis-summary?year=${data.kpis.current.year}&month=${data.kpis.current.month}`, { cache: 'no-store' });
+        const j = await res.json();
+        if (!cancelled && j.ok) {
+          setColisTotal(j.grandTotal?.colis || 0);
+        }
+      } catch {
+        // Volumes non disponibles
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [data.kpis.current.year, data.kpis.current.month]);
 
   // Construit le texte du message à partir des données du dashboard
   const messageText = useMemo(() => {
-    return buildMessageText(data, agent);
-  }, [data, agent]);
+    return buildMessageText(data, agent, colisTotal);
+  }, [data, agent, colisTotal]);
 
   const copyToClipboard = async () => {
     try {
@@ -169,7 +187,7 @@ export function MessageSummary({ data, agent = null, variant = 'full', buttonLab
  *
  * Exporté pour permettre des usages futurs (génération server-side, tests, etc.)
  */
-export function buildMessageText(data: DashboardData, agent: string | null): string {
+export function buildMessageText(data: DashboardData, agent: string | null, colisTotal?: number): string {
   const isAgentSpecific = !!agent;
   const periodLabel = `${monthLabel(data.kpis.current.month)} ${data.kpis.current.year}`;
 
@@ -226,7 +244,7 @@ Kooks`;
     : '• (aucune vente Centrale ce mois-ci)';
 
   // === Petite analyse globale ===
-  const analysis = buildAnalysis(data, agent, kpis, centrales);
+  const analysis = buildAnalysis(data, agent, kpis, centrales, colisTotal);
 
   // === Construction du message ===
   // Si agent spécifique : "Bonjour {agent},"
@@ -245,6 +263,7 @@ NB BL Centrale : ${kpis.nbBlCentrale}
 NB BL Total : ${kpis.nbBl}
 
 Commission totale : ${fmtEuroLocal(kpis.commission)}
+${colisTotal && colisTotal > 0 ? `Colis vendus : ${colisTotal}` : ''}
 
 Détail des centrales :
 ${centralesLines}
@@ -269,6 +288,7 @@ function buildAnalysis(
   agent: string | null,
   kpis: { caHT: number; caDirect: number; caCentrale: number; nbBl: number; commission: number },
   centrales: Array<{ enseigne: string; caHT: number; agent: string }>,
+  colisTotal?: number,
 ): string {
   const lines: string[] = [];
   const isAgentSpecific = !!agent;
@@ -376,6 +396,11 @@ function buildAnalysis(
     const partCentrale = (kpis.caCentrale / kpis.caHT) * 100;
     const partDirect = 100 - partCentrale;
     lines.push(`📊 Répartition : ${partDirect.toFixed(0)}% Direct / ${partCentrale.toFixed(0)}% Centrale.`);
+  }
+
+  // 6. Colis vendus (si données de volumes disponibles)
+  if (colisTotal && colisTotal > 0) {
+    lines.push(`📦 ${colisTotal} colis vendus ce mois-ci.`);
   }
 
   return lines.length > 0
