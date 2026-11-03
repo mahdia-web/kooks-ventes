@@ -438,7 +438,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         pdfEuro(e.caHT),
         prevCa > 0 ? pdfEuro(prevCa) : '—',
         evolStr,
-        pdfPct(e.share / 100),
+        `${e.share.toFixed(1)}%`,
       ];
     }),
     theme: 'striped',
@@ -508,11 +508,11 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   yPos += 6;
 
   if (toRelance.length === 0) {
-    doc.setFontSize(12);
-    doc.setTextColor(5, 150, 105);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Aucun client à relancer. Excellent travail !', margin, yPos);
-    yPos += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Aucun client à relancer ce mois-ci.', margin, yPos);
+    yPos += 8;
   } else {
     autoTable(doc, {
       startY: yPos + 8,
@@ -704,12 +704,13 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     yPosAfterAgent = 18;
   }
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13); // Reduced from 15 to avoid text overflow with long agent names
+  doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  // Sanitize agent name: replace any non-ASCII chars and trim
+  // Use splitTextToSize to avoid jsPDF rendering bugs with long text
   const safeAgentName = (targetAgent?.agent ?? '').replace(/[^\x20-\x7E]/g, '').trim();
-  const classementTitle = `${isAgentSpecific ? '' : '4. '}Classement complet des enseignes ${isAgentSpecific ? `de ${safeAgentName}` : ''}`;
-  doc.text(classementTitle, margin, yPosAfterAgent);
+  const classementTitle = `${isAgentSpecific ? '' : '4. '}Classement des enseignes${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
+  const titleLines = doc.splitTextToSize(classementTitle, contentWidth);
+  doc.text(titleLines[0], margin, yPosAfterAgent);
 
   const allDirect = targetEnseignes.filter((e) => e.type === 'Direct').sort((a, b) => b.caHT - a.caHT);
   const allCentrale = targetEnseignes.filter((e) => e.type === 'Centrale').sort((a, b) => b.caHT - a.caHT);

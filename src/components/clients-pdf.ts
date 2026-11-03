@@ -49,7 +49,7 @@ export async function generateClientsPdf({ data, agentFilter = null }: ClientsPd
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.text('Clients à relancer', margin, 22);
+  doc.text('Clients à relancer et inactifs', margin, 22);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -63,8 +63,9 @@ export async function generateClientsPdf({ data, agentFilter = null }: ClientsPd
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
+  const totalRelance = toRelance.length + inactifs.length;
   doc.text(
-    `${toRelance.length} à relancer  •  ${inactifs.length} inactif(s)  •  ${actifs.length} actif(s)  •  ${targetCustomers.length} enseigne(s) au total`,
+    `${totalRelance} client(s) à relancer  •  ${actifs.length} actif(s)  •  ${targetCustomers.length} enseigne(s) au total`,
     pageWidth / 2,
     y + 10,
     { align: 'center' }
@@ -82,21 +83,24 @@ export async function generateClientsPdf({ data, agentFilter = null }: ClientsPd
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(202, 138, 4);
-  doc.text(`Clients à relancer (${toRelance.length})`, margin, y);
+  // Fusionne à relancer + inactifs en une seule liste (tout va de paire)
+  const allToRelance = [...toRelance, ...inactifs];
+
+  doc.text(`Clients à relancer et inactifs (${allToRelance.length})`, margin, y);
   y += 4;
 
-  if (toRelance.length === 0) {
+  if (allToRelance.length === 0) {
     y += 6;
-    doc.setFontSize(12);
-    doc.setTextColor(5, 150, 105);
-    doc.setFont('helvetica', 'bold');
-    doc.text('✓ Aucun client à relancer. Excellent travail !', margin, y);
-    y += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Aucun client à relancer.', margin, y);
+    y += 8;
   } else {
     autoTable(doc, {
       startY: y + 2,
       head: [['Enseigne', 'Type', 'BL', 'CA Total', 'Dern. cmd', 'Mois', 'Statut']],
-      body: toRelance.map((cu) => [
+      body: allToRelance.map((cu) => [
         cu.enseigne,
         cu.type,
         String(cu.nbBlTotal),
@@ -129,63 +133,8 @@ export async function generateClientsPdf({ data, agentFilter = null }: ClientsPd
     y = (doc as any).lastAutoTable.finalY + 14;
   }
 
-  // ============================================================
-  // CLIENTS INACTIFS
-  // ============================================================
-  if (y > pageHeight - 40) {
-    doc.addPage();
-    y = 20;
-  }
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(220, 38, 38);
-  doc.text(`Clients inactifs — +3 mois sans commande (${inactifs.length})`, margin, y);
-  y += 4;
-
-  if (inactifs.length === 0) {
-    y += 6;
-    doc.setFontSize(12);
-    doc.setTextColor(5, 150, 105);
-    doc.setFont('helvetica', 'bold');
-    doc.text('✓ Aucun client inactif. Excellent travail !', margin, y);
-    y += 10;
-  } else {
-    autoTable(doc, {
-      startY: y + 2,
-      head: [['Enseigne', 'Type', 'BL', 'CA Total', 'Dern. cmd', 'Mois', 'Statut']],
-      body: inactifs.map((cu) => [
-        cu.enseigne,
-        cu.type,
-        String(cu.nbBlTotal),
-        pdfEuro(cu.caTotal),
-        pdfDate(cu.lastOrder),
-        String(cu.monthsSinceLastOrder),
-        cu.status,
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 8 },
-      bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
-      columnStyles: {
-        0: { cellWidth: 'auto' },
-        1: { cellWidth: 16 },
-        2: { cellWidth: 10, halign: 'right' },
-        3: { cellWidth: 24, halign: 'right' },
-        4: { cellWidth: 22, halign: 'right' },
-        5: { cellWidth: 12, halign: 'right' },
-        6: { cellWidth: 22 },
-      },
-      styles: { overflow: 'linebreak' },
-      margin: { left: margin, right: margin },
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 6) {
-          data.cell.styles.textColor = [220, 38, 38];
-          data.cell.styles.fontStyle = 'bold';
-        }
-      },
-    });
-    y = (doc as any).lastAutoTable.finalY + 14;
-  }
+  // (La section inactifs est fusionnée avec la section à relancer ci-dessus
+  //  — tout va de paire, pas de commentaire, juste la liste)
 
   // ============================================================
   // Footer
@@ -203,6 +152,6 @@ export async function generateClientsPdf({ data, agentFilter = null }: ClientsPd
     );
   }
 
-  const filename = `clients-relance-${(agentFilter ?? 'tous').toLowerCase().replace(/\s+/g, '-')}-${data.kpis.current.year}-${String(data.kpis.current.month).padStart(2, '0')}.pdf`;
+  const filename = `clients-a-relancer-${(agentFilter ?? 'tous').toLowerCase().replace(/\s+/g, '-')}-${data.kpis.current.year}-${String(data.kpis.current.month).padStart(2, '0')}.pdf`;
   doc.save(filename);
 }
