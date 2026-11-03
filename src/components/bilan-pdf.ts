@@ -566,7 +566,6 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   // Helper: raccourcit le nom d'enseigne pour le tableau colis
   const shortEnseigneName = (name: string): string => {
     let n = name;
-    // Remplace les formes longues par acronymes
     n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT PARIS.?EST/i, 'SCAPEST');
     n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT DE L'?OUEST/i, 'SCAOUEST');
     n = n.replace(/SOCIETE COOPERATIVE D'?APPROVISIONNEMENT RHONE.?ALP/i, 'SOCARA');
@@ -574,25 +573,14 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     n = n.replace(/SOC COOP APPROVISIONNEMENT PARIS NORD/i, 'SCAPNOR');
     n = n.replace(/CENTRA APPROVI CHARENT POITOU/i, 'SCACHAP');
     n = n.replace(/LECLERC APPROVISIONNEMENT SUD/i, 'LECASUD');
-    // Garde seulement les 30 premiers caractères si encore trop long
     if (n.length > 35) n = n.slice(0, 33) + '..';
     return n;
   };
-  // Filtre les colis par les enseignes de l'agent (match flou)
-  const agentEnseigneNamesLower = new Set(
-    targetEnseignes.map((e) => e.enseigne.toLowerCase().trim())
-  );
-  const agentColisData = isAgentSpecific
-    ? colisData.filter((c) => {
-        const cl = c.enseigne.toLowerCase().trim();
-        // Match exact ou inclusion dans les deux sens
-        return agentEnseigneNamesLower.has(cl) ||
-          Array.from(agentEnseigneNamesLower).some((n) => cl.includes(n) || n.includes(cl));
-      })
-    : colisData;
-  const agentTotalColis = agentColisData.reduce((s, c) => s + c.totalColis, 0);
 
-  if (agentColisData.length > 0) {
+  // Affiche les colis seulement si l'agent a des enseignes Centrale
+  // (BROCARD a des centrales → affiche ; SEBASTIEN n'en a pas → skip)
+  const hasCentraleEnseignes = targetEnseignes.some((e) => e.type === 'Centrale');
+  if (colisData.length > 0 && (!isAgentSpecific || hasCentraleEnseignes)) {
     if (yPos > pageHeight - 50) {
       doc.addPage();
       yPos = 20;
@@ -600,17 +588,17 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
-    doc.text(`Colis vendus (${agentTotalColis})`, margin, yPos);
+    doc.text(`Colis vendus (${totalColis})`, margin, yPos);
     yPos += 8;
 
     autoTable(doc, {
       startY: yPos,
       head: [['#', 'Enseigne', 'Colis', '%']],
-      body: agentColisData.slice(0, 20).map((c, idx) => [
+      body: colisData.slice(0, 20).map((c, idx) => [
         String(idx + 1),
         shortEnseigneName(c.enseigne),
         String(c.totalColis),
-        agentTotalColis > 0 ? `${(c.totalColis / agentTotalColis * 100).toFixed(1)}%` : '-',
+        totalColis > 0 ? `${(c.totalColis / totalColis * 100).toFixed(1)}%` : '-',
       ]),
       theme: 'striped',
       headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 8 },
