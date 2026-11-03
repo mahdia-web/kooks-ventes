@@ -563,7 +563,21 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   }
 
   // --- Section 3: Colis vendus ---
-  if (colisData.length > 0) {
+  // Filtre les colis par les enseignes de l'agent (match flou)
+  const agentEnseigneNamesLower = new Set(
+    targetEnseignes.map((e) => e.enseigne.toLowerCase().trim())
+  );
+  const agentColisData = isAgentSpecific
+    ? colisData.filter((c) => {
+        const cl = c.enseigne.toLowerCase().trim();
+        // Match exact ou inclusion dans les deux sens
+        return agentEnseigneNamesLower.has(cl) ||
+          Array.from(agentEnseigneNamesLower).some((n) => cl.includes(n) || n.includes(cl));
+      })
+    : colisData;
+  const agentTotalColis = agentColisData.reduce((s, c) => s + c.totalColis, 0);
+
+  if (agentColisData.length > 0) {
     if (yPos > pageHeight - 50) {
       doc.addPage();
       yPos = 20;
@@ -571,17 +585,17 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
-    doc.text(`Colis vendus (${totalColis})`, margin, yPos);
+    doc.text(`Colis vendus (${agentTotalColis})`, margin, yPos);
     yPos += 8;
 
     autoTable(doc, {
       startY: yPos,
       head: [['#', 'Enseigne', 'Colis', '%']],
-      body: colisData.slice(0, 20).map((c, idx) => [
+      body: agentColisData.slice(0, 20).map((c, idx) => [
         String(idx + 1),
         c.enseigne.length > 50 ? c.enseigne.slice(0, 48) + '..' : c.enseigne,
         String(c.totalColis),
-        totalColis > 0 ? `${(c.totalColis / totalColis * 100).toFixed(1)}%` : '-',
+        agentTotalColis > 0 ? `${(c.totalColis / agentTotalColis * 100).toFixed(1)}%` : '-',
       ]),
       theme: 'striped',
       headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 8 },
