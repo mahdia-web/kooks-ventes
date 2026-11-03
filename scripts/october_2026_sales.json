@@ -1,0 +1,2630 @@
+[
+  {
+    "ref": "26000233",
+    "date": "30/10/2026",
+    "client": "DELEEV (PARIS)",
+    "ht": 429.96,
+    "ttc": 453.61,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000576",
+    "date": "30/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 637.59,
+    "ttc": 672.66,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000591",
+    "date": "30/10/2026",
+    "client": "COSTCO FRANCE - PONTAULT COMBAULT",
+    "ht": 1774.0,
+    "ttc": 1871.57,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000592",
+    "date": "30/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 1774.0,
+    "ttc": 1871.57,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000596",
+    "date": "30/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1169.6,
+    "ttc": 1169.6,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000597",
+    "date": "30/10/2026",
+    "client": "Carrefour Belgium N.V. (BERINGEN)",
+    "ht": 1259.84,
+    "ttc": 1259.84,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000602",
+    "date": "30/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 271.41,
+    "ttc": 286.34,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000603",
+    "date": "30/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 254.17,
+    "ttc": 268.15,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000604",
+    "date": "30/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 323.11,
+    "ttc": 340.88,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000605",
+    "date": "30/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 323.22,
+    "ttc": 341.0,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000606",
+    "date": "30/10/2026",
+    "client": "FISH BURGER AZUR COMPANY (FBAC)",
+    "ht": 278.4,
+    "ttc": 293.71,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000607",
+    "date": "30/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1404.44,
+    "ttc": 1481.68,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000575",
+    "date": "29/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 275.72,
+    "ttc": 290.88,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000579",
+    "date": "29/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 522.15,
+    "ttc": 550.87,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000580",
+    "date": "29/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 328.52,
+    "ttc": 346.59,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000581",
+    "date": "29/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 223.78,
+    "ttc": 236.09,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000582",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 85.14,
+    "ttc": 89.82,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000583",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 121.63,
+    "ttc": 128.32,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000584",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 72.97,
+    "ttc": 76.98,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000585",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 109.47,
+    "ttc": 115.49,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000586",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 182.44,
+    "ttc": 192.47,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000587",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 352.72,
+    "ttc": 372.12,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000588",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 328.4,
+    "ttc": 346.46,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000589",
+    "date": "29/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 2319.04,
+    "ttc": 2446.59,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000590",
+    "date": "29/10/2026",
+    "client": "O'TERA BREST",
+    "ht": 422.24,
+    "ttc": 445.46,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000598",
+    "date": "29/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 672.06,
+    "ttc": 709.02,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000599",
+    "date": "29/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 301.57,
+    "ttc": 318.16,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000567",
+    "date": "28/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 484.83,
+    "ttc": 511.5,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000568",
+    "date": "28/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 386.79,
+    "ttc": 408.06,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000569",
+    "date": "28/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 509.72,
+    "ttc": 537.75,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000570",
+    "date": "28/10/2026",
+    "client": "C.S.F. - CREPY EN VALOIS (584)",
+    "ht": 335.66,
+    "ttc": 354.12,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000571",
+    "date": "28/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 484.84,
+    "ttc": 511.51,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000573",
+    "date": "28/10/2026",
+    "client": "CSF Aire sur la lys - MARKET",
+    "ht": 273.51,
+    "ttc": 288.55,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000574",
+    "date": "28/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 289.99,
+    "ttc": 305.94,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000546",
+    "date": "27/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 708.62,
+    "ttc": 747.59,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000547",
+    "date": "27/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 397.82,
+    "ttc": 419.7,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000548",
+    "date": "27/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 511.03,
+    "ttc": 539.14,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000549",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "ttc": 89.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000550",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 121.63,
+    "ttc": 128.32,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000551",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 24.33,
+    "ttc": 25.67,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000552",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 182.44,
+    "ttc": 192.47,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000553",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 377.05,
+    "ttc": 397.79,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000554",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 194.61,
+    "ttc": 205.31,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000555",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 182.45,
+    "ttc": 192.48,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000557",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000559",
+    "date": "27/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 564.9,
+    "ttc": 595.97,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000560",
+    "date": "27/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 206.84,
+    "ttc": 218.24,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000561",
+    "date": "27/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1329.8,
+    "ttc": 1402.94,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000563",
+    "date": "27/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 568.67,
+    "ttc": 599.95,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000564",
+    "date": "27/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 491.12,
+    "ttc": 518.13,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000565",
+    "date": "27/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 512.65,
+    "ttc": 540.85,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000566",
+    "date": "27/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 323.11,
+    "ttc": 340.88,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000572",
+    "date": "27/10/2026",
+    "client": "PrimaPrix France",
+    "ht": 593.64,
+    "ttc": 626.29,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000542",
+    "date": "26/10/2026",
+    "client": "AUCHAN SEMECOURT",
+    "ht": 450.08,
+    "ttc": 474.83,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000543",
+    "date": "26/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 413.57,
+    "ttc": 436.32,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000544",
+    "date": "26/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 749.6,
+    "ttc": 790.83,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000545",
+    "date": "26/10/2026",
+    "client": "SEDIS ALIMENTAIRE",
+    "ht": 1061.86,
+    "ttc": 1120.26,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000556",
+    "date": "26/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000558",
+    "date": "26/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 395.45,
+    "ttc": 417.2,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000536",
+    "date": "23/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 482.5,
+    "ttc": 509.04,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000537",
+    "date": "23/10/2026",
+    "client": "O'TERA EPAGNY",
+    "ht": 426.88,
+    "ttc": 450.36,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000538",
+    "date": "23/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1259.84,
+    "ttc": 1259.84,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000540",
+    "date": "23/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 366.2,
+    "ttc": 386.34,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000541",
+    "date": "23/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 297.25,
+    "ttc": 313.6,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000467",
+    "date": "22/10/2026",
+    "client": "Costco Wholesale Spain, S.L.U.",
+    "ht": 5012.0,
+    "ttc": 5012.0,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000511",
+    "date": "22/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 372.95,
+    "ttc": 393.46,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000512",
+    "date": "22/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 236.21,
+    "ttc": 249.2,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000513",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 24.33,
+    "ttc": 25.67,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000514",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 218.93,
+    "ttc": 230.97,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000515",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000516",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 97.31,
+    "ttc": 102.66,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000518",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 170.28,
+    "ttc": 179.65,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000517",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 36.49,
+    "ttc": 38.5,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000519",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 109.46,
+    "ttc": 115.48,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000520",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 109.47,
+    "ttc": 115.49,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000521",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 121.63,
+    "ttc": 128.32,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000522",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 462.18,
+    "ttc": 487.6,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000523",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 401.37,
+    "ttc": 423.45,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000524",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 170.28,
+    "ttc": 179.65,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000525",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 936.53,
+    "ttc": 988.04,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000527",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 778.42,
+    "ttc": 821.23,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000526",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 194.61,
+    "ttc": 205.31,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000528",
+    "date": "22/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 292.02,
+    "ttc": 308.08,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000529",
+    "date": "22/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 2299.6,
+    "ttc": 2426.08,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000530",
+    "date": "22/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1913.62,
+    "ttc": 2018.87,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000534",
+    "date": "22/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 224.01,
+    "ttc": 236.33,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000535",
+    "date": "22/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 379.1,
+    "ttc": 399.95,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000539",
+    "date": "22/10/2026",
+    "client": "AUCHAN GRASSE",
+    "ht": 487.87,
+    "ttc": 514.7,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000464",
+    "date": "21/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 2483.6,
+    "ttc": 2620.2,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000465",
+    "date": "21/10/2026",
+    "client": "COSTCO FRANCE - PONTAULT COMBAULT",
+    "ht": 2128.8,
+    "ttc": 2245.88,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000466",
+    "date": "21/10/2026",
+    "client": "COSTCO FRANCE - MULHOUSE (5403)",
+    "ht": 1774.0,
+    "ttc": 1871.57,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000502",
+    "date": "21/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 335.66,
+    "ttc": 354.12,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000503",
+    "date": "21/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 534.57,
+    "ttc": 563.97,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000506",
+    "date": "21/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 459.98,
+    "ttc": 485.28,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000505",
+    "date": "21/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 857.8,
+    "ttc": 904.98,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000509",
+    "date": "21/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 357.77,
+    "ttc": 377.45,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000510",
+    "date": "21/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 585.91,
+    "ttc": 618.14,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000531",
+    "date": "21/10/2026",
+    "client": "NOUS EPICERIES ANTI GASPI CENTRALE",
+    "ht": 1245.3,
+    "ttc": 1313.79,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000475",
+    "date": "20/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 596.73,
+    "ttc": 629.55,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000476",
+    "date": "20/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 223.77,
+    "ttc": 236.08,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000477",
+    "date": "20/10/2026",
+    "client": "PÈRE & FISH MÉRIGNAC - Franchise",
+    "ht": 295.68,
+    "ttc": 311.94,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000478",
+    "date": "20/10/2026",
+    "client": "Carrefour Belgium N.V. (BERINGEN)",
+    "ht": 1342.72,
+    "ttc": 1342.72,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000479",
+    "date": "20/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 425.57,
+    "ttc": 448.98,
+    "commercial": "CAP FRAIS",
+    "facture": ""
+  },
+  {
+    "ref": "26000480",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 24.32,
+    "ttc": 25.66,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000481",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 133.79,
+    "ttc": 141.14,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000482",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000483",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "ttc": 89.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000484",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 24.32,
+    "ttc": 25.66,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000485",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 72.98,
+    "ttc": 77.0,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000486",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000487",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 218.93,
+    "ttc": 230.97,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000488",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 72.98,
+    "ttc": 77.0,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000489",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 389.21,
+    "ttc": 410.62,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000490",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 170.28,
+    "ttc": 179.65,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000491",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 121.63,
+    "ttc": 128.32,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000492",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 1070.33,
+    "ttc": 1129.2,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000493",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 133.79,
+    "ttc": 141.15,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000494",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 1070.32,
+    "ttc": 1129.19,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000495",
+    "date": "20/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 451.95,
+    "ttc": 476.81,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000499",
+    "date": "20/10/2026",
+    "client": "LES HALLES MARCHE",
+    "ht": 464.0,
+    "ttc": 489.52,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000498",
+    "date": "20/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 186.58,
+    "ttc": 196.84,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000500",
+    "date": "20/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1994.7,
+    "ttc": 2104.41,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000501",
+    "date": "20/10/2026",
+    "client": "PERE & FISH",
+    "ht": 278.4,
+    "ttc": 293.71,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000504",
+    "date": "20/10/2026",
+    "client": "CORA TIGERY-FRAIS",
+    "ht": 273.5,
+    "ttc": 288.54,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000507",
+    "date": "20/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 435.11,
+    "ttc": 459.04,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000508",
+    "date": "20/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 456.66,
+    "ttc": 481.78,
+    "commercial": "BROCARD",
+    "facture": ""
+  },
+  {
+    "ref": "26000469",
+    "date": "19/10/2026",
+    "client": "O'TERA - ARRAS",
+    "ht": 422.24,
+    "ttc": 445.46,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00459"
+  },
+  {
+    "ref": "26000497",
+    "date": "19/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 813.49,
+    "ttc": 858.23,
+    "commercial": "*",
+    "facture": "FV-00462"
+  },
+  {
+    "ref": "26000496",
+    "date": "19/10/2026",
+    "client": "AUCHAN MANDELIEU",
+    "ht": 1447.68,
+    "ttc": 1527.3,
+    "commercial": "*",
+    "facture": "FV-00461"
+  },
+  {
+    "ref": "26000468",
+    "date": "16/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 861.61,
+    "ttc": 909.0,
+    "commercial": "*",
+    "facture": "FV-00455"
+  },
+  {
+    "ref": "26000473",
+    "date": "16/10/2026",
+    "client": "PrimaPrix France",
+    "ht": 1137.0,
+    "ttc": 1199.53,
+    "commercial": "*",
+    "facture": "FV-00458"
+  },
+  {
+    "ref": "26000471",
+    "date": "16/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 853.0,
+    "ttc": 899.92,
+    "commercial": "*",
+    "facture": "FV-00456"
+  },
+  {
+    "ref": "26000472",
+    "date": "16/10/2026",
+    "client": "C.S.F. - CREPY EN VALOIS (584)",
+    "ht": 285.93,
+    "ttc": 301.66,
+    "commercial": "*",
+    "facture": "FV-00457"
+  },
+  {
+    "ref": "26000474",
+    "date": "16/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1240.72,
+    "ttc": 1308.96,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00460"
+  },
+  {
+    "ref": "26000432",
+    "date": "15/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 4733.06,
+    "ttc": 4993.38,
+    "commercial": "*",
+    "facture": "FV-00427"
+  },
+  {
+    "ref": "26000436",
+    "date": "15/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 323.22,
+    "ttc": 341.0,
+    "commercial": "*",
+    "facture": "FV-00429"
+  },
+  {
+    "ref": "26000437",
+    "date": "15/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 683.74,
+    "ttc": 721.35,
+    "commercial": "*",
+    "facture": "FV-00441"
+  },
+  {
+    "ref": "26000438",
+    "date": "15/10/2026",
+    "client": "O'TERA - JB LEBAS",
+    "ht": 324.8,
+    "ttc": 342.66,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00430"
+  },
+  {
+    "ref": "26000439",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": "FV-00442"
+  },
+  {
+    "ref": "26000440",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 328.4,
+    "ttc": 346.46,
+    "commercial": "*",
+    "facture": "FV-00443"
+  },
+  {
+    "ref": "26000441",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 85.14,
+    "ttc": 89.82,
+    "commercial": "*",
+    "facture": "FV-00444"
+  },
+  {
+    "ref": "26000442",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 231.09,
+    "ttc": 243.8,
+    "commercial": "*",
+    "facture": "FV-00445"
+  },
+  {
+    "ref": "26000443",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 72.98,
+    "ttc": 77.0,
+    "commercial": "*",
+    "facture": "FV-00446"
+  },
+  {
+    "ref": "26000444",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 279.74,
+    "ttc": 295.13,
+    "commercial": "*",
+    "facture": "FV-00447"
+  },
+  {
+    "ref": "26000445",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "ttc": 89.82,
+    "commercial": "*",
+    "facture": "FV-00448"
+  },
+  {
+    "ref": "26000446",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 145.95,
+    "ttc": 153.98,
+    "commercial": "*",
+    "facture": "FV-00449"
+  },
+  {
+    "ref": "26000447",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 36.49,
+    "ttc": 38.5,
+    "commercial": "*",
+    "facture": "FV-00450"
+  },
+  {
+    "ref": "26000448",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 498.67,
+    "ttc": 526.1,
+    "commercial": "*",
+    "facture": "FV-00451"
+  },
+  {
+    "ref": "26000449",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 267.58,
+    "ttc": 282.3,
+    "commercial": "*",
+    "facture": "FV-00452"
+  },
+  {
+    "ref": "26000450",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 60.81,
+    "ttc": 64.15,
+    "commercial": "*",
+    "facture": "FV-00453"
+  },
+  {
+    "ref": "26000451",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 851.39,
+    "ttc": 898.22,
+    "commercial": "*",
+    "facture": "FV-00454"
+  },
+  {
+    "ref": "26000452",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 608.14,
+    "ttc": 641.59,
+    "commercial": "*",
+    "facture": "FV-00431"
+  },
+  {
+    "ref": "26000453",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 437.86,
+    "ttc": 461.94,
+    "commercial": "*",
+    "facture": "FV-00432"
+  },
+  {
+    "ref": "26000454",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 559.49,
+    "ttc": 590.26,
+    "commercial": "*",
+    "facture": "FV-00433"
+  },
+  {
+    "ref": "26000455",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 340.56,
+    "ttc": 359.29,
+    "commercial": "*",
+    "facture": "FV-00434"
+  },
+  {
+    "ref": "26000456",
+    "date": "15/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1816.32,
+    "ttc": 1916.22,
+    "commercial": "*",
+    "facture": "FV-00435"
+  },
+  {
+    "ref": "26000459",
+    "date": "15/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 1029.63,
+    "ttc": 1086.26,
+    "commercial": "BROCARD",
+    "facture": "FV-00436"
+  },
+  {
+    "ref": "26000460",
+    "date": "15/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 310.18,
+    "ttc": 327.24,
+    "commercial": "*",
+    "facture": "FV-00437"
+  },
+  {
+    "ref": "26000461",
+    "date": "15/10/2026",
+    "client": "PÈRE & FISH PLAN DE CAMPAGNE - Succursale",
+    "ht": 222.72,
+    "ttc": 234.97,
+    "commercial": "*",
+    "facture": "FV-00438"
+  },
+  {
+    "ref": "26000462",
+    "date": "15/10/2026",
+    "client": "FISH ANNECY",
+    "ht": 236.54,
+    "ttc": 249.55,
+    "commercial": "*",
+    "facture": "FV-00439"
+  },
+  {
+    "ref": "26000463",
+    "date": "15/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 243.34,
+    "ttc": 256.75,
+    "commercial": "*",
+    "facture": "FV-00440"
+  },
+  {
+    "ref": "26000427",
+    "date": "14/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 634.02,
+    "ttc": 668.89,
+    "commercial": "*",
+    "facture": "FV-00421"
+  },
+  {
+    "ref": "26000428",
+    "date": "14/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 410.25,
+    "ttc": 432.81,
+    "commercial": "*",
+    "facture": "FV-00422"
+  },
+  {
+    "ref": "26000429",
+    "date": "14/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 870.22,
+    "ttc": 918.08,
+    "commercial": "*",
+    "facture": "FV-00423"
+  },
+  {
+    "ref": "26000430",
+    "date": "14/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 606.15,
+    "ttc": 639.49,
+    "commercial": "*",
+    "facture": "FV-00424"
+  },
+  {
+    "ref": "26000431",
+    "date": "14/10/2026",
+    "client": "CSF Aire sur la lys - MARKET",
+    "ht": 298.36,
+    "ttc": 314.77,
+    "commercial": "*",
+    "facture": "FV-00425"
+  },
+  {
+    "ref": "26000434",
+    "date": "14/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 361.56,
+    "ttc": 381.45,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00426"
+  },
+  {
+    "ref": "26000435",
+    "date": "14/10/2026",
+    "client": "AUCHAN MANDELIEU",
+    "ht": 723.84,
+    "ttc": 763.65,
+    "commercial": "SEBASTIEN GASNIER",
+    "facture": "FV-00428"
+  },
+  {
+    "ref": "26000396",
+    "date": "13/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 655.31,
+    "ttc": 691.35,
+    "commercial": "*",
+    "facture": "FV-00392"
+  },
+  {
+    "ref": "26000397",
+    "date": "13/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1425.6,
+    "ttc": 1425.6,
+    "commercial": "*",
+    "facture": "FV-00393"
+  },
+  {
+    "ref": "26000398",
+    "date": "13/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 323.22,
+    "ttc": 341.0,
+    "commercial": "*",
+    "facture": "FV-00394"
+  },
+  {
+    "ref": "26000399",
+    "date": "13/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 534.57,
+    "ttc": 563.97,
+    "commercial": "*",
+    "facture": "FV-00395"
+  },
+  {
+    "ref": "26000400",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 36.49,
+    "ttc": 38.5,
+    "commercial": "*",
+    "facture": "FV-00411"
+  },
+  {
+    "ref": "26000401",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 109.47,
+    "ttc": 115.49,
+    "commercial": "*",
+    "facture": "FV-00412"
+  },
+  {
+    "ref": "26000402",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 48.66,
+    "ttc": 51.34,
+    "commercial": "*",
+    "facture": "FV-00413"
+  },
+  {
+    "ref": "26000403",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 60.81,
+    "ttc": 64.15,
+    "commercial": "*",
+    "facture": "FV-00414"
+  },
+  {
+    "ref": "26000404",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 85.14,
+    "ttc": 89.83,
+    "commercial": "*",
+    "facture": "FV-00415"
+  },
+  {
+    "ref": "26000405",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 97.31,
+    "ttc": 102.66,
+    "commercial": "*",
+    "facture": "FV-00416"
+  },
+  {
+    "ref": "26000406",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 170.28,
+    "ttc": 179.65,
+    "commercial": "*",
+    "facture": "FV-00417"
+  },
+  {
+    "ref": "26000407",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 24.32,
+    "ttc": 25.66,
+    "commercial": "*",
+    "facture": "FV-00418"
+  },
+  {
+    "ref": "26000408",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 243.26,
+    "ttc": 256.64,
+    "commercial": "*",
+    "facture": "FV-00419"
+  },
+  {
+    "ref": "26000409",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 109.47,
+    "ttc": 115.49,
+    "commercial": "*",
+    "facture": "FV-00420"
+  },
+  {
+    "ref": "26000410",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 377.05,
+    "ttc": 397.79,
+    "commercial": "*",
+    "facture": "FV-00396"
+  },
+  {
+    "ref": "26000411",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 462.18,
+    "ttc": 487.6,
+    "commercial": "*",
+    "facture": "FV-00397"
+  },
+  {
+    "ref": "26000412",
+    "date": "13/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 713.81,
+    "ttc": 753.07,
+    "commercial": "*",
+    "facture": "FV-00398"
+  },
+  {
+    "ref": "26000413",
+    "date": "13/10/2026",
+    "client": "ALDOUEST",
+    "ht": 430.81,
+    "ttc": 454.5,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00399"
+  },
+  {
+    "ref": "26000414",
+    "date": "13/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 287.96,
+    "ttc": 303.8,
+    "commercial": "*",
+    "facture": "FV-00400"
+  },
+  {
+    "ref": "26000415",
+    "date": "13/10/2026",
+    "client": "AUCHAN OLIVET",
+    "ht": 510.4,
+    "ttc": 538.47,
+    "commercial": "*",
+    "facture": "FV-00401"
+  },
+  {
+    "ref": "26000416",
+    "date": "13/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1654.14,
+    "ttc": 1745.12,
+    "commercial": "*",
+    "facture": "FV-00402"
+  },
+  {
+    "ref": "26000418",
+    "date": "13/10/2026",
+    "client": "SEDIS ALIMENTAIRE",
+    "ht": 3434.3,
+    "ttc": 3623.19,
+    "commercial": "*",
+    "facture": "FV-00403"
+  },
+  {
+    "ref": "26000419",
+    "date": "13/10/2026",
+    "client": "NOUS EPICERIES ANTI GASPI CENTRALE",
+    "ht": 2238.0,
+    "ttc": 2361.09,
+    "commercial": "*",
+    "facture": "FV-00404"
+  },
+  {
+    "ref": "26000420",
+    "date": "13/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 236.54,
+    "ttc": 249.55,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000421",
+    "date": "13/10/2026",
+    "client": "RENOUEST ( E.LECLERC RENNES )",
+    "ht": 1215.68,
+    "ttc": 1282.54,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00405"
+  },
+  {
+    "ref": "26000422",
+    "date": "13/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 400.65,
+    "ttc": 422.69,
+    "commercial": "BROCARD",
+    "facture": "FV-00406"
+  },
+  {
+    "ref": "26000423",
+    "date": "13/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 560.05,
+    "ttc": 590.85,
+    "commercial": "BROCARD",
+    "facture": "FV-00407"
+  },
+  {
+    "ref": "26000424",
+    "date": "13/10/2026",
+    "client": "LES HALLES MARCHE",
+    "ht": 350.79,
+    "ttc": 370.12,
+    "commercial": "*",
+    "facture": "FV-00408"
+  },
+  {
+    "ref": "26000425",
+    "date": "13/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 697.91,
+    "ttc": 736.3,
+    "commercial": "*",
+    "facture": "FV-00409"
+  },
+  {
+    "ref": "26000426",
+    "date": "13/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 529.91,
+    "ttc": 559.06,
+    "commercial": "*",
+    "facture": "FV-00410"
+  },
+  {
+    "ref": "26000386",
+    "date": "12/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 1774.0,
+    "ttc": 1871.57,
+    "commercial": "*",
+    "facture": "FV-00391"
+  },
+  {
+    "ref": "26000387",
+    "date": "12/10/2026",
+    "client": "AUCHAN FENOUILLET (TOULOUSE)",
+    "ht": 739.2,
+    "ttc": 779.86,
+    "commercial": "*",
+    "facture": "FV-00384"
+  },
+  {
+    "ref": "26000388",
+    "date": "12/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 637.59,
+    "ttc": 672.66,
+    "commercial": "*",
+    "facture": "FV-00385"
+  },
+  {
+    "ref": "26000390",
+    "date": "12/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 383.42,
+    "ttc": 404.51,
+    "commercial": "*",
+    "facture": "FV-00386"
+  },
+  {
+    "ref": "26000391",
+    "date": "12/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1055.48,
+    "ttc": 1113.53,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00387"
+  },
+  {
+    "ref": "26000394",
+    "date": "12/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 271.15,
+    "ttc": 286.06,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00388"
+  },
+  {
+    "ref": "26000395",
+    "date": "12/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 474.54,
+    "ttc": 500.64,
+    "commercial": "*",
+    "facture": "FV-00389"
+  },
+  {
+    "ref": "26000417",
+    "date": "12/10/2026",
+    "client": "AUCHAN HYPERMARCHÉ (CERGY)",
+    "ht": 1057.92,
+    "ttc": 1116.11,
+    "commercial": "*",
+    "facture": "FV-00390"
+  },
+  {
+    "ref": "26000389",
+    "date": "09/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 323.11,
+    "ttc": 340.88,
+    "commercial": "BROCARD",
+    "facture": "FV-00381"
+  },
+  {
+    "ref": "26000392",
+    "date": "09/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 374.8,
+    "ttc": 395.41,
+    "commercial": "*",
+    "facture": "FV-00382"
+  },
+  {
+    "ref": "26000393",
+    "date": "09/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 336.04,
+    "ttc": 354.52,
+    "commercial": "*",
+    "facture": "FV-00383"
+  },
+  {
+    "ref": "26000369",
+    "date": "08/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 509.7,
+    "ttc": 537.73,
+    "commercial": "*",
+    "facture": "FV-00366"
+  },
+  {
+    "ref": "26000370",
+    "date": "08/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 323.23,
+    "ttc": 341.01,
+    "commercial": "*",
+    "facture": "FV-00367"
+  },
+  {
+    "ref": "26000372",
+    "date": "08/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 778.41,
+    "ttc": 821.22,
+    "commercial": "*",
+    "facture": "FV-00368"
+  },
+  {
+    "ref": "26000373",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 145.96,
+    "ttc": 153.99,
+    "commercial": "*",
+    "facture": "FV-00374"
+  },
+  {
+    "ref": "26000374",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 97.3,
+    "ttc": 102.65,
+    "commercial": "*",
+    "facture": "FV-00375"
+  },
+  {
+    "ref": "26000375",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 158.11,
+    "ttc": 166.81,
+    "commercial": "*",
+    "facture": "FV-00376"
+  },
+  {
+    "ref": "26000376",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "ttc": 89.82,
+    "commercial": "*",
+    "facture": "FV-00377"
+  },
+  {
+    "ref": "26000377",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 145.96,
+    "ttc": 153.99,
+    "commercial": "*",
+    "facture": "FV-00378"
+  },
+  {
+    "ref": "26000378",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 377.05,
+    "ttc": 397.79,
+    "commercial": "*",
+    "facture": "FV-00379"
+  },
+  {
+    "ref": "26000379",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 802.74,
+    "ttc": 846.89,
+    "commercial": "*",
+    "facture": "FV-00369"
+  },
+  {
+    "ref": "26000380",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 693.28,
+    "ttc": 731.41,
+    "commercial": "*",
+    "facture": "FV-00370"
+  },
+  {
+    "ref": "26000382",
+    "date": "08/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 611.74,
+    "ttc": 645.39,
+    "commercial": "*",
+    "facture": "FV-00380"
+  },
+  {
+    "ref": "26000383",
+    "date": "08/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 185.26,
+    "ttc": 195.43,
+    "commercial": "BROCARD",
+    "facture": "FV-00371"
+  },
+  {
+    "ref": "26000384",
+    "date": "08/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 560.06,
+    "ttc": 590.86,
+    "commercial": "BROCARD",
+    "facture": "FV-00372"
+  },
+  {
+    "ref": "26000385",
+    "date": "08/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 361.89,
+    "ttc": 381.79,
+    "commercial": "*",
+    "facture": "FV-00373"
+  },
+  {
+    "ref": "26000357",
+    "date": "07/10/2026",
+    "client": "U EXPRESS RENNES HOCHE ( SAS LES CONQUERANTS )",
+    "ht": 428.73,
+    "ttc": 452.31,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00357"
+  },
+  {
+    "ref": "26000360",
+    "date": "07/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 532.23,
+    "ttc": 561.5,
+    "commercial": "*",
+    "facture": "FV-00358"
+  },
+  {
+    "ref": "26000361",
+    "date": "07/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 2232.38,
+    "ttc": 2355.16,
+    "commercial": "*",
+    "facture": "FV-00359"
+  },
+  {
+    "ref": "26000362",
+    "date": "07/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 1182.72,
+    "ttc": 1247.77,
+    "commercial": "*",
+    "facture": "FV-00360"
+  },
+  {
+    "ref": "26000363",
+    "date": "07/10/2026",
+    "client": "C.S.F. - CREPY EN VALOIS (584)",
+    "ht": 323.23,
+    "ttc": 341.01,
+    "commercial": "*",
+    "facture": "FV-00361"
+  },
+  {
+    "ref": "26000364",
+    "date": "07/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 248.64,
+    "ttc": 262.32,
+    "commercial": "*",
+    "facture": "FV-00362"
+  },
+  {
+    "ref": "26000367",
+    "date": "07/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 1943.04,
+    "ttc": 2049.91,
+    "commercial": "*",
+    "facture": "FV-00363"
+  },
+  {
+    "ref": "26000371",
+    "date": "07/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 312.61,
+    "ttc": 329.8,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00364"
+  },
+  {
+    "ref": "26000381",
+    "date": "07/10/2026",
+    "client": "AUCHAN GRASSE",
+    "ht": 459.36,
+    "ttc": 484.62,
+    "commercial": "SEBASTIEN GASNIER",
+    "facture": "FV-00365"
+  },
+  {
+    "ref": "26000338",
+    "date": "06/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 827.38,
+    "ttc": 872.89,
+    "commercial": "*",
+    "facture": "FV-00336"
+  },
+  {
+    "ref": "26000341",
+    "date": "06/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 610.1,
+    "ttc": 643.66,
+    "commercial": "*",
+    "facture": "FV-00337"
+  },
+  {
+    "ref": "26000342",
+    "date": "06/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 279.85,
+    "ttc": 295.24,
+    "commercial": "*",
+    "facture": "FV-00338"
+  },
+  {
+    "ref": "26000343",
+    "date": "06/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1889.29,
+    "ttc": 1993.2,
+    "commercial": "*",
+    "facture": "FV-00339"
+  },
+  {
+    "ref": "26000345",
+    "date": "06/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 298.37,
+    "ttc": 314.78,
+    "commercial": "*",
+    "facture": "FV-00340"
+  },
+  {
+    "ref": "26000346",
+    "date": "06/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 422.69,
+    "ttc": 445.94,
+    "commercial": "*",
+    "facture": "FV-00341"
+  },
+  {
+    "ref": "26000347",
+    "date": "06/10/2026",
+    "client": "Carrefour Belgium N.V. (BERINGEN)",
+    "ht": 1259.84,
+    "ttc": 1259.84,
+    "commercial": "*",
+    "facture": "FV-00342"
+  },
+  {
+    "ref": "26000348",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 72.98,
+    "ttc": 76.99,
+    "commercial": "*",
+    "facture": "FV-00351"
+  },
+  {
+    "ref": "26000349",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 133.8,
+    "ttc": 141.16,
+    "commercial": "*",
+    "facture": "FV-00352"
+  },
+  {
+    "ref": "26000350",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 109.47,
+    "ttc": 115.49,
+    "commercial": "*",
+    "facture": "FV-00353"
+  },
+  {
+    "ref": "26000351",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 60.81,
+    "ttc": 64.16,
+    "commercial": "*",
+    "facture": "FV-00354"
+  },
+  {
+    "ref": "26000352",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 145.95,
+    "ttc": 153.98,
+    "commercial": "*",
+    "facture": "FV-00355"
+  },
+  {
+    "ref": "26000353",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 291.91,
+    "ttc": 307.97,
+    "commercial": "*",
+    "facture": "FV-00356"
+  },
+  {
+    "ref": "26000354",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 437.86,
+    "ttc": 461.94,
+    "commercial": "*",
+    "facture": "FV-00343"
+  },
+  {
+    "ref": "26000355",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 401.37,
+    "ttc": 423.45,
+    "commercial": "*",
+    "facture": "FV-00344"
+  },
+  {
+    "ref": "26000356",
+    "date": "06/10/2026",
+    "client": "O'TERA MERIGNAC",
+    "ht": 426.88,
+    "ttc": 450.36,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00345"
+  },
+  {
+    "ref": "26000359",
+    "date": "06/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 926.24,
+    "ttc": 977.18,
+    "commercial": "BROCARD",
+    "facture": "FV-00347"
+  },
+  {
+    "ref": "26000358",
+    "date": "06/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 465.28,
+    "ttc": 490.87,
+    "commercial": "BROCARD",
+    "facture": "FV-00346"
+  },
+  {
+    "ref": "26000365",
+    "date": "06/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 439.42,
+    "ttc": 463.59,
+    "commercial": "*",
+    "facture": "FV-00348"
+  },
+  {
+    "ref": "26000366",
+    "date": "06/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 400.66,
+    "ttc": 422.7,
+    "commercial": "*",
+    "facture": "FV-00349"
+  },
+  {
+    "ref": "26000368",
+    "date": "06/10/2026",
+    "client": "H MARKET",
+    "ht": 4291.68,
+    "ttc": 4527.72,
+    "commercial": "*",
+    "facture": "FV-00350"
+  },
+  {
+    "ref": "26000337",
+    "date": "05/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1486.3,
+    "ttc": 1568.05,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00333"
+  },
+  {
+    "ref": "26000339",
+    "date": "05/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 282.45,
+    "ttc": 297.98,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00334"
+  },
+  {
+    "ref": "26000340",
+    "date": "05/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 508.42,
+    "ttc": 536.38,
+    "commercial": "*",
+    "facture": "FV-00335"
+  },
+  {
+    "ref": "26000326",
+    "date": "02/10/2026",
+    "client": "O'TERA EPAGNY",
+    "ht": 510.4,
+    "ttc": 538.47,
+    "commercial": "CAP FRAIS",
+    "facture": "FV-00322"
+  },
+  {
+    "ref": "26000325",
+    "date": "02/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 792.68,
+    "ttc": 836.28,
+    "commercial": "*",
+    "facture": "FV-00321"
+  },
+  {
+    "ref": "26000329",
+    "date": "02/10/2026",
+    "client": "AUCHAN LAXOU",
+    "ht": 440.8,
+    "ttc": 465.04,
+    "commercial": "*",
+    "facture": "FV-00323"
+  },
+  {
+    "ref": "26000330",
+    "date": "02/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1342.72,
+    "ttc": 1342.72,
+    "commercial": "*",
+    "facture": "FV-00324"
+  },
+  {
+    "ref": "26000331",
+    "date": "02/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 331.73,
+    "ttc": 349.98,
+    "commercial": "BROCARD",
+    "facture": "FV-00325"
+  },
+  {
+    "ref": "26000332",
+    "date": "02/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 310.18,
+    "ttc": 327.24,
+    "commercial": "*",
+    "facture": "FV-00326"
+  },
+  {
+    "ref": "26000333",
+    "date": "02/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 374.81,
+    "ttc": 395.42,
+    "commercial": "*",
+    "facture": "FV-00327"
+  },
+  {
+    "ref": "26000334",
+    "date": "02/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 298.37,
+    "ttc": 314.78,
+    "commercial": "*",
+    "facture": "FV-00328"
+  },
+  {
+    "ref": "26000335",
+    "date": "02/10/2026",
+    "client": "CSF Aire sur la lys - MARKET",
+    "ht": 323.23,
+    "ttc": 341.01,
+    "commercial": "*",
+    "facture": "FV-00329"
+  },
+  {
+    "ref": "26000336",
+    "date": "02/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 267.68,
+    "ttc": 282.4,
+    "commercial": "*",
+    "facture": "FV-00330"
+  },
+  {
+    "ref": "26000577",
+    "date": "02/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 915.17,
+    "ttc": 965.5,
+    "commercial": "*",
+    "facture": ""
+  },
+  {
+    "ref": "26000293",
+    "date": "01/10/2026",
+    "client": "Costco Wholesale Spain, S.L.U.",
+    "ht": 5012.0,
+    "ttc": 5012.0,
+    "commercial": "*",
+    "facture": "FV-00332"
+  },
+  {
+    "ref": "26000294",
+    "date": "01/10/2026",
+    "client": "COSTCO FRANCE - MULHOUSE (5403)",
+    "ht": 1774.0,
+    "ttc": 1871.57,
+    "commercial": "*",
+    "facture": "FV-00301"
+  },
+  {
+    "ref": "26000306",
+    "date": "01/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 193.86,
+    "ttc": 204.52,
+    "commercial": "*",
+    "facture": "FV-00302"
+  },
+  {
+    "ref": "26000308",
+    "date": "01/10/2026",
+    "client": "AUCHAN HYPERMARCHÉ (MAUREPAS)",
+    "ht": 417.6,
+    "ttc": 440.57,
+    "commercial": "*",
+    "facture": "FV-00303"
+  },
+  {
+    "ref": "26000309",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 48.65,
+    "ttc": 51.33,
+    "commercial": "*",
+    "facture": "FV-00314"
+  },
+  {
+    "ref": "26000310",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 60.81,
+    "ttc": 64.16,
+    "commercial": "*",
+    "facture": "FV-00315"
+  },
+  {
+    "ref": "26000311",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 121.63,
+    "ttc": 128.32,
+    "commercial": "*",
+    "facture": "FV-00316"
+  },
+  {
+    "ref": "26000312",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 158.12,
+    "ttc": 166.82,
+    "commercial": "*",
+    "facture": "FV-00317"
+  },
+  {
+    "ref": "26000313",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 85.14,
+    "ttc": 89.82,
+    "commercial": "*",
+    "facture": "FV-00318"
+  },
+  {
+    "ref": "26000314",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 279.75,
+    "ttc": 295.14,
+    "commercial": "*",
+    "facture": "FV-00319"
+  },
+  {
+    "ref": "26000315",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 364.88,
+    "ttc": 384.95,
+    "commercial": "*",
+    "facture": "FV-00304"
+  },
+  {
+    "ref": "26000316",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 401.37,
+    "ttc": 423.45,
+    "commercial": "*",
+    "facture": "FV-00305"
+  },
+  {
+    "ref": "26000317",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 12.16,
+    "ttc": 12.83,
+    "commercial": "*",
+    "facture": "FV-00306"
+  },
+  {
+    "ref": "26000318",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 24.33,
+    "ttc": 25.67,
+    "commercial": "*",
+    "facture": "FV-00307"
+  },
+  {
+    "ref": "26000319",
+    "date": "01/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 170.35,
+    "ttc": 179.72,
+    "commercial": "*",
+    "facture": "FV-00308"
+  },
+  {
+    "ref": "26000320",
+    "date": "01/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 410.26,
+    "ttc": 432.82,
+    "commercial": "*",
+    "facture": "FV-00309"
+  },
+  {
+    "ref": "26000321",
+    "date": "01/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 721.06,
+    "ttc": 760.72,
+    "commercial": "*",
+    "facture": "FV-00310"
+  },
+  {
+    "ref": "26000322",
+    "date": "01/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1735.23,
+    "ttc": 1830.67,
+    "commercial": "*",
+    "facture": "FV-00311"
+  },
+  {
+    "ref": "26000323",
+    "date": "01/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 267.09,
+    "ttc": 281.78,
+    "commercial": "BROCARD",
+    "facture": "FV-00312"
+  },
+  {
+    "ref": "26000324",
+    "date": "01/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 404.96,
+    "ttc": 427.23,
+    "commercial": "BROCARD",
+    "facture": "FV-00300"
+  },
+  {
+    "ref": "26000327",
+    "date": "01/10/2026",
+    "client": "PrimaPrix France",
+    "ht": 764.64,
+    "ttc": 806.7,
+    "commercial": "*",
+    "facture": "FV-00299"
+  },
+  {
+    "ref": "26000328",
+    "date": "01/10/2026",
+    "client": "SEDIS ALIMENTAIRE",
+    "ht": 556.4,
+    "ttc": 587.0,
+    "commercial": "*",
+    "facture": "FV-00298"
+  },
+  {
+    "ref": "26000344",
+    "date": "01/10/2026",
+    "client": "COSTCO FRANCE - PONTAULT COMBAULT",
+    "ht": 0.0,
+    "ttc": 0.0,
+    "commercial": "*",
+    "facture": "FV-00331"
+  },
+  {
+    "ref": "26000533",
+    "date": "01/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 0.0,
+    "ttc": 0.0,
+    "commercial": "*",
+    "facture": "FV-00320"
+  }
+]

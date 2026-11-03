@@ -291,6 +291,41 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     }
   };
 
+  // === RESTAURATION OCTOBRE 2026 ===
+  const [restoring, setRestoring] = useState(false);
+  const restoreOctober2026 = async () => {
+    if (!confirm(
+      'Restaurer les ventes d\'octobre 2026 ?\n\n' +
+      'Cette action va :\n' +
+      '1. Supprimer TOUTES les ventes existantes d\'octobre 2026\n' +
+      '2. Réinsérer 292 ventes à partir du fichier ERP (170 250,64€ HT)\n' +
+      '3. Créer l\'agent SEBASTIEN GASNIER (s\'il n\'existe pas)\n' +
+      '4. Créer les enseignes manquantes\n' +
+      '5. Attribuer les ventes * à KOOK\'S, SEBASTIEN → SEBASTIEN GASNIER\n\n' +
+      'Action atomique (transaction) — tout ou rien.\n' +
+      'Le CA total sera exactement 170 250,64€ après restauration.'
+    )) return;
+    setRestoring(true);
+    try {
+      const r = await fetch('/api/migrations/october-2026', { method: 'POST' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success('Restauration terminée', {
+        description: `${j.insertedCount} ventes insérées — CA ${j.totalCA.toFixed(2)}€ (attendu ${j.expectedCA}€)`,
+      });
+      // Recharge tout
+      loadAgents();
+      loadEnseignes();
+      loadDuplicates();
+      // Auto-audit pour vérifier
+      setTimeout(() => runAudit(), 500);
+    } catch (e: any) {
+      toast.error('Erreur restauration', { description: e.message });
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const runDiagnose = async () => {
     if (!diagnoseQuery.trim()) return;
     setDiagnoseLoading(true);
@@ -1227,6 +1262,39 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
           </div>
 
           <div className="border-t border-amber-200 dark:border-amber-800 pt-2 space-y-2">
+            {/* === RESTAURATION OCTOBRE 2026 (CA = 170 250,64€) === */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  ⚠ Restauration Octobre 2026 (CA 170 250,64€)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Supprime TOUTES les ventes d'octobre 2026 et réinsère les 292 ventes
+                  du fichier ERP. Attribue les ventes * à KOOK'S, SEBASTIEN → SEBASTIEN GASNIER.
+                  Détection auto des coopératives (Centrale vs Direct).
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={restoreOctober2026}
+                disabled={restoring}
+                className="border-red-500 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50"
+              >
+                {restoring ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Restauration...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+                    Restaurer
+                  </>
+                )}
+              </Button>
+            </div>
+
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">Migration SEBASTIEN GASNIER</p>

@@ -3,3 +3,4 @@ node_modules/
 tool-results/
 tsconfig.tsbuildinfo
 .next/
+cleanup_and_fix_potsperformat.py
