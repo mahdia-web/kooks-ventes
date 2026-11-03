@@ -424,8 +424,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
-  const top10Title = `1. Top 10 enseignes${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
-  doc.text(doc.splitTextToSize(top10Title, contentWidth)[0], margin, yPos);
+  doc.text('1. Top 10 enseignes', margin, yPos);
   yPos += 8;
 
   const top10 = targetEnseignes.slice(0, 10);
@@ -502,8 +501,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
-  const relanceTitle = `2. Clients à relancer${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
-  doc.text(doc.splitTextToSize(relanceTitle, contentWidth)[0], margin, yPos);
+  doc.text('2. Clients a relancer', margin, yPos);
   yPos += 7;
 
   const toRelance = targetCustomers.filter((cu) => cu.status === 'A RELANCER');
@@ -767,9 +765,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  const classementTitle = `${isAgentSpecific ? '' : '4. '}Classement des enseignes${isAgentSpecific ? ` — ${safeAgentName}` : ''}`;
-  const titleLines = doc.splitTextToSize(classementTitle, contentWidth);
-  doc.text(titleLines[0], margin, yPosAfterAgent);
+  doc.text(`${isAgentSpecific ? '' : '4. '}Classement des enseignes`, margin, yPosAfterAgent);
 
   const allDirect = targetEnseignes.filter((e) => e.type === 'Direct').sort((a, b) => b.caHT - a.caHT);
   const allCentrale = targetEnseignes.filter((e) => e.type === 'Centrale').sort((a, b) => b.caHT - a.caHT);
