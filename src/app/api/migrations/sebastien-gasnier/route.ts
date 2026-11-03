@@ -95,31 +95,15 @@ export async function POST(_req: NextRequest) {
         console.log(`[migration/sebastien-gasnier] Agent ${AGENT_NAME} already exists`);
       }
 
-      // 2. Supprime les ventes existantes avec agent contenant "SEBASTIEN" ou "GASNIER"
-      //    IMPORTANT: On ne supprime PAS par BL number car les BL sont séquentiels
-      //    et partagés entre tous les agents — supprimer par BL détruirait les
-      //    ventes légitimes des autres agents qui ont les mêmes numéros de BL.
-      const existingSales = await tx.sale.findMany({
-        where: {
-          OR: [
-            { agent: { contains: 'SEBASTIEN', mode: 'insensitive' } },
-            { agent: { contains: 'GASNIER', mode: 'insensitive' } },
-          ],
-        },
-        select: { id: true, blNumber: true, enseigne: true, amountHT: true, agent: true, date: true, deduplicationKey: true },
-      });
-      console.log(`[migration/sebastien-gasnier] Found ${existingSales.length} existing SEBASTIEN/GASNIER sales to delete`);
-      const totalDeletedCA = existingSales.reduce((s, v) => s + v.amountHT, 0);
-      console.log(`[migration/sebastien-gasnier] Total CA of deleted sales: ${totalDeletedCA.toFixed(2)}€`);
-      // Log détaillé pour debug
-      for (const s of existingSales) {
-        console.log(`[migration/sebastien-gasnier]   deleting: BL=${s.blNumber} enseigne=${s.enseigne} agent=${s.agent} CA=${s.amountHT}€ key=${s.deduplicationKey}`);
-      }
-
-      const deleteResult = await tx.sale.deleteMany({
-        where: { id: { in: existingSales.map((s) => s.id) } },
-      });
-      console.log(`[migration/sebastien-gasnier] Deleted ${deleteResult.count} sales`);
+      // 2. NE SUPPRIME PAS les ventes existantes — l'approche "delete all + re-insert"
+      //    causait des pertes de CA quand des ventes d'autres mois étaient supprimées.
+      //    Au lieu de ça, on insère/update les 3 ventes (upsert par deduplicationKey).
+      //    Les ventes d'octobre sont déjà gérées par la restauration octobre 2026.
+      //    Cette migration ajoute juste la vente de novembre (575,36€) et met à jour
+      //    les 2 ventes d'octobre si elles n'existent pas encore.
+      console.log(`[migration/sebastien-gasnier] Skipping delete — using upsert approach`);
+      const deleteResult = { count: 0 };
+      const totalDeletedCA = 0;
 
       // 3. Crée les enseignes si elles n'existent pas
       const enseigneNames = Array.from(new Set(salesToInsert.map((s) => s.enseigne)));
@@ -222,7 +206,7 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({
       ok: true,
       ...result,
-      message: `Migration terminée : ${result.deletedSales} vente(s) supprimée(s), ${result.insertedSales} nouvelle(s) insérée(s). Agent ${result.agent.name} ${result.agent.created ? 'créé' : 'déjà existant'}.`,
+      message: `Migration terminée : ${result.insertedSales} vente(s) insérée(s)/mise(s) à jour (sans suppression). Agent ${result.agent.name} ${result.agent.created ? 'créé' : 'déjà existant'}.`,
     });
   } catch (e) {
     console.error('[migration/sebastien-gasnier] Error:', e);

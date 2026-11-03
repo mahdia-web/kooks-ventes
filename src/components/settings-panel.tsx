@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2, Stethoscope, Wrench, Download, Package } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2, Stethoscope, Wrench, Download, Package, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -330,6 +330,13 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   const exportClients = (status: 'all' | 'relance' | 'inactif') => {
     const agent = agentFilter === 'all' ? '' : agentFilter;
     const url = `/api/clients/export?status=${status}${agent ? `&agent=${encodeURIComponent(agent)}` : ''}`;
+    window.open(url, '_blank');
+  };
+
+  // === EXPORT PDF CLIENTS (page imprimable) ===
+  const exportClientsPDF = () => {
+    const agent = agentFilter === 'all' ? '' : agentFilter;
+    const url = `/api/clients/export-pdf${agent ? `?agent=${encodeURIComponent(agent)}` : ''}`;
     window.open(url, '_blank');
   };
 
@@ -877,8 +884,17 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
       {/* === ONGLET CLIENTS === */}
       <TabsContent value="enseignes" className="space-y-3">
-        {/* === EXPORT CSV CLIENTS === */}
+        {/* === EXPORT CSV + PDF CLIENTS === */}
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={exportClientsPDF}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            title="Ouvre une page imprimable (Ctrl+P → Enregistrer en PDF)"
+          >
+            <FileDown className="h-3.5 w-3.5 mr-1.5" />
+            PDF Clients à relancer
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -886,7 +902,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
             className="border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50"
           >
             <Download className="h-3.5 w-3.5 mr-1.5" />
-            Export à relancer
+            CSV à relancer
           </Button>
           <Button
             size="sm"
@@ -895,7 +911,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
             className="border-red-500 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50"
           >
             <Download className="h-3.5 w-3.5 mr-1.5" />
-            Export inactifs
+            CSV inactifs
           </Button>
           <Button
             size="sm"
@@ -904,7 +920,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
             className="border-primary text-primary hover:bg-primary/10"
           >
             <Download className="h-3.5 w-3.5 mr-1.5" />
-            Export tous
+            CSV tous
           </Button>
         </div>
 

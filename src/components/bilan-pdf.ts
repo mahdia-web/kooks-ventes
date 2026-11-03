@@ -512,6 +512,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setTextColor(5, 150, 105);
     doc.setFont('helvetica', 'bold');
     doc.text('Aucun client à relancer. Excellent travail !', margin, yPos);
+    yPos += 10;
   } else {
     autoTable(doc, {
       startY: yPos + 8,
@@ -542,8 +543,11 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     });
   }
 
-  let yPosAfterRelance = (doc as any).lastAutoTable?.finalY ?? (yPos + 10);
-  yPosAfterRelance += 10;
+  // Calcule yPosAfterRelance : si on a dessiné un tableau relance, utilise finalY
+  // sinon utilise yPos (qui a été incrémenté manuellement)
+  let yPosAfterRelance = toRelance.length > 0
+    ? ((doc as any).lastAutoTable?.finalY ?? yPos) + 10
+    : yPos + 6;
 
   // Clients inactifs
   if (inactifs.length > 0) {
