@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2, Stethoscope, Wrench } from 'lucide-react';
+import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2, Stethoscope, Wrench, Download, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -323,6 +323,38 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       toast.error('Erreur restauration', { description: e.message });
     } finally {
       setRestoring(false);
+    }
+  };
+
+  // === EXPORT CSV CLIENTS ===
+  const exportClients = (status: 'all' | 'relance' | 'inactif') => {
+    const agent = agentFilter === 'all' ? '' : agentFilter;
+    const url = `/api/clients/export?status=${status}${agent ? `&agent=${encodeURIComponent(agent)}` : ''}`;
+    window.open(url, '_blank');
+  };
+
+  // === IMPORT VOLUMES SCAPEST ===
+  const [importingVol, setImportingVol] = useState(false);
+  const importScapestVolumes = async () => {
+    if (!confirm(
+      'Importer les volumes SCAPEST (colis) ?\n\n' +
+      '185 lignes, 812 colis, 9 650,11€ HT\n' +
+      'Clients: SCAPEST CHALONS + SCAPEST TREMERY (BROCARD)\n' +
+      'Période: Octobre 2026\n\n' +
+      'Supprime les volumes SCAPEST existants pour octobre 2026 puis réinsère.'
+    )) return;
+    setImportingVol(true);
+    try {
+      const r = await fetch('/api/migrations/scapest-volumes', { method: 'POST' });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error);
+      toast.success('Volumes SCAPEST importés', {
+        description: `${j.insertedCount} lignes, ${j.totalColis} colis, ${j.totalHT.toFixed(2)}€`,
+      });
+    } catch (e: any) {
+      toast.error('Erreur import volumes', { description: e.message });
+    } finally {
+      setImportingVol(false);
     }
   };
 
@@ -845,6 +877,37 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
       {/* === ONGLET CLIENTS === */}
       <TabsContent value="enseignes" className="space-y-3">
+        {/* === EXPORT CSV CLIENTS === */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => exportClients('relance')}
+            className="border-amber-500 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Export à relancer
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => exportClients('inactif')}
+            className="border-red-500 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Export inactifs
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => exportClients('all')}
+            className="border-primary text-primary hover:bg-primary/10"
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            Export tous
+          </Button>
+        </div>
+
         {/* === AUDIT CA === */}
         <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-3 space-y-2">
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1417,6 +1480,32 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
                   )}
                 </div>
               )}
+            </div>
+
+            {/* === IMPORT VOLUMES SCAPEST === */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  Import volumes SCAPEST (colis)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  185 lignes, 812 colis, 9 650,11€ HT — SCAPEST CHALONS + TREMERY (BROCARD)
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={importScapestVolumes}
+                disabled={importingVol}
+                className="border-blue-500 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50"
+              >
+                {importingVol ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Package className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Importer
+              </Button>
             </div>
 
             {/* === RESTAURATION OCTOBRE 2026 (CA = 170 250,64€) === */}
