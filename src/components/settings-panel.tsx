@@ -264,6 +264,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
   const [diagnoseLoading, setDiagnoseLoading] = useState(false);
   const [diagnoseData, setDiagnoseData] = useState<any>(null);
   const [fixing, setFixing] = useState(false);
+  const [showMigrationTools, setShowMigrationTools] = useState(false);
   // === AUDIT CA ===
   const [auditData, setAuditData] = useState<any>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1416,19 +1417,22 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
           </Table>
         </div>
 
-        {/* === ZONE OUTILS DE MIGRATION === */}
-        <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 space-y-2">
-          <div className="flex items-start gap-2">
-            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                Outils de migration
-              </p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                Réparation de données — utiliser quand une vente n'apparaît pas correctement dans le dashboard.
-              </p>
-            </div>
-          </div>
+        {/* === ZONE OUTILS DE MIGRATION (repliable) === */}
+        <div className="rounded-md border border-amber-200 dark:border-amber-800">
+          <button
+            onClick={() => setShowMigrationTools(!showMigrationTools)}
+            className="w-full flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 text-left"
+          >
+            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span className="text-sm font-medium text-amber-800 dark:text-amber-300 flex-1">
+              Outils de migration {showMigrationTools ? '(masquer)' : '(afficher)'}
+            </span>
+          </button>
+          {showMigrationTools && (
+          <div className="p-3 space-y-2">
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Réparation de données — utiliser quand une vente n'apparaît pas correctement dans le dashboard.
+            </p>
 
           <div className="border-t border-amber-200 dark:border-amber-800 pt-2 space-y-2">
             {/* === SYNC AGENTS (liaison enseignes ↔ ventes) === */}
@@ -1736,6 +1740,8 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
               )}
             </div>
           </div>
+          </div>
+          )}
         </div>
 
         {/* === ZONE DIAGNOSTIC ENSEIGNE === */}

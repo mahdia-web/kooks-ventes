@@ -288,15 +288,13 @@ Voici le bilan des ventes Kooks pour ${periodLabel} :
 
 CA Total : ${fmtEuroLocal(kpis.caHT)}
 CA Direct : ${fmtEuroLocal(kpis.caDirect)}
-CA Centrale : ${fmtEuroLocal(kpis.caCentrale)}
+${kpis.caCentrale > 0 ? `CA Centrale : ${fmtEuroLocal(kpis.caCentrale)}` : ''}
 NB BL Direct : ${kpis.nbBlDirect}
-NB BL Centrale : ${kpis.nbBlCentrale}
+${kpis.nbBlCentrale > 0 ? `NB BL Centrale : ${kpis.nbBlCentrale}` : ''}
 NB BL Total : ${kpis.nbBl}
 
 Commission totale : ${fmtEuroLocal(kpis.commission)}
-
-Détail des centrales :
-${centralesLines}
+${kpis.caCentrale > 0 ? `\nDétail des centrales :\n${centralesLines}` : ''}
 
 ${analysis}
 
