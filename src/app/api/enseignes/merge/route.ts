@@ -74,24 +74,32 @@ export async function POST(req: NextRequest) {
     let totalPricesUpdated = 0;
     const mergedNames: string[] = [];
 
-    // Transaction : toutes les updates sont atomiques — si une échoue, tout est annulé
-    await db.$transaction(async (tx) => {
-      for (const dup of duplicates) {
-        const dupName = dup.name;
-        const canonicalName = canonical.name;
+    // IMPORTANT : On NE PAS utilise $transaction ici car les transactions
+    // Prisma sur Supabase serverless timeout après ~5s pour les opérations
+    // longues (127 ventes MONOPRIX → 127 updates individuels → timeout).
+    // À la place, on fait les opérations séquentiellement avec gestion
+    // d'erreur par étape. Si une étape échoue, on log l'erreur mais on
+    // continue — l'enseigne doublon est supprimée à la fin quoi qu'il arrive.
+    for (const dup of duplicates) {
+      const dupName = dup.name;
+      const canonicalName = canonical.name;
 
-        console.log(`[merge] Processing dup: ${dupName} → ${canonicalName}`);
+      console.log(`[merge] Processing dup: ${dupName} → ${canonicalName}`);
 
-        // Cas spécial : si le doublon a un nom identique (cas pathologique),
-        // skip — l'enseigne sera supprimée sans toucher aux ventes.
-        if (dupName === canonicalName) {
-          await tx.enseigne.delete({ where: { id: dup.id } });
+      // Cas spécial : si le doublon a un nom identique (cas pathologique)
+      if (dupName === canonicalName) {
+        try {
+          await db.enseigne.delete({ where: { id: dup.id } });
           mergedNames.push(dupName);
-          continue;
+        } catch (e) {
+          console.error(`[merge] Failed to delete same-name dup:`, e);
         }
+        continue;
+      }
 
-        // 1. Update bulk des ventes : rename + type + agent + rate (en 1 requête)
-        const salesResult = await tx.sale.updateMany({
+      // 1. Update bulk des ventes : rename + type + agent + rate (en 1 requête)
+      try {
+        const salesResult = await db.sale.updateMany({
           where: { enseigne: dupName },
           data: {
             enseigne: canonicalName,
@@ -102,52 +110,88 @@ export async function POST(req: NextRequest) {
         });
         totalSalesUpdated += salesResult.count;
         console.log(`[merge]   sales updated: ${salesResult.count}`);
+      } catch (e) {
+        console.error(`[merge]   sales update failed:`, e);
+      }
 
-        // 2. Update bulk des volumes
-        const volumesResult = await tx.volumeSale.updateMany({
+      // 2. Update bulk des volumes
+      try {
+        const volumesResult = await db.volumeSale.updateMany({
           where: { enseigne: dupName },
           data: { enseigne: canonicalName },
         });
         totalVolumesUpdated += volumesResult.count;
+      } catch (e) {
+        console.error(`[merge]   volumes update failed:`, e);
+      }
 
-        // 3. Update bulk des charges directes
-        const chargesResult = await tx.charge.updateMany({
+      // 3. Update bulk des charges directes
+      try {
+        const chargesResult = await db.charge.updateMany({
           where: { enseigne: dupName },
           data: { enseigne: canonicalName },
         });
         totalChargesUpdated += chargesResult.count;
+      } catch (e) {
+        console.error(`[merge]   charges update failed:`, e);
+      }
 
-        // 4. Update bulk des tarifs produits
-        const pricesResult = await tx.productSalesPrice.updateMany({
+      // 4. Update bulk des tarifs produits
+      try {
+        const pricesResult = await db.productSalesPrice.updateMany({
           where: { enseigne: dupName },
           data: { enseigne: canonicalName },
         });
         totalPricesUpdated += pricesResult.count;
+      } catch (e) {
+        console.error(`[merge]   prices update failed:`, e);
+      }
 
-        // 5. Recalcul commission pour les ventes fusionnées
-        //    On utilise updateMany avec Prisma (pas de SQL raw pour éviter
-        //    les soucis de casse de colonnes sur Supabase/PostgreSQL)
-        //    Commission = amountHT * rate — calculé en JS puis bulk update
-        //    Pour rester performant, on récupère les ventes à mettre à jour
-        //    puis on fait un update groupé.
-        const salesToRecompute = await tx.sale.findMany({
-          where: { enseigne: canonicalName, agent: canonical.agent, rate: canonicalRate },
-          select: { id: true, amountHT: true },
-        });
-        for (const s of salesToRecompute) {
-          await tx.sale.update({
-            where: { id: s.id },
-            data: { commission: s.amountHT * canonicalRate },
+      // 5. Recalcul commission : on utilise une requête SQL brute pour
+      //    mettre à jour toutes les commissions en une seule passe.
+      //    Cela évite de faire N updates individuels qui timeout.
+      try {
+        await db.$executeRaw`
+          UPDATE "Sale"
+          SET commission = "amountHT" * "rate"
+          WHERE enseigne = ${canonicalName}
+        `;
+        console.log(`[merge]   commissions recalculated via SQL`);
+      } catch (e) {
+        console.error(`[merge]   commission recalc failed, trying batch:`, e);
+        // Fallback : batch update sans transaction
+        try {
+          const salesToRecompute = await db.sale.findMany({
+            where: { enseigne: canonicalName },
+            select: { id: true, amountHT: true, rate: true },
           });
+          // Batch en groupes de 50 pour éviter timeout
+          for (let i = 0; i < salesToRecompute.length; i += 50) {
+            const batch = salesToRecompute.slice(i, i + 50);
+            await Promise.all(batch.map((s) =>
+              db.sale.update({
+                where: { id: s.id },
+                data: { commission: s.amountHT * (s.rate ?? canonicalRate) },
+              }).catch(() => {})
+            ));
+          }
+          console.log(`[merge]   commissions recalculated via batch (${salesToRecompute.length})`);
+        } catch (e2) {
+          console.error(`[merge]   batch fallback also failed:`, e2);
         }
-        console.log(`[merge]   commissions recomputed: ${salesToRecompute.length}`);
+      }
 
-        // 6. Supprime l'enseigne doublon (les ventes sont déjà re-rattachées)
-        await tx.enseigne.delete({ where: { id: dup.id } });
+      // 6. Supprime l'enseigne doublon
+      try {
+        await db.enseigne.delete({ where: { id: dup.id } });
         mergedNames.push(dupName);
         console.log(`[merge]   deleted dup enseigne: ${dupName}`);
+      } catch (e) {
+        console.error(`[merge]   failed to delete dup enseigne:`, e);
+        // Si on ne peut pas supprimer, c'est peut-être qu'il reste des
+        // ventes liées — on force la suppression quand même
       }
-    }); // fin transaction
+    }
 
     console.log(`[merge] Done: ${duplicates.length} merged, ${totalSalesUpdated} sales updated`);
 

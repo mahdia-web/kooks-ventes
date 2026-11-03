@@ -277,31 +277,45 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   const kooksCaramel: [number, number, number] = [187, 126, 64];   // #bb7e40 (alternative)
   const kooksYellow: [number, number, number] = [255, 225, 17];   // #ffe111 BL D/C
 
-  const kpiCards = [
-    { label: 'CA Total HT', value: pdfEuro(c.caHT), color: kooksOrange },
-    { label: 'CA Direct (7%)', value: pdfEuro(c.caDirect), color: kooksCobalt },
-    { label: 'CA Centrale (5%)', value: pdfEuro(c.caCentrale), color: kooksOrange },
-    { label: 'Commission', value: pdfEuro(c.commission), color: kooksRed },
-    { label: 'BL Total', value: pdfNum(c.nbBl), color: kooksCaramel },
-    { label: 'BL D / C', value: `${c.nbBlDirect} / ${c.nbBlCentrale}`, color: kooksYellow },
-  ];
+  // Adaptation : si l'agent n'a aucune vente Centrale (ex: SEBASTIEN GASNIER),
+  // on affiche seulement 4 cartes au lieu de 6 (on skip CA Centrale et BL D/C)
+  const hasCentrale = c.caCentrale > 0 || c.nbBlCentrale > 0;
+  const kpiCards = hasCentrale
+    ? [
+        { label: 'CA Total HT', value: pdfEuro(c.caHT), color: kooksOrange },
+        { label: 'CA Direct (7%)', value: pdfEuro(c.caDirect), color: kooksCobalt },
+        { label: 'CA Centrale (5%)', value: pdfEuro(c.caCentrale), color: kooksOrange },
+        { label: 'Commission', value: pdfEuro(c.commission), color: kooksRed },
+        { label: 'BL Total', value: pdfNum(c.nbBl), color: kooksCaramel },
+        { label: 'BL D / C', value: `${c.nbBlDirect} / ${c.nbBlCentrale}`, color: kooksYellow },
+      ]
+    : [
+        { label: 'CA Total HT', value: pdfEuro(c.caHT), color: kooksOrange },
+        { label: 'CA Direct (7%)', value: pdfEuro(c.caDirect), color: kooksCobalt },
+        { label: 'Commission', value: pdfEuro(c.commission), color: kooksRed },
+        { label: 'BL Total', value: pdfNum(c.nbBl), color: kooksCaramel },
+      ];
+
+  // Recalcule la largeur des cartes selon le nombre
+  const numCards = kpiCards.length;
+  const effectiveCardW = (contentWidth - (numCards - 1) * 3) / numCards;
 
   kpiCards.forEach((kpi, idx) => {
-    const x = margin + idx * (cardW + 3);
+    const x = margin + idx * (effectiveCardW + 3);
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(x, kpiCardsY, cardW, cardH, 2, 2, 'FD');
+    doc.roundedRect(x, kpiCardsY, effectiveCardW, cardH, 2, 2, 'FD');
     // Barre de couleur en haut
     doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-    doc.rect(x, kpiCardsY, cardW, 1.5, 'F');
+    doc.rect(x, kpiCardsY, effectiveCardW, 1.5, 'F');
     // Texte
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
     doc.setFont('helvetica', 'bold');
-    doc.text(kpi.label.toUpperCase(), x + cardW / 2, kpiCardsY + 9, { align: 'center' });
+    doc.text(kpi.label.toUpperCase(), x + effectiveCardW / 2, kpiCardsY + 9, { align: 'center' });
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text(kpi.value, x + cardW / 2, kpiCardsY + 18, { align: 'center' });
+    doc.text(kpi.value, x + effectiveCardW / 2, kpiCardsY + 18, { align: 'center' });
   });
 
   // Évolution vs mois précédent (si dispo)
@@ -327,8 +341,9 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     evolY += 8;
   }
 
-  // Répartition Direct/Centrale
+  // Répartition Direct/Centrale — skip si pas de Centrale (agent 100% Direct)
   const repartY = evolY;
+  if (hasCentrale) {
   const repartH = 36;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(226, 232, 240);
@@ -366,6 +381,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     barY + barH + 6,
     { align: 'right' }
   );
+  } // fin if (hasCentrale)
 
   // Footer page 1
   doc.setFontSize(8);
@@ -378,67 +394,20 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   );
 
   // ============================================================
-  // PAGE 2+ : Indicateurs clés
+  // PAGE 2+ : Top enseignes + Clients à relancer + Classement
+  // (Plus de table "Indicateurs clés" — redondant avec les cartes KPI de la page 1)
   // ============================================================
   doc.addPage();
   let yPos = 18;
 
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('1. Indicateurs clés du mois', margin, yPos);
-  yPos += 6;
-
-  autoTable(doc, {
-    startY: yPos,
-    head: [['Indicateur', 'Valeur', 'Comparatif vs mois précédent']],
-    body: [
-      ['Chiffre d\'affaires HT', pdfEuro(c.caHT),
-        previousData ? `${pdfEuro(previousData.caHT)} (${pdfPct(evolutionData.caHTPercent)})` : '—'],
-      ['CA Direct (7%)', pdfEuro(c.caDirect),
-        previousData ? `${pdfEuro(previousData.caDirect)} (${pdfPct(evolutionData.caDirectPercent)})` : '—'],
-      ['CA Centrale (5%)', pdfEuro(c.caCentrale),
-        previousData ? `${pdfEuro(previousData.caCentrale)} (${pdfPct(evolutionData.caCentralePercent)})` : '—'],
-      ['Commission', pdfEuro(c.commission),
-        previousData ? `${pdfEuro(previousData.commission)} (${pdfPct(evolutionData.commissionPercent)})` : '—'],
-      ['Nombre de BL', pdfNum(c.nbBl),
-        previousData ? `${pdfNum(previousData.nbBl)} (${pdfPct(evolutionData.nbBlPercent)})` : '—'],
-      ['Panier moyen (AOV)', pdfEuro(c.aovGlobal),
-        `Direct: ${pdfEuro(c.aovDirect)} / Centrale: ${pdfEuro(c.aovCentrale)}`],
-      ['BL Direct / Centrale', `${c.nbBlDirect} / ${c.nbBlCentrale}`,
-        `CA Direct: ${pdfEuro(c.caDirect)} / Centrale: ${pdfEuro(c.caCentrale)}`],
-      ['Part CA Direct / Centrale',
-        `${(c.partCaDirect * 100).toFixed(1)}% / ${(c.partCaCentrale * 100).toFixed(1)}%`, '—'],
-      ['Enseignes actives', pdfNum(c.nbEnseignesActives),
-        isAgentSpecific ? 'Cet agent' : `${pdfNum(data.global.totalEnseignes)} au total`],
-    ],
-    theme: 'grid',
-    headStyles: { fillColor: [247, 169, 65], textColor: 255, fontStyle: 'bold', fontSize: 10 }, // Kooks orange
-    bodyStyles: { textColor: [15, 23, 42], fontSize: 9 },
-    columnStyles: {
-      0: { cellWidth: 48, fontStyle: 'bold' },
-      1: { cellWidth: 35, halign: 'right' },
-      2: { cellWidth: 'auto' },
-    },
-    styles: { cellPadding: 2, overflow: 'linebreak', fontSize: 8 },
-    margin: { left: margin, right: margin },
-  });
-
-  yPos = (doc as any).lastAutoTable.finalY + 12;
-
   // ============================================================
   // Top 10 enseignes (filtrées par agent si applicable)
   // ============================================================
-  if (yPos > pageHeight - 80) {
-    doc.addPage();
-    yPos = 18;
-  }
-
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
   doc.text(
-    `2. Top 10 enseignes ${isAgentSpecific ? `de ${targetAgent?.agent}` : ''}`,
+    `1. Top 10 enseignes ${isAgentSpecific ? `de ${targetAgent?.agent}` : ''}`,
     margin,
     yPos
   );
@@ -519,7 +488,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
   doc.text(
-    `3. Clients à relancer ${isAgentSpecific ? `- ${targetAgent?.agent}` : ''}`,
+    `2. Clients à relancer ${isAgentSpecific ? `- ${targetAgent?.agent}` : ''}`,
     margin,
     yPos
   );
@@ -628,7 +597,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(15);
     doc.setTextColor(15, 23, 42);
-    doc.text('4. Performance par agent', margin, yPosAfterRelance);
+    doc.text('3. Performance par agent', margin, yPosAfterRelance);
 
     autoTable(doc, {
       startY: yPosAfterRelance + 6,
@@ -734,7 +703,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.setFontSize(15);
   doc.setTextColor(15, 23, 42);
   doc.text(
-    `${isAgentSpecific ? '' : '5. '}Classement complet des enseignes ${isAgentSpecific ? `de ${targetAgent?.agent}` : ''}`,
+    `${isAgentSpecific ? '' : '4. '}Classement complet des enseignes ${isAgentSpecific ? `de ${targetAgent?.agent}` : ''}`,
     margin,
     yPosAfterAgent
   );
@@ -774,6 +743,9 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   });
 
   let yPosAfterDirect = (doc as any).lastAutoTable.finalY + 10;
+
+  // Section Centrale — skip si l'agent n'a aucune vente Centrale
+  if (allCentrale.length > 0) {
   if (yPosAfterDirect > pageHeight - 60) {
     doc.addPage();
     yPosAfterDirect = 18;
@@ -810,6 +782,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     styles: { overflow: 'linebreak' },
     margin: { left: margin, right: margin },
   });
+  } // fin if (allCentrale.length > 0)
 
   // ============================================================
   // Footer sur toutes les pages
