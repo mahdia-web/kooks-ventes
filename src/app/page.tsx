@@ -45,6 +45,7 @@ import { PeriodSelector } from '@/components/period-selector';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { generateBilanPdf } from '@/components/bilan-pdf';
+import { generateClientsPdf } from '@/components/clients-pdf';
 import { formatEuro, formatNumber, monthLabel } from '@/lib/dashboard-service';
 import type { DashboardData, SaleRow } from '@/lib/dashboard-types';
 
@@ -605,10 +606,13 @@ export default function Home() {
                   <Button
                     size="sm"
                     onClick={async () => {
-                      const { generateClientsPdf } = await import('@/components/clients-pdf');
-                      await generateClientsPdf({ data, agentFilter: agentFilter === 'all' ? null : agentFilter });
+                      try {
+                        await generateClientsPdf({ data, agentFilter: agentFilter === 'all' ? null : agentFilter });
+                        toast.success('PDF généré');
+                      } catch (e: any) {
+                        toast.error('Erreur PDF', { description: e.message });
+                      }
                     }}
-                    disabled={generatingPdf}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     <FileDown className="h-4 w-4 mr-2" />

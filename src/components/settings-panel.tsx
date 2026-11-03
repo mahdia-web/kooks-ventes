@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Search, UserCheck, UserX, Store, Users, Trash2, Sparkles, GitMerge, AlertTriangle, CheckSquare, Square, Loader2, XCircle, RotateCcw, Wand2, Stethoscope, Wrench, Download, Package, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+import { generateClientsPdf } from '@/components/clients-pdf';
 
 interface Agent {
   id: string;
@@ -328,7 +329,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
 
   // === EXPORT CSV CLIENTS ===
   const exportClients = (status: 'all' | 'relance' | 'inactif') => {
-    const agent = agentFilter === 'all' ? '' : agentFilter;
+    const agent = filterAgent === 'all' ? '' : filterAgent;
     const url = `/api/clients/export?status=${status}${agent ? `&agent=${encodeURIComponent(agent)}` : ''}`;
     window.open(url, '_blank');
   };
@@ -344,16 +345,15 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       const { year, month } = periodJson.ok ? periodJson.data : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
 
       // Récupère les données dashboard (filtrées par agent si applicable)
-      const agentParam = agentFilter === 'all' ? '' : `&agent=${encodeURIComponent(agentFilter)}`;
+      const agentParam = filterAgent === 'all' ? '' : `&agent=${encodeURIComponent(filterAgent)}`;
       const res = await fetch(`/api/dashboard?year=${year}&month=${month}${agentParam}`, { cache: 'no-store' });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
 
-      // Génère le PDF côté client
-      const { generateClientsPdf } = await import('@/components/clients-pdf');
-      await generateClientsPdf({ data: json.data, agentFilter: agentFilter === 'all' ? null : agentFilter });
+      // Génère le PDF côté client (import statique)
+      await generateClientsPdf({ data: json.data, agentFilter: filterAgent === 'all' ? null : filterAgent });
       toast.success('PDF généré', {
-        description: `Clients à relancer et inactifs — ${agentFilter === 'all' ? 'tous agents' : agentFilter}`,
+        description: `Clients à relancer et inactifs — ${filterAgent === 'all' ? 'tous agents' : filterAgent}`,
       });
     } catch (e: any) {
       toast.error('Erreur génération PDF', { description: e.message });

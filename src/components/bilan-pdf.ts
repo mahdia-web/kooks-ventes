@@ -704,13 +704,12 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     yPosAfterAgent = 18;
   }
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
+  doc.setFontSize(13); // Reduced from 15 to avoid text overflow with long agent names
   doc.setTextColor(15, 23, 42);
-  doc.text(
-    `${isAgentSpecific ? '' : '4. '}Classement complet des enseignes ${isAgentSpecific ? `de ${targetAgent?.agent}` : ''}`,
-    margin,
-    yPosAfterAgent
-  );
+  // Sanitize agent name: replace any non-ASCII chars and trim
+  const safeAgentName = (targetAgent?.agent ?? '').replace(/[^\x20-\x7E]/g, '').trim();
+  const classementTitle = `${isAgentSpecific ? '' : '4. '}Classement complet des enseignes ${isAgentSpecific ? `de ${safeAgentName}` : ''}`;
+  doc.text(classementTitle, margin, yPosAfterAgent);
 
   const allDirect = targetEnseignes.filter((e) => e.type === 'Direct').sort((a, b) => b.caHT - a.caHT);
   const allCentrale = targetEnseignes.filter((e) => e.type === 'Centrale').sort((a, b) => b.caHT - a.caHT);
