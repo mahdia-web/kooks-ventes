@@ -408,40 +408,32 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   );
 
   // ============================================================
-  // PAGE 2+ : Top enseignes + Clients à relancer + Classement
-  // (Plus de table "Indicateurs clés" — redondant avec les cartes KPI de la page 1)
-  // ============================================================
-  // Sanitize agent name ONCE for all section titles
-  const safeAgentName = (targetAgent?.agent ?? '').replace(/[^\x20-\x7E]/g, '').trim();
-  // (Plus de table "Indicateurs clés" — redondant avec les cartes KPI de la page 1)
+  // PAGE 2+ : Top enseignes + Clients a relancer + Colis + Classement
+  // Layout clean : chaque section a assez d'espace, saut de page si besoin
   // ============================================================
   doc.addPage();
-  let yPos = 18;
+  let yPos = 20;
 
-  // ============================================================
-  // Top 10 enseignes (filtrées par agent si applicable)
-  // ============================================================
+  // --- Section 1: Top 10 enseignes ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
+  doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text('1. Top 10 enseignes', margin, yPos);
+  doc.text('Top 10 enseignes', margin, yPos);
   yPos += 8;
 
   const top10 = targetEnseignes.slice(0, 10);
 
   autoTable(doc, {
     startY: yPos,
-    head: [['#', 'Enseigne', 'Type', 'BL', 'CA HT', 'CA M-1', 'Évol.', 'Part']],
+    head: [['#', 'Enseigne', 'Type', 'BL', 'CA HT', 'CA M-1', 'Evol.', 'Part']],
     body: top10.map((e, idx) => {
       const prevCa = (e as any).previousMonthCa ?? 0;
-      // Calcul évolution vs mois précédent
-      let evolStr = '—';
+      let evolStr = '-';
       if (prevCa > 0) {
         const pct = ((e.caHT - prevCa) / prevCa) * 100;
         const sign = pct >= 0 ? '+' : '';
         evolStr = `${sign}${pct.toFixed(1)}%`;
       } else if (e.caHT > 0) {
-        // Pas de CA le mois d'avant = nouveau client ce mois-ci
         evolStr = 'Nouveau';
       }
       return [
@@ -450,14 +442,14 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         e.type,
         String(e.nbBl),
         pdfEuro(e.caHT),
-        prevCa > 0 ? pdfEuro(prevCa) : '—',
+        prevCa > 0 ? pdfEuro(prevCa) : '-',
         evolStr,
         `${e.share.toFixed(1)}%`,
       ];
     }),
     theme: 'striped',
     headStyles: { fillColor: [187, 126, 64], textColor: 255, fontSize: 9 },
-    bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
+    bodyStyles: { fontSize: 8, cellPadding: 2 },
     columnStyles: {
       0: { cellWidth: 7, halign: 'center' },
       1: { cellWidth: 'auto' },
@@ -470,63 +462,38 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     },
     styles: { overflow: 'linebreak' },
     margin: { left: margin, right: margin },
-    didParseCell: (data) => {
-      // Colorise la colonne évolution (index 6) en vert/rouge
-      if (data.section === 'body' && data.column.index === 6) {
-        const txt = String(data.cell.text[0] ?? '');
-        if (txt.startsWith('+')) {
-          data.cell.styles.textColor = [5, 150, 105]; // vert
-          data.cell.styles.fontStyle = 'bold';
-        } else if (txt.startsWith('-')) {
-          data.cell.styles.textColor = [220, 38, 38]; // rouge
-          data.cell.styles.fontStyle = 'bold';
-        } else if (txt === 'Nouveau') {
-          data.cell.styles.textColor = [54, 116, 181]; // bleu
-          data.cell.styles.fontStyle = 'bold';
-        }
-      }
-    },
   });
 
-  yPos = (doc as any).lastAutoTable.finalY + 14;
+  yPos = (doc as any).lastAutoTable.finalY + 16;
 
-  // ============================================================
-  // Clients à relancer (filtrés par agent si applicable)
-  // — ne force pas un addPage si on a encore de la place
-  // ============================================================
-  if (yPos > pageHeight - 80) {
+  // --- Section 2: Clients a relancer ---
+  if (yPos > pageHeight - 60) {
     doc.addPage();
-    yPos = 18;
+    yPos = 20;
   }
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
+  doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text('2. Clients a relancer', margin, yPos);
-  yPos += 7;
+  doc.text('Clients a relancer', margin, yPos);
+  yPos += 6;
 
   const toRelance = targetCustomers.filter((cu) => cu.status === 'A RELANCER');
   const inactifs = targetCustomers.filter((cu) => cu.status === 'INACTIF');
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
   doc.text(
-    `${toRelance.length} à relancer • ${inactifs.length} inactifs sur ${targetCustomers.length} enseignes`,
+    `${toRelance.length} a relancer - ${inactifs.length} inactifs sur ${targetCustomers.length} enseignes`,
     margin,
     yPos
   );
-  yPos += 6;
+  yPos += 8;
 
-  if (toRelance.length === 0) {
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.setFont('helvetica', 'italic');
-    doc.text('Aucun client à relancer ce mois-ci.', margin, yPos);
-    yPos += 8;
-  } else {
+  if (toRelance.length > 0) {
     autoTable(doc, {
-      startY: yPos + 8,
-      head: [['Enseigne', 'Type', 'BL Tot', 'CA Tot', 'Dern. cmd', 'Mois', 'Récurrence']],
+      startY: yPos,
+      head: [['Enseigne', 'Type', 'BL', 'CA', 'Dern. cmd', 'Mois']],
       body: toRelance.map((cu) => [
         cu.enseigne,
         cu.type,
@@ -534,45 +501,44 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         pdfEuro(cu.caTotal),
         pdfDate(cu.lastOrder),
         String(cu.monthsSinceLastOrder),
-        pdfPct(cu.recurrence),
       ]),
       theme: 'striped',
-      headStyles: { fillColor: [202, 138, 4], textColor: 255, fontSize: 7.5 },
-      bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
+      headStyles: { fillColor: [202, 138, 4], textColor: 255, fontSize: 8 },
+      bodyStyles: { fontSize: 7.5, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 'auto' },
         1: { cellWidth: 16 },
-        2: { cellWidth: 12, halign: 'right' },
+        2: { cellWidth: 10, halign: 'right' },
         3: { cellWidth: 22, halign: 'right' },
         4: { cellWidth: 20, halign: 'right' },
         5: { cellWidth: 10, halign: 'right' },
-        6: { cellWidth: 20, halign: 'right' },
       },
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },
     });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
+  } else {
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Aucun client a relancer ce mois-ci.', margin, yPos);
+    yPos += 10;
   }
 
-  // Calcule yPosAfterRelance : si on a dessiné un tableau relance, utilise finalY
-  // sinon utilise yPos (qui a été incrémenté manuellement)
-  let yPosAfterRelance = toRelance.length > 0
-    ? ((doc as any).lastAutoTable?.finalY ?? yPos) + 10
-    : yPos + 6;
-
-  // Clients inactifs
+  // Inactifs
   if (inactifs.length > 0) {
-    if (yPosAfterRelance > pageHeight - 50) {
+    if (yPos > pageHeight - 50) {
       doc.addPage();
-      yPosAfterRelance = 18;
+      yPos = 20;
     }
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(220, 38, 38);
-    doc.text('Clients inactifs (+3 mois sans commande)', margin, yPosAfterRelance);
-    yPosAfterRelance += 4;
+    doc.text('Clients inactifs (+3 mois)', margin, yPos);
+    yPos += 6;
     autoTable(doc, {
-      startY: yPosAfterRelance,
-      head: [['Enseigne', 'Type', 'CA Total', 'Dern. cmd', 'Mois écoulés']],
+      startY: yPos,
+      head: [['Enseigne', 'Type', 'CA', 'Dern. cmd', 'Mois']],
       body: inactifs.slice(0, 20).map((cu) => [
         cu.enseigne,
         cu.type,
@@ -582,7 +548,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       ]),
       theme: 'striped',
       headStyles: { fillColor: [220, 38, 38], textColor: 255, fontSize: 7.5 },
-      bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
+      bodyStyles: { fontSize: 7.5, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 'auto' },
         1: { cellWidth: 18 },
@@ -593,78 +559,67 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },
     });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
   }
 
-  // ============================================================
-  // Colis vendus (volumes) — si des données de volumes existent
-  // ============================================================
-  // On utilise ALL colis data for the month (no filtering by agent enseignes
-  // because the volume enseigne names might not match exactly)
+  // --- Section 3: Colis vendus ---
   if (colisData.length > 0) {
-    if (yPosAfterRelance > pageHeight - 60) {
+    if (yPos > pageHeight - 50) {
       doc.addPage();
-      yPosAfterRelance = 18;
+      yPos = 20;
     }
-    yPosAfterRelance += 10;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
-    doc.text(`Colis vendus (${totalColis})`, margin, yPosAfterRelance);
-    yPosAfterRelance += 6;
+    doc.text(`Colis vendus (${totalColis})`, margin, yPos);
+    yPos += 8;
 
     autoTable(doc, {
-      startY: yPosAfterRelance,
-      head: [['#', 'Enseigne', 'Colis', '% Colis']],
+      startY: yPos,
+      head: [['#', 'Enseigne', 'Colis', '%']],
       body: colisData.slice(0, 20).map((c, idx) => [
         String(idx + 1),
-        c.enseigne.length > 45 ? c.enseigne.slice(0, 43) + '..' : c.enseigne,
+        c.enseigne.length > 50 ? c.enseigne.slice(0, 48) + '..' : c.enseigne,
         String(c.totalColis),
-        totalColis > 0 ? `${(c.totalColis / totalColis * 100).toFixed(1)}%` : '—',
+        totalColis > 0 ? `${(c.totalColis / totalColis * 100).toFixed(1)}%` : '-',
       ]),
       theme: 'striped',
       headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 8 },
-      bodyStyles: { fontSize: 7.5, cellPadding: 1.8 },
+      bodyStyles: { fontSize: 8, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 7, halign: 'center' },
         1: { cellWidth: 'auto' },
         2: { cellWidth: 20, halign: 'right' },
-        3: { cellWidth: 18, halign: 'right' },
+        3: { cellWidth: 15, halign: 'right' },
       },
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },
     });
-    yPosAfterRelance = (doc as any).lastAutoTable.finalY + 10;
+    yPos = (doc as any).lastAutoTable.finalY + 16;
   }
 
-  // ============================================================
-  // Performance par agent (seulement en bilan global)
-  // ============================================================
-  // yPosAfterAgentTable est déclaré ici pour pouvoir être réutilisé
-  // après le bloc if (pour le classement complet des enseignes)
-  let yPosAfterAgentTable = yPosAfterRelance;
+  // --- Section 4: Performance par agent (global only) ---
   if (!isAgentSpecific && agents.length > 0) {
-    yPosAfterRelance = (doc as any).lastAutoTable?.finalY ?? yPosAfterRelance;
-    yPosAfterRelance += 14;
-    if (yPosAfterRelance > pageHeight - 60) {
+    if (yPos > pageHeight - 60) {
       doc.addPage();
-      yPosAfterRelance = 18;
+      yPos = 20;
     }
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
+    doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
-    doc.text('3. Performance par agent', margin, yPosAfterRelance);
+    doc.text('Performance par agent', margin, yPos);
+    yPos += 8;
 
     autoTable(doc, {
-      startY: yPosAfterRelance + 6,
-      head: [['#', 'Agent', 'CA HT', 'Commission', 'BL D/C', 'AOV', 'Part']],
+      startY: yPos,
+      head: [['#', 'Agent', 'CA HT', 'Commission', 'BL D/C', 'Part']],
       body: agents.map((a, idx) => [
         String(idx + 1),
         a.agent,
         pdfEuro(a.caHT),
         pdfEuro(a.commission),
         `${a.nbBlDirect}/${a.nbBlCentrale}`,
-        pdfEuro(a.aov),
-        pdfPct(a.share / 100),
+        `${a.share.toFixed(1)}%`,
       ]),
       theme: 'grid',
       headStyles: { fillColor: [247, 169, 65], textColor: 255, fontSize: 9 },
@@ -675,165 +630,102 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         2: { cellWidth: 30, halign: 'right' },
         3: { cellWidth: 30, halign: 'right' },
         4: { cellWidth: 20, halign: 'center' },
-        5: { cellWidth: 26, halign: 'right' },
-        6: { cellWidth: 20, halign: 'right' },
+        5: { cellWidth: 20, halign: 'right' },
       },
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },
     });
-
-    // === Graphiques d'évolution CA Centrale par agent ===
-    // Chaque agent a son propre mini-graphique montrant l'évolution mensuelle
-    // sur les 12 derniers mois du CA Centrale (orange) et CA Direct (bleu).
-    yPosAfterAgentTable = (doc as any).lastAutoTable?.finalY ?? yPosAfterRelance;
-    yPosAfterAgentTable += 8;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text('Évolution du CA Centrale par agent (12 derniers mois)', margin, yPosAfterAgentTable);
-    yPosAfterAgentTable += 6;
-
-    // Pour chaque agent : dessine un mini-graphique de 38mm de haut
-    // 2 graphiques par ligne (largeur moitié de la page chacun)
-    const chartW = (contentWidth - 4) / 2; // 2 colonnes avec 4mm gap
-    const chartH = 38;
-    const agentsWithCentrale = agents.filter((a) =>
-      (a as any).centraleMonthlySeries &&
-      ((a as any).centraleMonthlySeries as any[]).some((s) => s.caCentrale > 0 || s.caDirect > 0)
-    );
-
-    let currentRow = 0;
-    let currentCol = 0;
-    for (let i = 0; i < agentsWithCentrale.length; i++) {
-      const a = agentsWithCentrale[i];
-      // Calcul position sur la page courante
-      const chartX = margin + currentCol * (chartW + 4);
-      const chartY = yPosAfterAgentTable + currentRow * (chartH + 4);
-
-      // Si le graphique déborde en bas → nouvelle page
-      if (chartY + chartH > pageHeight - 14) {
-        doc.addPage();
-        yPosAfterAgentTable = 20;
-        currentRow = 0;
-        currentCol = 0;
-      }
-
-      const finalX = margin + currentCol * (chartW + 4);
-      const finalY = yPosAfterAgentTable + currentRow * (chartH + 4);
-      drawCentraleEvolutionChart(doc, finalX, finalY, chartW, chartH, (a as any).centraleMonthlySeries, a.agent);
-
-      // Avance la position : colonne suivante, ou ligne suivante
-      currentCol++;
-      if (currentCol >= 2) {
-        currentCol = 0;
-        currentRow++;
-      }
-    }
-    // Met à jour yPosAfterAgentTable pour la suite (pour le classement complet)
-    const totalRowsUsed = currentRow + (currentCol > 0 ? 1 : 0);
-    yPosAfterAgentTable = yPosAfterAgentTable + totalRowsUsed * (chartH + 4);
-
-    // Si aucun agent n'a de données Centrale, avance quand même le curseur
-    if (agentsWithCentrale.length === 0) {
-      yPosAfterAgentTable += 10;
-    }
+    yPos = (doc as any).lastAutoTable.finalY + 16;
   }
 
-  // ============================================================
-  // Classement complet des enseignes (Direct + Centrale)
-  // — ne force pas un addPage si on a encore de la place
-  // ============================================================
-  // Si on vient de dessiner les graphiques d'évolution par agent,
-  // yPosAfterAgentTable contient la position finale. Sinon, on retombe
-  // sur yPosAfterRelance (cas bilan spécifique à un agent).
-  let yPosAfterAgent = yPosAfterAgentTable > yPosAfterRelance + 14
-    ? yPosAfterAgentTable
-    : ((doc as any).lastAutoTable?.finalY ?? yPosAfterRelance);
-  yPosAfterAgent += 14;
-  if (yPosAfterAgent > pageHeight - 80) {
+  // --- Section 5: Classement des enseignes ---
+  if (yPos > pageHeight - 80) {
     doc.addPage();
-    yPosAfterAgent = 18;
+    yPos = 20;
   }
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
+  doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text(`${isAgentSpecific ? '' : '4. '}Classement des enseignes`, margin, yPosAfterAgent);
+  doc.text('Classement des enseignes', margin, yPos);
+  yPos += 8;
 
   const allDirect = targetEnseignes.filter((e) => e.type === 'Direct').sort((a, b) => b.caHT - a.caHT);
   const allCentrale = targetEnseignes.filter((e) => e.type === 'Centrale').sort((a, b) => b.caHT - a.caHT);
 
+  // Direct
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(54, 116, 181);
-  doc.text(`Enseignes Direct (${allDirect.length})`, margin, yPosAfterAgent + 8);
+  doc.text(`Direct (${allDirect.length})`, margin, yPos);
+  yPos += 4;
 
-  autoTable(doc, {
-    startY: yPosAfterAgent + 11,
-    head: [['#', 'Enseigne', 'BL', 'CA HT', 'Part', 'Dern. cmd']],
-    body: allDirect.map((e, idx) => [
-      String(idx + 1),
-      e.enseigne,
-      String(e.nbBl),
-      pdfEuro(e.caHT),
-      `${e.share.toFixed(1)}%`,
-      pdfDate(e.lastOrder),
-    ]),
-    theme: 'striped',
-    headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 7.5 },
-    bodyStyles: { fontSize: 7.5, cellPadding: 1.5 },
-    columnStyles: {
-      0: { cellWidth: 7, halign: 'center' },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 10, halign: 'right' },
-      3: { cellWidth: 24, halign: 'right' },
-      4: { cellWidth: 16, halign: 'right' },
-      5: { cellWidth: 20, halign: 'right' },
-    },
-    styles: { overflow: 'linebreak' },
-    margin: { left: margin, right: margin },
-  });
-
-  let yPosAfterDirect = (doc as any).lastAutoTable.finalY + 10;
-
-  // Section Centrale — skip si l'agent n'a aucune vente Centrale
-  if (allCentrale.length > 0) {
-  if (yPosAfterDirect > pageHeight - 60) {
-    doc.addPage();
-    yPosAfterDirect = 18;
+  if (allDirect.length > 0) {
+    autoTable(doc, {
+      startY: yPos,
+      head: [['#', 'Enseigne', 'BL', 'CA HT', 'Part', 'Dern. cmd']],
+      body: allDirect.map((e, idx) => [
+        String(idx + 1),
+        e.enseigne,
+        String(e.nbBl),
+        pdfEuro(e.caHT),
+        `${e.share.toFixed(1)}%`,
+        pdfDate(e.lastOrder),
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, cellPadding: 1.5 },
+      columnStyles: {
+        0: { cellWidth: 7, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 10, halign: 'right' },
+        3: { cellWidth: 24, halign: 'right' },
+        4: { cellWidth: 16, halign: 'right' },
+        5: { cellWidth: 20, halign: 'right' },
+      },
+      styles: { overflow: 'linebreak' },
+      margin: { left: margin, right: margin },
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 10;
   }
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(13, 148, 136);
-  doc.text(`Enseignes Centrale (${allCentrale.length})`, margin, yPosAfterDirect);
-  yPosAfterDirect += 4;
+  // Centrale (only if exists)
+  if (allCentrale.length > 0) {
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(13, 148, 136);
+    doc.text(`Centrale (${allCentrale.length})`, margin, yPos);
+    yPos += 4;
 
-  autoTable(doc, {
-    startY: yPosAfterDirect,
-    head: [['#', 'Enseigne', 'BL', 'CA HT', 'Part', 'Dern. cmd']],
-    body: allCentrale.map((e, idx) => [
-      String(idx + 1),
-      e.enseigne,
-      String(e.nbBl),
-      pdfEuro(e.caHT),
-      `${e.share.toFixed(1)}%`,
-      pdfDate(e.lastOrder),
-    ]),
-    theme: 'striped',
-    headStyles: { fillColor: [247, 169, 65], textColor: 255, fontSize: 7.5 },
-    bodyStyles: { fontSize: 7.5, cellPadding: 1.5 },
-    columnStyles: {
-      0: { cellWidth: 7, halign: 'center' },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 10, halign: 'right' },
-      3: { cellWidth: 24, halign: 'right' },
-      4: { cellWidth: 16, halign: 'right' },
-      5: { cellWidth: 20, halign: 'right' },
-    },
-    styles: { overflow: 'linebreak' },
-    margin: { left: margin, right: margin },
-  });
-  } // fin if (allCentrale.length > 0)
+    autoTable(doc, {
+      startY: yPos,
+      head: [['#', 'Enseigne', 'BL', 'CA HT', 'Part', 'Dern. cmd']],
+      body: allCentrale.map((e, idx) => [
+        String(idx + 1),
+        e.enseigne,
+        String(e.nbBl),
+        pdfEuro(e.caHT),
+        `${e.share.toFixed(1)}%`,
+        pdfDate(e.lastOrder),
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [247, 169, 65], textColor: 255, fontSize: 7.5 },
+      bodyStyles: { fontSize: 7.5, cellPadding: 1.5 },
+      columnStyles: {
+        0: { cellWidth: 7, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 10, halign: 'right' },
+        3: { cellWidth: 24, halign: 'right' },
+        4: { cellWidth: 16, halign: 'right' },
+        5: { cellWidth: 20, halign: 'right' },
+      },
+      styles: { overflow: 'linebreak' },
+      margin: { left: margin, right: margin },
+    });
+  }
 
   // ============================================================
   // Footer sur toutes les pages
