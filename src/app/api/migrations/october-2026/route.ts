@@ -114,6 +114,25 @@ export async function POST(_req: NextRequest) {
       const newEnseignes = new Map<string, { name: string; type: string; agent: string }>();
       let skippedZero = 0;
 
+      // === Détection intelligente d'agent ===
+      // L'ERP peut déconner et ne pas affecter certaines ventes (marquées `*`).
+      // Si l'enseigne est déjà assignée à un agent en base (autre que KOOK'S),
+      // on garde cet agent même si l'ERP dit `*`.
+      // Ex: AUCHAN MANDELIEU est assignée à SEBASTIEN GASNIER en base →
+      //     les ventes `*` pour AUCHAN MANDELIEU seront attribuées à SEBASTIEN GASNIER.
+      const enseigneAgentMap = new Map<string, string>();
+      const allEnseignesForAgent = await tx.enseigne.findMany({
+        select: { name: true, agent: true },
+      });
+      for (const e of allEnseignesForAgent) {
+        if (e.agent && e.agent !== kooksName) {
+          enseigneAgentMap.set(e.name.toLowerCase().trim(), e.agent);
+        }
+      }
+      console.log(`[october-2026] Loaded ${enseigneAgentMap.size} enseigne→agent mappings for intelligent detection`);
+
+      let reassignedCount = 0;
+
       for (const row of octoberSales) {
         // Parse date DD/MM/YYYY
         const m = row.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
@@ -132,18 +151,27 @@ export async function POST(_req: NextRequest) {
           continue;
         }
 
-        // Résolution agent
+        // Résolution canonique de l'enseigne (avant la résolution agent)
+        const enseigne = resolveCanonical(row.client);
+
+        // Résolution agent INTELLIGENTE
         let agent: string;
         if (row.commercial === '*' || !row.commercial) {
-          agent = kooksName;
+          // L'ERP n'a pas affecté d'agent → vérifie si l'enseigne est déjà assignée
+          const existingAgent = enseigneAgentMap.get(enseigne.toLowerCase().trim());
+          if (existingAgent) {
+            // L'enseigne est déjà assignée à un agent spécifique → on garde cet agent
+            agent = existingAgent;
+            reassignedCount++;
+            console.log(`[october-2026] Reassigned: ${enseigne} → ${agent} (was *, detected from Enseigne table)`);
+          } else {
+            agent = kooksName;
+          }
         } else if (/sebastien/i.test(row.commercial)) {
           agent = 'SEBASTIEN GASNIER';
         } else {
           agent = row.commercial;
         }
-
-        // Résolution canonique de l'enseigne
-        const enseigne = resolveCanonical(row.client);
 
         // Détermination du type
         const type = isCentraleName(enseigne) ? 'Centrale' : 'Direct';
@@ -220,6 +248,7 @@ export async function POST(_req: NextRequest) {
         insertedCount: inserted,
         skippedZero,
         enseignesCreated,
+        reassignedCount,
         totalCA,
         expectedCA: 170250.64,
         difference: totalCA - 170250.64,
@@ -231,7 +260,7 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({
       ok: true,
       ...result,
-      message: `Restauration terminée : ${result.deletedCount} ancienne(s) supprimée(s), ${result.insertedCount} nouvelle(s) insérée(s). CA: ${result.totalCA.toFixed(2)}€ (attendu 170 250,64€)`,
+      message: `Restauration terminée : ${result.insertedCount} ventes insérées${result.reassignedCount > 0 ? ` (${result.reassignedCount} réaffectées intelligemment)` : ''}. CA: ${result.totalCA.toFixed(2)}€`,
     }, {
       headers: { 'Cache-Control': 'no-store' },
     });

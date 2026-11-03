@@ -300,10 +300,11 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       'Cette action va :\n' +
       '1. Supprimer TOUTES les ventes existantes d\'octobre 2026\n' +
       '2. Réinsérer 292 ventes à partir du fichier ERP (170 250,64€ HT)\n' +
-      '3. Créer l\'agent SEBASTIEN GASNIER (s\'il n\'existe pas)\n' +
-      '4. Créer les enseignes manquantes\n' +
-      '5. Attribuer les ventes * à KOOK\'S, SEBASTIEN → SEBASTIEN GASNIER\n\n' +
-      'Action atomique (transaction) — tout ou rien.\n' +
+      '3. Detection intelligente: si l\'ERP a oublié d\'affecter un agent (*)\n' +
+      '   mais l\'enseigne est déjà assignée en base, garder cet agent\n' +
+      '   (ex: AUCHAN MANDELIEU reste à SEBASTIEN GASNIER meme si ERP dit *)\n' +
+      '4. Attribuer les autres ventes * à KOOK\'S\n' +
+      '5. Créer l\'agent SEBASTIEN GASNIER si besoin\n\n' +
       'Le CA total sera exactement 170 250,64€ après restauration.'
     )) return;
     setRestoring(true);
@@ -312,7 +313,7 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
       toast.success('Restauration terminée', {
-        description: `${j.insertedCount} ventes insérées — CA ${j.totalCA.toFixed(2)}€ (attendu ${j.expectedCA}€)`,
+        description: `${j.insertedCount} ventes — CA ${j.totalCA.toFixed(2)}€${j.reassignedCount > 0 ? ` — ${j.reassignedCount} réaffectée(s) intelligemment` : ''}`,
       });
       // Recharge tout
       loadAgents();
