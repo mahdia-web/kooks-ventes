@@ -598,14 +598,9 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   // ============================================================
   // Colis vendus (volumes) — si des données de volumes existent
   // ============================================================
-  // Filtre les colis par les enseignes de l'agent si spécifié
-  const agentEnseigneNames = new Set(targetEnseignes.map((e) => e.enseigne));
-  const agentColisData = isAgentSpecific
-    ? colisData.filter((c) => agentEnseigneNames.has(c.enseigne))
-    : colisData;
-  const agentTotalColis = agentColisData.reduce((s, c) => s + c.totalColis, 0);
-
-  if (agentColisData.length > 0) {
+  // On utilise ALL colis data for the month (no filtering by agent enseignes
+  // because the volume enseigne names might not match exactly)
+  if (colisData.length > 0) {
     if (yPosAfterRelance > pageHeight - 60) {
       doc.addPage();
       yPosAfterRelance = 18;
@@ -614,19 +609,17 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
     doc.setTextColor(15, 23, 42);
-    const colisTitle = `Colis vendus — ${agentTotalColis} colis (${agentColisData.length} enseigne(s))`;
-    doc.text(doc.splitTextToSize(colisTitle, contentWidth)[0], margin, yPosAfterRelance);
+    doc.text(`Colis vendus (${totalColis})`, margin, yPosAfterRelance);
     yPosAfterRelance += 6;
 
     autoTable(doc, {
       startY: yPosAfterRelance,
-      head: [['#', 'Enseigne', 'Colis', 'Lignes', '% Colis']],
-      body: agentColisData.slice(0, 15).map((c, idx) => [
+      head: [['#', 'Enseigne', 'Colis', '% Colis']],
+      body: colisData.slice(0, 20).map((c, idx) => [
         String(idx + 1),
-        c.enseigne,
+        c.enseigne.length > 45 ? c.enseigne.slice(0, 43) + '..' : c.enseigne,
         String(c.totalColis),
-        String(c.nbLines),
-        agentTotalColis > 0 ? `${(c.totalColis / agentTotalColis * 100).toFixed(1)}%` : '—',
+        totalColis > 0 ? `${(c.totalColis / totalColis * 100).toFixed(1)}%` : '—',
       ]),
       theme: 'striped',
       headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 8 },
@@ -635,8 +628,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
         0: { cellWidth: 7, halign: 'center' },
         1: { cellWidth: 'auto' },
         2: { cellWidth: 20, halign: 'right' },
-        3: { cellWidth: 16, halign: 'right' },
-        4: { cellWidth: 18, halign: 'right' },
+        3: { cellWidth: 18, halign: 'right' },
       },
       styles: { overflow: 'linebreak' },
       margin: { left: margin, right: margin },

@@ -62,6 +62,7 @@ export function MessageSummary({ data, agent = null, variant = 'full', buttonLab
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [colisTotal, setColisTotal] = useState<number | undefined>(undefined);
+  const [colisByEnseigne, setColisByEnseigne] = useState<Array<{ enseigne: string; totalColis: number }> | undefined>(undefined);
 
   // Fetch colis data for the current month
   useEffect(() => {
@@ -72,6 +73,7 @@ export function MessageSummary({ data, agent = null, variant = 'full', buttonLab
         const j = await res.json();
         if (!cancelled && j.ok) {
           setColisTotal(j.grandTotal?.colis || 0);
+          setColisByEnseigne((j.data || []).map((d: any) => ({ enseigne: d.enseigne, totalColis: d.totalColis })));
         }
       } catch {
         // Volumes non disponibles
@@ -82,8 +84,8 @@ export function MessageSummary({ data, agent = null, variant = 'full', buttonLab
 
   // Construit le texte du message à partir des données du dashboard
   const messageText = useMemo(() => {
-    return buildMessageText(data, agent, colisTotal);
-  }, [data, agent, colisTotal]);
+    return buildMessageText(data, agent, colisTotal, colisByEnseigne);
+  }, [data, agent, colisTotal, colisByEnseigne]);
 
   const copyToClipboard = async () => {
     try {
@@ -187,7 +189,7 @@ export function MessageSummary({ data, agent = null, variant = 'full', buttonLab
  *
  * Exporté pour permettre des usages futurs (génération server-side, tests, etc.)
  */
-export function buildMessageText(data: DashboardData, agent: string | null, colisTotal?: number): string {
+export function buildMessageText(data: DashboardData, agent: string | null, colisTotal?: number, colisByEnseigne?: Array<{ enseigne: string; totalColis: number }>): string {
   const isAgentSpecific = !!agent;
   const periodLabel = `${monthLabel(data.kpis.current.month)} ${data.kpis.current.year}`;
 
@@ -238,9 +240,26 @@ Kooks`;
     .filter((e) => !isAgentSpecific || e.agent === agent)
     .sort((a, b) => b.caHT - a.caHT);
 
-  // Construit les lignes "• ENSEIGNE : X€"
+  // Construit les lignes "• ENSEIGNE : X€ (N colis)"
+  const colisMap = new Map<string, number>();
+  if (colisByEnseigne) {
+    for (const c of colisByEnseigne) {
+      colisMap.set(c.enseigne, c.totalColis);
+    }
+  }
   const centralesLines = centrales.length > 0
-    ? centrales.map((c) => `• ${c.enseigne} : ${fmtEuroLocal(c.caHT)}`).join('\n')
+    ? centrales.map((c) => {
+        // Cherche les colis pour cette centrale (match exact ou partiel)
+        let colis = colisMap.get(c.enseigne) ?? 0;
+        if (colis === 0 && colisByEnseigne) {
+          // Fuzzy match: cherche par nom partiel
+          const match = colisByEnseigne.find((v) =>
+            v.enseigne.includes(c.enseigne) || c.enseigne.includes(v.enseigne)
+          );
+          if (match) colis = match.totalColis;
+        }
+        return `• ${c.enseigne} : ${fmtEuroLocal(c.caHT)}${colis > 0 ? ` (${colis} colis)` : ''}`;
+      }).join('\n')
     : '• (aucune vente Centrale ce mois-ci)';
 
   // === Petite analyse globale ===
