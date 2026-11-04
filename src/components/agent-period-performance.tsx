@@ -60,7 +60,6 @@ export function AgentPeriodPerformance({ agents }: Props) {
                 <TableHead className="text-right hidden md:table-cell">CA Direct / Centrale</TableHead>
                 <TableHead className="text-right hidden lg:table-cell">Enseignes</TableHead>
                 <TableHead className="text-right hidden md:table-cell">Colis</TableHead>
-                <TableHead className="text-right hidden lg:table-cell">Pots</TableHead>
                 <TableHead className="text-right hidden sm:table-cell">Part %</TableHead>
                 <TableHead className="text-right hidden lg:table-cell">1ère cmd</TableHead>
                 <TableHead className="text-right">Dern. cmd</TableHead>
@@ -94,9 +93,6 @@ export function AgentPeriodPerformance({ agents }: Props) {
                   </TableCell>
                   <TableCell className="text-right hidden md:table-cell">
                     {formatNumber(a.totalColis ?? 0)}
-                  </TableCell>
-                  <TableCell className="text-right hidden lg:table-cell">
-                    {formatNumber(a.totalPots ?? 0)}
                   </TableCell>
                   <TableCell className="text-right hidden sm:table-cell">
                     {a.share.toFixed(1)}%
