@@ -379,10 +379,6 @@ export default function Home() {
                 <p className="text-xl font-title font-bold">{formatNumber(data.global.totalColis ?? 0)}</p>
               </CardContent></Card>
               <Card><CardContent className="p-4">
-                <p className="text-xs text-muted-foreground uppercase">Pots vendus</p>
-                <p className="text-xl font-title font-bold">{formatNumber(data.global.totalPots ?? 0)}</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase">Enseignes</p>
                 <p className="text-xl font-title font-bold">{formatNumber(data.global.totalEnseignes)}</p>
               </CardContent></Card>
