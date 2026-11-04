@@ -158,177 +158,6 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     }
   };
 
-  // Migration SEBASTIEN GASNIER : écrase les ventes existantes de SEBASTIEN
-  // et insère les 3 nouvelles ventes (AUCHAN MANDELIEU ×2, AUCHAN GRASSE ×1)
-  // avec les bonnes données issues de l'ERP de l'utilisateur.
-  const [migrating, setMigrating] = useState(false);
-  const [diagnosing, setDiagnosing] = useState(false);
-  const [cleaning, setCleaning] = useState(false);
-  const [diagnoseResult, setDiagnoseResult] = useState<any>(null);
-  const [cleanupResult, setCleanupResult] = useState<any>(null);
-
-  const runSebastienMigration = async () => {
-    if (!confirm(
-      'Migration SEBASTIEN GASNIER ?\n\n' +
-      'Cette action va :\n' +
-      '1. Créer l\'agent SEBASTIEN GASNIER (s\'il n\'existe pas)\n' +
-      '2. Supprimer TOUTES les ventes avec agent contenant SEBASTIEN/GASNIER\n' +
-      '   (uniquement par nom d\'agent — ne touche pas aux BL des autres agents)\n' +
-      '3. Insérer 3 nouvelles ventes :\n' +
-      '   • AUCHAN MANDELIEU — 02/11/2026 — 575,36€ (BL 26000623)\n' +
-      '   • AUCHAN MANDELIEU — 14/10/2026 — 723,84€ (BL 26000435, FV-00428)\n' +
-      '   • AUCHAN GRASSE — 07/10/2026 — 459,36€ (BL 26000381, FV-00365)\n' +
-      '4. Créer les enseignes AUCHAN MANDELIEU et AUCHAN GRASSE si besoin\n\n' +
-      'Le CA total des nouvelles ventes (1 758,56€) remplacera celui des ventes supprimées.\n' +
-      'Action atomique (transaction) — tout ou rien.'
-    )) return;
-    setMigrating(true);
-    try {
-      const r = await fetch('/api/migrations/sebastien-gasnier', { method: 'POST' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      toast.success('Migration SEBASTIEN GASNIER terminée', {
-        description: `${j.deletedSales} supprimée(s), ${j.insertedSales} insérée(s) — CA ${j.deletedCA.toFixed(2)}€ → ${j.insertedCA.toFixed(2)}€`,
-      });
-      // Recharge tout + diagnostic pour vérifier
-      loadAgents();
-      loadEnseignes();
-      loadDuplicates();
-      setDiagnoseResult(null);
-      setCleanupResult(null);
-      // Auto-diagnostic après migration
-      setTimeout(() => diagnoseSebastien(), 500);
-    } catch (e: any) {
-      toast.error('Erreur migration', { description: e.message });
-    } finally {
-      setMigrating(false);
-    }
-  };
-
-  // Diagnostic : liste toutes les ventes SEBASTIEN/GASNIER et identifie les doublons
-  const diagnoseSebastien = async () => {
-    setDiagnosing(true);
-    setDiagnoseResult(null);
-    setCleanupResult(null);
-    try {
-      const r = await fetch('/api/migrations/sebastien-diagnose', { cache: 'no-store' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      setDiagnoseResult(j);
-      if (j.summary.duplicatesCount > 0) {
-        toast.warning(`${j.summary.duplicatesCount} doublon(s) détecté(s)`, {
-          description: `${j.summary.totalSales} ventes au total, CA ${j.summary.totalCA.toFixed(2)}€`,
-        });
-      } else {
-        toast.success(`${j.summary.totalSales} vente(s), aucun doublon`, {
-          description: `CA total : ${j.summary.totalCA.toFixed(2)}€`,
-        });
-      }
-    } catch (e: any) {
-      toast.error('Erreur diagnostic', { description: e.message });
-    } finally {
-      setDiagnosing(false);
-    }
-  };
-
-  // Nettoyage : supprime les doublons (garde 1 vente par BL)
-  const cleanupSebastien = async () => {
-    if (!confirm(
-      'Nettoyer les doublons SEBASTIEN ?\n\n' +
-      'Pour chaque BL qui a 2+ ventes, garde uniquement la plus récente\n' +
-      'et supprime les autres. Les ventes sans BL ne sont pas touchées.'
-    )) return;
-    setCleaning(true);
-    setCleanupResult(null);
-    try {
-      const r = await fetch('/api/migrations/sebastien-diagnose', { method: 'POST' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      setCleanupResult(j);
-      if (j.deletedCount > 0) {
-        toast.success(`${j.deletedCount} doublon(s) supprimé(s)`);
-        // Re-diagnostic après nettoyage
-        setTimeout(() => diagnoseSebastien(), 500);
-      } else {
-        toast.info('Aucun doublon à supprimer');
-      }
-    } catch (e: any) {
-      toast.error('Erreur nettoyage', { description: e.message });
-    } finally {
-      setCleaning(false);
-    }
-  };
-
-  // === DIAGNOSTIC ENSEIGNE ===
-  const [diagnoseQuery, setDiagnoseQuery] = useState('');
-  const [diagnoseLoading, setDiagnoseLoading] = useState(false);
-  const [diagnoseData, setDiagnoseData] = useState<any>(null);
-  const [fixing, setFixing] = useState(false);
-  const [showMigrationTools, setShowMigrationTools] = useState(false);
-  // === AUDIT CA ===
-  const [auditData, setAuditData] = useState<any>(null);
-  const [auditLoading, setAuditLoading] = useState(false);
-
-  const runAudit = async () => {
-    setAuditLoading(true);
-    setAuditData(null);
-    try {
-      const r = await fetch('/api/audit', { cache: 'no-store' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      setAuditData(j);
-      if (j.summary.status === 'OK') {
-        toast.success(`CA total : ${j.summary.totalCA.toFixed(2)}€ — conforme à l'attendu`);
-      } else if (j.summary.status === 'CA MANQUANT') {
-        toast.error(`CA MANQUANT : ${Math.abs(j.summary.difference).toFixed(2)}€`, {
-          description: `Total actuel ${j.summary.totalCA.toFixed(2)}€ vs attendu ${j.summary.expectedCA}€`,
-        });
-      } else {
-        toast.warning(`CA excédentaire : ${j.summary.difference.toFixed(2)}€`);
-      }
-    } catch (e: any) {
-      toast.error('Erreur audit', { description: e.message });
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
-  // === RESTAURATION OCTOBRE 2026 ===
-  const [restoring, setRestoring] = useState(false);
-  const restoreOctober2026 = async () => {
-    if (!confirm(
-      'Restaurer les ventes d\'octobre 2026 ?\n\n' +
-      'Cette action va :\n' +
-      '1. Supprimer TOUTES les ventes existantes d\'octobre 2026\n' +
-      '2. Réinsérer 292 ventes à partir du fichier ERP (170 250,64€ HT)\n' +
-      '3. Detection intelligente: si l\'ERP a oublié d\'affecter un agent (*)\n' +
-      '   mais l\'enseigne est déjà assignée en base, garder cet agent\n' +
-      '   (ex: AUCHAN MANDELIEU reste à SEBASTIEN GASNIER meme si ERP dit *)\n' +
-      '4. Attribuer les autres ventes * à KOOK\'S\n' +
-      '5. Créer l\'agent SEBASTIEN GASNIER si besoin\n\n' +
-      'Le CA total sera exactement 170 250,64€ après restauration.'
-    )) return;
-    setRestoring(true);
-    try {
-      const r = await fetch('/api/migrations/october-2026', { method: 'POST' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      toast.success('Restauration terminée', {
-        description: `${j.insertedCount} ventes — CA ${j.totalCA.toFixed(2)}€${j.reassignedCount > 0 ? ` — ${j.reassignedCount} réaffectée(s) intelligemment` : ''}`,
-      });
-      // Recharge tout
-      loadAgents();
-      loadEnseignes();
-      loadDuplicates();
-      // Auto-audit pour vérifier
-      setTimeout(() => runAudit(), 500);
-    } catch (e: any) {
-      toast.error('Erreur restauration', { description: e.message });
-    } finally {
-      setRestoring(false);
-    }
-  };
-
   // === EXPORT CSV CLIENTS ===
   const exportClients = (status: 'all' | 'relance' | 'inactif') => {
     const agent = filterAgent === 'all' ? '' : filterAgent;
@@ -336,173 +165,28 @@ export function SettingsPanel({ initialTab = 'agents' }: SettingsPanelProps = {}
     window.open(url, '_blank');
   };
 
-  // === EXPORT PDF CLIENTS (généré côté client avec jsPDF) ===
+  // === EXPORT PDF CLIENTS ===
   const [generatingClientsPdf, setGeneratingClientsPdf] = useState(false);
   const exportClientsPDF = async () => {
     setGeneratingClientsPdf(true);
     try {
-      // Récupère la période courante
       const periodRes = await fetch('/api/period', { cache: 'no-store' });
       const periodJson = await periodRes.json();
       const { year, month } = periodJson.ok ? periodJson.data : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
-
-      // Récupère les données dashboard (filtrées par agent si applicable)
       const agentParam = filterAgent === 'all' ? '' : `&agent=${encodeURIComponent(filterAgent)}`;
       const res = await fetch(`/api/dashboard?year=${year}&month=${month}${agentParam}`, { cache: 'no-store' });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
-
-      // Génère le PDF côté client (import statique)
       await generateClientsPdf({ data: json.data, agentFilter: filterAgent === 'all' ? null : filterAgent });
-      toast.success('PDF généré', {
-        description: `Clients à relancer et inactifs — ${filterAgent === 'all' ? 'tous agents' : filterAgent}`,
-      });
+      toast.success('PDF genere');
     } catch (e: any) {
-      toast.error('Erreur génération PDF', { description: e.message });
+      toast.error('Erreur PDF', { description: e.message });
     } finally {
       setGeneratingClientsPdf(false);
     }
   };
 
-  // === IMPORT VOLUMES SCAPEST ===
-  const [importingVol, setImportingVol] = useState(false);
-  const importScapestVolumes = async () => {
-    if (!confirm(
-      'Importer les volumes SCAPEST (colis) ?\n\n' +
-      '185 lignes, 812 colis, 9 650,11€ HT\n' +
-      'Clients: SCAPEST CHALONS + SCAPEST TREMERY (BROCARD)\n' +
-      'Période: Octobre 2026\n\n' +
-      'Supprime les volumes SCAPEST existants pour octobre 2026 puis réinsère.'
-    )) return;
-    setImportingVol(true);
-    try {
-      const r = await fetch('/api/migrations/scapest-volumes', { method: 'POST' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      toast.success('Volumes SCAPEST importés', {
-        description: `${j.insertedCount} lignes, ${j.totalColis} colis, ${j.totalHT.toFixed(2)}€`,
-      });
-    } catch (e: any) {
-      toast.error('Erreur import volumes', { description: e.message });
-    } finally {
-      setImportingVol(false);
-    }
-  };
-
-  // === SYNC AGENTS (liaison enseignes ↔ ventes) ===
-  const [syncData, setSyncData] = useState<any>(null);
-  const [syncLoading, setSyncLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-
-  const checkSyncIssues = async () => {
-    setSyncLoading(true);
-    setSyncData(null);
-    try {
-      const r = await fetch('/api/enseignes/sync-agents', { cache: 'no-store' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      setSyncData(j);
-      if (j.inconsistenciesCount > 0) {
-        toast.warning(`${j.inconsistenciesCount} incohérence(s) détectée(s)`, {
-          description: 'L\'agent de l\'enseigne ne correspond pas à l\'agent des ventes récentes',
-        });
-      } else {
-        toast.success('Aucune incohérence — toutes les liaisons sont correctes');
-      }
-    } catch (e: any) {
-      toast.error('Erreur', { description: e.message });
-    } finally {
-      setSyncLoading(false);
-    }
-  };
-
-  const syncAllAgents = async () => {
-    if (!confirm(
-      'Synchroniser les agents ?\n\n' +
-      'Pour chaque enseigne :\n' +
-      '1. Prend l\'agent de la vente la plus récente (source de vérité ERP)\n' +
-      '2. Met à jour l\'enseigne avec cet agent\n' +
-      '3. Met à jour TOUTES les ventes de cette enseigne (agent + type + rate + commission)\n\n' +
-      'Cela garantit que la feuille clients et la feuille ventes sont liées correctement.\n' +
-      'Ex: SCAOUEST sera attribuée à CAP FRAIS partout (plus à BROCARD).'
-    )) return;
-    setSyncing(true);
-    try {
-      const r = await fetch('/api/enseignes/sync-agents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dryRun: false }),
-      });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      toast.success(`${j.totalSynced} enseigne(s) synchronisée(s)`, {
-        description: `${j.totalSalesUpdated} ventes mises à jour`,
-      });
-      // Recharge tout
-      loadAgents();
-      loadEnseignes();
-      loadDuplicates();
-      // Re-check
-      setTimeout(() => checkSyncIssues(), 500);
-    } catch (e: any) {
-      toast.error('Erreur sync', { description: e.message });
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const runDiagnose = async () => {
-    if (!diagnoseQuery.trim()) return;
-    setDiagnoseLoading(true);
-    setDiagnoseData(null);
-    try {
-      const r = await fetch(`/api/enseignes/diagnose?name=${encodeURIComponent(diagnoseQuery.trim())}`, { cache: 'no-store' });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      setDiagnoseData(j);
-      if (j.issues && j.issues.length > 0) {
-        toast.info(`${j.issues.length} point(s) d'attention`);
-      } else if (j.exactMatch) {
-        toast.success(`"${j.exactMatch.name}" analysé — aucun problème`);
-      }
-    } catch (e: any) {
-      toast.error('Erreur diagnostic', { description: e.message });
-    } finally {
-      setDiagnoseLoading(false);
-    }
-  };
-
   // Correction du type d'une enseigne (Direct → Centrale, etc.)
-  const fixEnseigneType = async (name: string, newType: 'Direct' | 'Centrale' | 'CHR') => {
-    if (!confirm(
-      `Forcer le type "${newType}" pour "${name}" ?\n\n` +
-      `Cela va :\n` +
-      `1. Changer le type de l'enseigne\n` +
-      `2. Mettre à jour TOUTES les ventes (type + taux + commission recalculée)\n` +
-      `Action atomique (transaction).`
-    )) return;
-    setFixing(true);
-    try {
-      const r = await fetch('/api/enseignes/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fix_type', name, newType }),
-      });
-      const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
-      toast.success(`"${name}" → type "${newType}"`, {
-        description: `${j.salesUpdated} ventes mises à jour (taux ${j.newRate * 100}%)`,
-      });
-      // Re-diagnostic pour confirmer
-      runDiagnose();
-      loadEnseignes();
-      loadDuplicates();
-    } catch (e: any) {
-      toast.error('Erreur correction', { description: e.message });
-    } finally {
-      setFixing(false);
-    }
-  };
 
   const addAgent = async () => {
     const name = prompt('Nom du nouvel agent :');
