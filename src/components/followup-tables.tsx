@@ -221,12 +221,8 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 }
 
 export function CustomerFollowupTable({ customers, availableAgents = [] }: CustomerFollowupTableProps) {
-  // Filtre par agent (sélectionnable par l'utilisateur)
-  const [agentFilter, setAgentFilter] = useState<string>('all');
-  
-  const filteredCustomers = agentFilter === 'all' 
-    ? customers 
-    : customers.filter((c) => c.agent === agentFilter);
+  // Plus de filtre interne — le filtre d'agent du dashboard est utilisé directement
+  const filteredCustomers = customers;
   
   const toRelance = filteredCustomers.filter((c) => c.status === 'A RELANCER');
   const inactive = filteredCustomers.filter((c) => c.status === 'INACTIF');
@@ -260,14 +256,13 @@ export function CustomerFollowupTable({ customers, availableAgents = [] }: Custo
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 116, 139);
     const dateStr = new Date().toLocaleDateString('fr-FR');
-    const filterStr = agentFilter === 'all' ? 'Tous agents' : `Agent : ${agentFilter}`;
-    doc.text(`Généré le ${dateStr} • ${filterStr} • ${toRelance.length} client(s) à relancer`, margin, 24);
+    doc.text(`Genere le ${dateStr} • ${toRelance.length + inactive.length} client(s) a relancer`, margin, 24);
     
     // Tableau
     autoTable(doc, {
       startY: 30,
       head: [['Enseigne', 'Type', 'Agent', 'Dern. cmd', 'Jours', 'CA Total', 'Récurrence']],
-      body: toRelance.map((c) => [
+      body: [...toRelance, ...inactive].map((c) => [
         c.enseigne,
         c.type,
         c.agent,
@@ -299,14 +294,10 @@ export function CustomerFollowupTable({ customers, availableAgents = [] }: Custo
       },
     });
     
-    const filename = agentFilter === 'all' 
-      ? 'clients-a-relancer.pdf'
-      : `clients-a-relancer-${agentFilter.toLowerCase().replace(/\s+/g, '-')}.pdf`;
+    const filename = 'clients-a-relancer.pdf';
     doc.save(filename);
     
-    toast.success(`${toRelance.length} clients à relancer exportés en PDF`, {
-      description: agentFilter === 'all' ? 'Tous agents' : `Agent : ${agentFilter}`,
-    });
+    toast.success(`${toRelance.length + inactive.length} clients exportes en PDF`);
   };
 
   const exportAll = () => {
@@ -343,26 +334,15 @@ export function CustomerFollowupTable({ customers, availableAgents = [] }: Custo
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={agentFilter} onValueChange={setAgentFilter}>
-              <SelectTrigger className="h-8 text-sm w-[180px]">
-                <SelectValue placeholder="Tous agents" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les agents</SelectItem>
-                {availableAgents.map((a) => (
-                  <SelectItem key={a} value={a}>{a}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Button
               variant="outline"
               size="sm"
               onClick={exportRelancePdf}
-              disabled={toRelance.length === 0}
+              disabled={toRelance.length === 0 && inactive.length === 0}
               className="border-amber-400/50 text-amber-700 hover:bg-amber-50 dark:text-amber-400"
             >
               <FileDown className="h-4 w-4 mr-2" />
-              Export PDF à relancer ({toRelance.length})
+              Export PDF ({toRelance.length + inactive.length})
             </Button>
             <Button variant="outline" size="sm" onClick={exportAll}>
               <Download className="h-4 w-4 mr-2" /> Tout exporter (CSV)
