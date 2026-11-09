@@ -84,16 +84,17 @@ export function SearchableClientSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn('h-8 text-sm justify-between w-[220px] font-normal', className)}
+          title={triggerLabel}
+          className={cn('h-9 text-sm justify-between w-full min-w-[200px] max-w-[400px] font-normal', className)}
         >
           <Store className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="truncate flex-1 text-left">
-            {triggerLabel.length > 28 ? triggerLabel.slice(0, 28) + '...' : triggerLabel}
+          <span className="truncate flex-1 text-left" title={triggerLabel}>
+            {triggerLabel}
           </span>
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent className="w-[500px] p-0" align="start">
         <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -104,7 +105,7 @@ export function SearchableClientSelect({
               className="h-9 flex-1"
             />
           </div>
-          <CommandList>
+          <CommandList className="max-h-[400px] overflow-y-auto">
             <CommandEmpty>Aucun client trouvé.</CommandEmpty>
             <CommandGroup>
               {/* Option "Tous les clients" — toujours en haut */}
@@ -130,7 +131,7 @@ export function SearchableClientSelect({
                   }}
                 >
                   <Store className="mr-2 h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="flex-1 truncate">
+                  <span className="flex-1 break-words whitespace-normal text-sm leading-snug">
                     {opt.canonical}
                     {opt.variants.length > 1 && (
                       <span className="ml-1.5 text-[10px] text-muted-foreground">
@@ -138,7 +139,7 @@ export function SearchableClientSelect({
                       </span>
                     )}
                   </span>
-                  {value === opt.canonical && <Check className="h-4 w-4 text-primary" />}
+                  {value === opt.canonical && <Check className="h-4 w-4 text-primary shrink-0" />}
                 </CommandItem>
               ))}
             </CommandGroup>
