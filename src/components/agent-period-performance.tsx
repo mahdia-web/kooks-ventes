@@ -14,20 +14,22 @@ const RANK_ICONS = [
 
 interface Props {
   agents: AgentPeriodTotal[];
+  periodLabel?: string;
 }
 
 /**
  * Affiche les performances globales de chaque agent sur TOUTE la période disponible
  * (pas seulement le mois sélectionné). Permet de comparer les commerciaux entre eux.
  */
-export function AgentPeriodPerformance({ agents }: Props) {
+export function AgentPeriodPerformance({ agents, periodLabel }: Props) {
+  const titleSuffix = periodLabel ?? 'Période totale';
   if (agents.length === 0) {
     return (
       <Card className="border-border">
         <CardHeader>
           <CardTitle className="font-title flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            Performances des commerciaux — Période totale
+            Performances des commerciaux — {titleSuffix}
           </CardTitle>
           <CardDescription>Aucune vente sur la période</CardDescription>
         </CardHeader>
@@ -40,11 +42,11 @@ export function AgentPeriodPerformance({ agents }: Props) {
       <CardHeader>
         <CardTitle className="font-title flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
-          Performances des commerciaux — Période totale
+          Performances des commerciaux — {titleSuffix}
         </CardTitle>
         <CardDescription>
-          Lecture globale des CA, commissions et volumes BL de chaque commercial
-          sur toute la période disponible
+          Lecture des CA, commissions et volumes BL de chaque commercial
+          sur la période sélectionnée
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -59,7 +61,6 @@ export function AgentPeriodPerformance({ agents }: Props) {
                 <TableHead className="text-right hidden md:table-cell">BL Total</TableHead>
                 <TableHead className="text-right hidden md:table-cell">CA Direct / Centrale</TableHead>
                 <TableHead className="text-right hidden lg:table-cell">Enseignes</TableHead>
-                <TableHead className="text-right hidden md:table-cell">Colis</TableHead>
                 <TableHead className="text-right hidden sm:table-cell">Part %</TableHead>
                 <TableHead className="text-right hidden lg:table-cell">1ère cmd</TableHead>
                 <TableHead className="text-right">Dern. cmd</TableHead>
@@ -90,9 +91,6 @@ export function AgentPeriodPerformance({ agents }: Props) {
                   </TableCell>
                   <TableCell className="text-right hidden lg:table-cell text-muted-foreground">
                     {formatNumber(a.enseignesActives)}
-                  </TableCell>
-                  <TableCell className="text-right hidden md:table-cell">
-                    {formatNumber(a.totalColis ?? 0)}
                   </TableCell>
                   <TableCell className="text-right hidden sm:table-cell">
                     {a.share.toFixed(1)}%

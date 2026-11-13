@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { isKooksAgent } from '@/lib/dashboard-service';
 
 /**
  * GET /api/client-detail?enseigne=XXX
+ * GET /api/client-detail?enseigne=XXX&startDate=01/10/2025&endDate=30/09/2026
  *
  * Retourne une fiche détaillée d'un client (enseigne) :
  *  - Infos générales (type, agent, taux commission, statut)
- *  - KPIs globaux (CA HT total, CA TTC, NB BL, commission, panier moyen)
+ *  - KPIs totaux (CA HT total, CA TTC, NB BL, commission, panier moyen)
+ *  - KPIs période (CA HT, NB BL, commission) — si une plage de dates est fournie
  *  - Répartition par type (Direct/Centrale)
  *  - Évolution mensuelle (CA par mois, 12 derniers mois)
- *  - Top produits (par quantité — depuis VolumeSale)
- *  - Top parfums
- *  - Top formats
+ *  - Top produits (par quantité)
  *  - Dernières ventes (10 plus récentes)
  *  - Première / dernière commande
+ *
+ * KOOK'S c'est nous-mêmes : commission et taux toujours à 0.
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const enseigneRaw = searchParams.get('enseigne');
+    const startDateStr = searchParams.get('startDate');
+    const endDateStr = searchParams.get('endDate');
 
     if (!enseigneRaw) {
       return NextResponse.json({ ok: false, error: 'Paramètre "enseigne" requis' }, { status: 400 });
@@ -30,13 +35,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Enseigne vide' }, { status: 400 });
     }
 
+    // Plage de dates (optionnelle) — DD/MM/YYYY
+    let dateRange: { start: Date; end: Date } | null = null;
+    if (startDateStr && endDateStr) {
+      const m1 = startDateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      const m2 = endDateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (m1 && m2) {
+        const start = new Date(parseInt(m1[3]), parseInt(m1[2]) - 1, parseInt(m1[1]));
+        const end = new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]));
+        end.setHours(23, 59, 59);
+        dateRange = { start, end };
+      }
+    }
+
     // Match exact OU normalized pour retrouver la fiche Enseigne
     const enseigneInfo = await db.enseigne.findFirst({
       where: { OR: variants.map((v) => ({ name: v })) },
     });
 
     // On récupère TOUTES les ventes de ce client (toutes périodes confondues)
-    // via les variants exacts + recherche normalized pour ratisser large
     const sales = await db.sale.findMany({
       where: { enseigne: { in: variants } },
       orderBy: { date: 'desc' },
@@ -56,7 +73,6 @@ export async function GET(req: NextRequest) {
           .replace(/\s+/g, ' ')
           .trim();
 
-      // Pour chaque variant, on recherche les ventes dont le nom normalisé correspond
       const allDbSales = await db.sale.findMany({
         select: {
           id: true,
@@ -86,10 +102,14 @@ export async function GET(req: NextRequest) {
       }, { status: 404 });
     }
 
-    // === KPIs globaux ===
+    // Helper: commission effective (KOOK'S = 0)
+    const effCommission = (s: { agent: string; commission: number }) =>
+      isKooksAgent(s.agent) ? 0 : s.commission;
+
+    // === KPIs globaux (toutes périodes) ===
     const caHTTotal = allSales.reduce((s, r) => s + r.amountHT, 0);
     const caTTCTotal = allSales.reduce((s, r) => s + r.amountTTC, 0);
-    const commissionTotal = allSales.reduce((s, r) => s + r.commission, 0);
+    const commissionTotal = allSales.reduce((s, r) => s + effCommission(r), 0);
     const nbBl = allSales.length;
     const panierMoyen = nbBl > 0 ? caHTTotal / nbBl : 0;
 
@@ -99,7 +119,7 @@ export async function GET(req: NextRequest) {
     const nbBlDirect = allSales.filter((s) => s.type === 'Direct').length;
     const nbBlCentrale = allSales.filter((s) => s.type === 'Centrale').length;
 
-    // Première / dernière commande
+    // Première / dernière commande (sur toutes les ventes)
     const sortedByDate = [...allSales].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const firstOrder = sortedByDate[0]?.date ?? null;
     const lastOrder = sortedByDate[sortedByDate.length - 1]?.date ?? null;
@@ -114,6 +134,26 @@ export async function GET(req: NextRequest) {
       : daysSinceLastOrder > 30 ? 'A RELANCER'
       : 'OK';
 
+    // === KPIs période (si une plage est fournie) ===
+    let periodKpis = null;
+    if (dateRange) {
+      const periodSales = allSales.filter(
+        (s) => new Date(s.date) >= dateRange!.start && new Date(s.date) <= dateRange!.end
+      );
+      periodKpis = {
+        caHT: periodSales.reduce((s, r) => s + r.amountHT, 0),
+        caTTC: periodSales.reduce((s, r) => s + r.amountTTC, 0),
+        commission: periodSales.reduce((s, r) => s + effCommission(r), 0),
+        nbBl: periodSales.length,
+        caDirect: periodSales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0),
+        caCentrale: periodSales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0),
+        nbBlDirect: periodSales.filter((s) => s.type === 'Direct').length,
+        nbBlCentrale: periodSales.filter((s) => s.type === 'Centrale').length,
+        startDate: startDateStr,
+        endDate: endDateStr,
+      };
+    }
+
     // === Évolution mensuelle (12 derniers mois avec données) ===
     const monthMap = new Map<string, { year: number; month: number; caHT: number; nbBl: number; commission: number }>();
     for (const s of allSales) {
@@ -121,7 +161,7 @@ export async function GET(req: NextRequest) {
       const existing = monthMap.get(key) ?? { year: s.year, month: s.month, caHT: 0, nbBl: 0, commission: 0 };
       existing.caHT += s.amountHT;
       existing.nbBl += 1;
-      existing.commission += s.commission;
+      existing.commission += effCommission(s);
       monthMap.set(key, existing);
     }
     const monthlyEvolution = Array.from(monthMap.values())
@@ -165,9 +205,7 @@ export async function GET(req: NextRequest) {
       .slice(0, 5);
     const topFormats = Array.from(formatMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 5);
 
-    const totalColis = volumeSales.reduce((s, v) => s + v.quantity, 0);
-
-    // === Dernières ventes (10 plus récentes) ===
+    // === Dernières ventes (10 plus récentes) — commission KOOK'S forcée à 0 ===
     const recentSales = allSales.slice(0, 10).map((s) => ({
       id: s.id,
       blNumber: s.blNumber,
@@ -177,8 +215,8 @@ export async function GET(req: NextRequest) {
       agent: s.agent,
       amountHT: s.amountHT,
       amountTTC: s.amountTTC,
-      rate: s.rate,
-      commission: s.commission,
+      rate: isKooksAgent(s.agent) ? 0 : s.rate,
+      commission: effCommission(s),
       month: s.month,
       year: s.year,
     }));
@@ -189,26 +227,35 @@ export async function GET(req: NextRequest) {
       const existing = yearMap.get(s.year) ?? { year: s.year, caHT: 0, nbBl: 0, commission: 0 };
       existing.caHT += s.amountHT;
       existing.nbBl += 1;
-      existing.commission += s.commission;
+      existing.commission += effCommission(s);
       yearMap.set(s.year, existing);
     }
     const yearlySummary = Array.from(yearMap.values()).sort((a, b) => b.year - a.year);
+
+    // KOOK'S : force commissionRate à 0 même si la base dit autre chose
+    const infoName = enseigneInfo?.name ?? variants[0];
+    const infoAgent = enseigneInfo?.agent ?? allSales[0]?.agent ?? '';
+    const infoType = enseigneInfo?.type ?? allSales[0]?.type ?? 'Direct';
+    const infoCommissionRate =
+      enseigneInfo && isKooksAgent(infoAgent)
+        ? 0
+        : enseigneInfo?.commissionRate ?? null;
 
     return NextResponse.json({
       ok: true,
       data: {
         info: enseigneInfo ? {
-          name: enseigneInfo.name,
-          type: enseigneInfo.type,
-          agent: enseigneInfo.agent,
-          commissionRate: enseigneInfo.commissionRate,
+          name: infoName,
+          type: infoType,
+          agent: infoAgent,
+          commissionRate: infoCommissionRate,
           isActive: enseigneInfo.isActive,
           oteraLocation: enseigneInfo.oteraLocation,
         } : {
-          name: variants[0],
-          type: allSales[0]?.type ?? 'Direct',
-          agent: allSales[0]?.agent ?? '',
-          commissionRate: null,
+          name: infoName,
+          type: infoType,
+          agent: infoAgent,
+          commissionRate: isKooksAgent(infoAgent) ? 0 : null,
           isActive: true,
           oteraLocation: null,
         },
@@ -218,7 +265,6 @@ export async function GET(req: NextRequest) {
           commissionTotal,
           nbBl,
           panierMoyen,
-          totalColis,
           caDirect,
           caCentrale,
           nbBlDirect,
@@ -228,6 +274,7 @@ export async function GET(req: NextRequest) {
           daysSinceLastOrder,
           status,
         },
+        periodKpis,
         monthlyEvolution,
         yearlySummary,
         topProducts,

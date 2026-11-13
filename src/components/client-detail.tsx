@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -53,6 +53,12 @@ interface ClientDetailProps {
   availableClients: string[];
   /** Filtre d'agent actif sur le dashboard (pour info) */
   agentFilter?: string;
+  /** Période sélectionnée sur le dashboard :
+   *  - {year, month} : mode mois
+   *  - {start, end} : mode plage de dates (DD/MM/YYYY)
+   *  - null : vue globale (toute la période)
+   */
+  periodFilter?: { year?: number; month?: number; start?: string; end?: string } | null;
 }
 
 interface ClientInfo {
@@ -70,7 +76,6 @@ interface ClientKpis {
   commissionTotal: number;
   nbBl: number;
   panierMoyen: number;
-  totalColis: number;
   caDirect: number;
   caCentrale: number;
   nbBlDirect: number;
@@ -127,9 +132,23 @@ interface RecentSale {
   year: number;
 }
 
+interface PeriodKpis {
+  caHT: number;
+  caTTC: number;
+  commission: number;
+  nbBl: number;
+  caDirect: number;
+  caCentrale: number;
+  nbBlDirect: number;
+  nbBlCentrale: number;
+  startDate: string | null;
+  endDate: string | null;
+}
+
 interface ClientDetailData {
   info: ClientInfo;
   kpis: ClientKpis;
+  periodKpis: PeriodKpis | null;
   monthlyEvolution: MonthlyEvolution[];
   yearlySummary: YearlySummary[];
   topProducts: TopProduct[];
@@ -145,7 +164,7 @@ const STATUS_COLORS: Record<string, string> = {
   'INACTIF': 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400',
 };
 
-export function ClientDetail({ availableClients, agentFilter }: ClientDetailProps) {
+export function ClientDetail({ availableClients, agentFilter, periodFilter }: ClientDetailProps) {
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -161,7 +180,19 @@ export function ClientDetail({ availableClients, agentFilter }: ClientDetailProp
       .filter((c) => !lower || c.toLowerCase().includes(lower));
   }, [availableClients, search]);
 
-  const loadClient = async (clientName: string) => {
+  // Construit la query string de période à partir de periodFilter
+  const periodQuery = useMemo(() => {
+    if (!periodFilter) return '';
+    if (periodFilter.start && periodFilter.end) {
+      return `&startDate=${encodeURIComponent(periodFilter.start)}&endDate=${encodeURIComponent(periodFilter.end)}`;
+    }
+    if (periodFilter.year && periodFilter.month) {
+      return `&year=${periodFilter.year}&month=${periodFilter.month}`;
+    }
+    return '';
+  }, [periodFilter]);
+
+  const loadClient = async (clientName: string, query: string = periodQuery) => {
     if (!clientName) {
       setData(null);
       setError(null);
@@ -170,7 +201,7 @@ export function ClientDetail({ availableClients, agentFilter }: ClientDetailProp
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch(`/api/client-detail?enseigne=${encodeURIComponent(clientName)}`, {
+      const r = await fetch(`/api/client-detail?enseigne=${encodeURIComponent(clientName)}${query}`, {
         cache: 'no-store',
       });
       const j = await r.json();
@@ -186,6 +217,14 @@ export function ClientDetail({ availableClients, agentFilter }: ClientDetailProp
       setLoading(false);
     }
   };
+
+  // Recharge la fiche quand la période change (si un client est sélectionné)
+  useEffect(() => {
+    if (selectedClient) {
+      loadClient(selectedClient);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodQuery]);
 
   const clearSelection = () => {
     setSelectedClient('');
@@ -251,7 +290,7 @@ export function ClientDetail({ availableClients, agentFilter }: ClientDetailProp
                           onSelect={() => {
                             setSelectedClient(c);
                             setOpen(false);
-                            loadClient(c);
+                            loadClient(c, periodQuery);
                           }}
                           className="break-words whitespace-normal py-2"
                         >
@@ -348,56 +387,92 @@ export function ClientDetail({ availableClients, agentFilter }: ClientDetailProp
             </CardHeader>
           </Card>
 
-          {/* KPIs principaux */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Euro className="h-3.5 w-3.5 text-primary" />
-                <p className="text-xs text-muted-foreground uppercase">CA HT total</p>
+          {/* KPIs principaux — Total (toutes périodes) */}
+          <Card className="border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Total toutes périodes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Euro className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs text-muted-foreground uppercase">CA HT total</p>
+                  </div>
+                  <p className="text-lg font-title font-bold">{formatEuro(data.kpis.caHTTotal)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs text-muted-foreground uppercase">NB BL</p>
+                  </div>
+                  <p className="text-lg font-title font-bold">{formatNumber(data.kpis.nbBl)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Euro className="h-3.5 w-3.5 text-destructive" />
+                    <p className="text-xs text-muted-foreground uppercase">Commission</p>
+                  </div>
+                  <p className="text-lg font-title font-bold text-destructive">{formatEuro(data.kpis.commissionTotal)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Percent className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs text-muted-foreground uppercase">Panier moyen</p>
+                  </div>
+                  <p className="text-lg font-title font-bold">{formatEuro(data.kpis.panierMoyen)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs text-muted-foreground uppercase">Dern. cmd</p>
+                  </div>
+                  <p className="text-sm font-title font-bold">
+                    {data.kpis.lastOrder ? formatDate(data.kpis.lastOrder) : '—'}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {data.kpis.daysSinceLastOrder === 9999 ? 'jamais' : `il y a ${data.kpis.daysSinceLastOrder} j`}
+                  </p>
+                </div>
               </div>
-              <p className="text-lg font-title font-bold">{formatEuro(data.kpis.caHTTotal)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <ShoppingCart className="h-3.5 w-3.5 text-primary" />
-                <p className="text-xs text-muted-foreground uppercase">NB BL</p>
-              </div>
-              <p className="text-lg font-title font-bold">{formatNumber(data.kpis.nbBl)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Euro className="h-3.5 w-3.5 text-destructive" />
-                <p className="text-xs text-muted-foreground uppercase">Commission</p>
-              </div>
-              <p className="text-lg font-title font-bold text-destructive">{formatEuro(data.kpis.commissionTotal)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Percent className="h-3.5 w-3.5 text-primary" />
-                <p className="text-xs text-muted-foreground uppercase">Panier moyen</p>
-              </div>
-              <p className="text-lg font-title font-bold">{formatEuro(data.kpis.panierMoyen)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Package className="h-3.5 w-3.5 text-primary" />
-                <p className="text-xs text-muted-foreground uppercase">Colis</p>
-              </div>
-              <p className="text-lg font-title font-bold">{formatNumber(data.kpis.totalColis)}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar className="h-3.5 w-3.5 text-primary" />
-                <p className="text-xs text-muted-foreground uppercase">Dern. cmd</p>
-              </div>
-              <p className="text-sm font-title font-bold">
-                {data.kpis.lastOrder ? formatDate(data.kpis.lastOrder) : '—'}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {data.kpis.daysSinceLastOrder === 9999 ? 'jamais' : `il y a ${data.kpis.daysSinceLastOrder} j`}
-              </p>
-            </CardContent></Card>
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* KPIs période — affichés seulement si une plage de dates est fournie */}
+          {data.periodKpis && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Période sélectionnée : {data.periodKpis.startDate} → {data.periodKpis.endDate}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">CA HT période</p>
+                    <p className="text-lg font-title font-bold text-primary">{formatEuro(data.periodKpis.caHT)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">NB BL période</p>
+                    <p className="text-lg font-title font-bold">{formatNumber(data.periodKpis.nbBl)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Commission période</p>
+                    <p className="text-lg font-title font-bold text-destructive">{formatEuro(data.periodKpis.commission)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">CA Direct</p>
+                    <p className="text-base font-title font-bold text-[#3674b5]">{formatEuro(data.periodKpis.caDirect)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">CA Centrale</p>
+                    <p className="text-base font-title font-bold text-primary">{formatEuro(data.periodKpis.caCentrale)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Répartition Direct / Centrale + Tendance */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -18,6 +18,20 @@ const MONTH_NAMES = [
 ];
 export { MONTH_NAMES };
 
+/**
+ * KOOK'S c'est nous-mêmes → aucune commission n'est due.
+ * On force donc le taux et la commission à 0 dans TOUS les calculs
+ * (même si la base contient des valeurs non nulles suite à un import).
+ */
+const KOOKS_PATTERN = /KOOK/i;
+export function isKooksAgent(agent: string): boolean {
+  return typeof agent === 'string' && KOOKS_PATTERN.test(agent);
+}
+/** Commission d'une vente, en forçant KOOK'S à 0 */
+export function commissionOf(sale: { agent: string; commission: number }): number {
+  return isKooksAgent(sale.agent) ? 0 : sale.commission;
+}
+
 export function monthLabel(month: number): string {
   return MONTH_NAMES[month - 1] ?? `Mois ${month}`;
 }
@@ -128,7 +142,7 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
 
   const caHT = sales.reduce((s, r) => s + r.amountHT, 0);
   const caTTC = sales.reduce((s, r) => s + r.amountTTC, 0);
-  const commission = sales.reduce((s, r) => s + r.commission, 0);
+  const commission = sales.reduce((s, r) => s + commissionOf(r), 0);
   const nbBl = sales.length;
   const nbBlDirect = sales.filter((s) => s.type === 'Direct').length;
   const nbBlCentrale = sales.filter((s) => s.type === 'Centrale').length;
@@ -144,7 +158,7 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
   });
 
   const prevCaHT = prevSales.reduce((s, r) => s + r.amountHT, 0);
-  const prevCommission = prevSales.reduce((s, r) => s + r.commission, 0);
+  const prevCommission = prevSales.reduce((s, r) => s + commissionOf(r), 0);
   const prevNbBl = prevSales.length;
   const prevCaDirect = prevSales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0);
   const prevCaCentrale = prevSales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
@@ -227,7 +241,7 @@ async function computeMonthlySeries(agentFilter?: string | null): Promise<Monthl
     };
     s.caHT += r.amountHT;
     s.caTTC += r.amountTTC;
-    s.commission += r.commission;
+    s.commission += commissionOf(r);
     s.nbBl += 1;
     if (r.type === 'Direct') {
       s.nbBlDirect += 1;
@@ -277,7 +291,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     };
     s.caHT += r.amountHT;
     s.caTTC += r.amountTTC;
-    s.commission += r.commission;
+    s.commission += commissionOf(r);
     s.nbBl += 1;
     s.enseignes.add(r.enseigne);
     if (r.type === 'Direct') {
@@ -354,7 +368,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     };
     s.caHT += r.amountHT;
     s.caTTC += r.amountTTC;
-    s.commission += r.commission;
+    s.commission += commissionOf(r);
     s.nbBl += 1;
     s.enseignes.add(r.enseigne);
     if (r.type === 'Direct') {
@@ -617,8 +631,20 @@ export async function getSales(year: number, month: number, agentFilter?: string
 
 // Performance des agents sur TOUTE la période (pas seulement le mois sélectionné)
 // Non filtrée par agent (pour comparer tous les agents entre eux)
-async function computeAgentPeriodTotals(): Promise<AgentPeriodTotal[]> {
+// Optionnellement restreinte à une plage de dates (startDate/endDate) ou à un
+// mois précis (year/month). Sans argument → toute la période disponible.
+async function computeAgentPeriodTotals(
+  range?: { startDate?: Date; endDate?: Date; year?: number; month?: number }
+): Promise<AgentPeriodTotal[]> {
+  const where: Record<string, unknown> = {};
+  if (range?.startDate && range?.endDate) {
+    where.date = { gte: range.startDate, lte: range.endDate };
+  } else if (range?.year && range?.month) {
+    where.year = range.year;
+    where.month = range.month;
+  }
   const sales = await db.sale.findMany({
+    where,
     select: {
       agent: true, type: true, amountHT: true, commission: true, date: true, enseigne: true,
     },
@@ -668,7 +694,7 @@ async function computeAgentPeriodTotals(): Promise<AgentPeriodTotal[]> {
       totalColis: 0, totalPots: 0,
     };
     s.caHT += r.amountHT;
-    s.commission += r.commission;
+    s.commission += commissionOf(r);
     s.nbBl += 1;
     s.enseignes.add(r.enseigne);
     const d = new Date(r.date);
@@ -767,7 +793,7 @@ export async function getDashboardData(
       computeEnseigneStats(year, month, agentFilter),
       computeCustomerFollowup(year, month, agentFilter),
       getAvailablePeriods(agentFilter),
-      computeAgentPeriodTotals(),
+      computeAgentPeriodTotals({ year, month }),
       computeTopEnseignesPeriod(agentFilter),
     ]);
 
@@ -869,7 +895,7 @@ export async function getDashboardDataForDateRange(
   // Calcule les KPIs pour la plage
   const caHT = sales.reduce((s, r) => s + r.amountHT, 0);
   const caTTC = sales.reduce((s, r) => s + r.amountTTC, 0);
-  const commission = sales.reduce((s, r) => s + r.commission, 0);
+  const commission = sales.reduce((s, r) => s + commissionOf(r), 0);
   const nbBl = sales.length;
   const directSales = sales.filter(s => s.type === 'Direct');
   const centraleSales = sales.filter(s => s.type === 'Centrale');
@@ -886,7 +912,7 @@ export async function getDashboardDataForDateRange(
       agent: r.agent, caHT: 0, caTTC: 0, commission: 0, nbBl: 0, nbBlDirect: 0, nbBlCentrale: 0,
       caDirect: 0, caCentrale: 0, enseignes: new Set<string>(),
     };
-    a.caHT += r.amountHT; a.caTTC += r.amountTTC; a.commission += r.commission; a.nbBl += 1;
+    a.caHT += r.amountHT; a.caTTC += r.amountTTC; a.commission += commissionOf(r); a.nbBl += 1;
     a.enseignes.add(r.enseigne);
     if (r.type === 'Direct') { a.nbBlDirect += 1; a.caDirect += r.amountHT; }
     else { a.nbBlCentrale += 1; a.caCentrale += r.amountHT; }
@@ -960,7 +986,7 @@ export async function getDashboardDataForDateRange(
     };
     s.caHT += r.amountHT;
     s.caTTC += r.amountTTC;
-    s.commission += r.commission;
+    s.commission += commissionOf(r);
     s.nbBl += 1;
     if (r.type === 'Direct') {
       s.nbBlDirect += 1;
@@ -1051,8 +1077,8 @@ export async function getDashboardDataForDateRange(
     lastOrder: e.lastOrder ? e.lastOrder.toISOString().split('T')[0] : null,
   })).sort((a, b) => b.caHT - a.caHT);
 
-  // Globaux (non filtrés par date)
-  const agentPeriodTotals = await computeAgentPeriodTotals();
+  // Globaux — restreints à la plage de dates sélectionnée
+  const agentPeriodTotals = await computeAgentPeriodTotals({ startDate, endDate });
   const topEnseignesPeriod = await computeTopEnseignesPeriod(agentFilter);
   const customerFollowup = await computeCustomerFollowup(endDate.getFullYear(), endDate.getMonth() + 1, agentFilter);
   const monthlySeries = await computeMonthlySeries(agentFilter);

@@ -361,7 +361,7 @@ export default function Home() {
               ))}
             </div>
           ) : viewMode === 'global' || viewMode === 'daterange' ? (
-            <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <Card className="border-primary/30 bg-primary/5"><CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase">CA Total HT</p>
                 <p className="text-xl font-title font-bold text-primary">{formatEuro(data.global.totalCaHT)}</p>
@@ -374,10 +374,6 @@ export default function Home() {
               <Card><CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase">Commission</p>
                 <p className="text-xl font-title font-bold text-destructive">{formatEuro(data.global.totalCommission)}</p>
-              </CardContent></Card>
-              <Card><CardContent className="p-4">
-                <p className="text-xs text-muted-foreground uppercase">Colis vendus</p>
-                <p className="text-xl font-title font-bold">{formatNumber(data.global.totalColis ?? 0)}</p>
               </CardContent></Card>
               <Card><CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase">Enseignes</p>
@@ -517,8 +513,17 @@ export default function Home() {
                   })) : data.enseignes}
                 />
 
-                {/* Performances des commerciaux sur TOUTE la période */}
-                <AgentPeriodPerformance agents={data.agentPeriodTotals} />
+                {/* Performances des commerciaux — reflète le filtre de période */}
+                <AgentPeriodPerformance
+                  agents={data.agentPeriodTotals}
+                  periodLabel={
+                    viewMode === 'global'
+                      ? 'Toute la période'
+                      : viewMode === 'daterange' && dateRange.start && dateRange.end
+                        ? `${dateRange.start} → ${dateRange.end}`
+                        : year && month ? `${monthLabel(month)} ${year}` : 'Période sélectionnée'
+                  }
+                />
 
                 {/* Top enseignes */}
                 <div className="grid gap-4 lg:grid-cols-2">
@@ -638,6 +643,15 @@ export default function Home() {
                 <ClientDetail
                   availableClients={data.customerFollowup.map((c) => c.enseigne)}
                   agentFilter={agentFilter}
+                  periodFilter={
+                    viewMode === 'daterange' && dateRange.start && dateRange.end
+                      ? { start: dateRange.start, end: dateRange.end }
+                      : viewMode === 'global'
+                        ? null
+                        : year !== null && month !== null
+                          ? { year, month }
+                          : null
+                  }
                 />
 
                 <div className="flex items-center justify-end gap-2">
