@@ -622,8 +622,9 @@ export async function getSales(year: number, month: number, agentFilter?: string
     agent: s.agent,
     amountHT: s.amountHT,
     amountTTC: s.amountTTC,
-    rate: s.rate,
-    commission: s.commission,
+    // KOOK'S = nous-mêmes : commission et taux toujours à 0
+    rate: isKooksAgent(s.agent) ? 0 : s.rate,
+    commission: commissionOf(s),
     month: s.month,
     year: s.year,
   }));
@@ -822,6 +823,25 @@ export async function getDashboardData(
     _max: { date: true },
   });
 
+  // KOOK'S = nous-mêmes : on retire la commission de la somme brute calculée
+  // par Prisma (qui ne sait pas qu'il faut la forcer à 0 pour KOOK'S).
+  const kooksWhereClause = { agent: { contains: 'KOOK', mode: 'insensitive' as const } };
+  const kooksCommissionAgg = await db.sale.aggregate({
+    where: { ...totalWhere, ...kooksWhereClause },
+    _sum: { commission: true },
+  });
+  const kooksCommissionDirectAgg = await db.sale.aggregate({
+    where: { ...totalWhere, type: 'Direct', ...kooksWhereClause },
+    _sum: { commission: true },
+  });
+  const kooksCommissionCentraleAgg = await db.sale.aggregate({
+    where: { ...totalWhere, type: 'Centrale', ...kooksWhereClause },
+    _sum: { commission: true },
+  });
+  const kooksCommissionSum = kooksCommissionAgg._sum.commission ?? 0;
+  const kooksCommissionDirectSum = kooksCommissionDirectAgg._sum.commission ?? 0;
+  const kooksCommissionCentraleSum = kooksCommissionCentraleAgg._sum.commission ?? 0;
+
   // Calcule les volumes globaux (colis + pots) depuis VolumeSale
   const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
   const allVolumes = await db.volumeSale.findMany({
@@ -847,15 +867,15 @@ export async function getDashboardData(
     agentFilter: agentFilter ?? null,
     global: {
       totalCaHT: totalAgg._sum.amountHT ?? 0,
-      totalCommission: totalAgg._sum.commission ?? 0,
+      totalCommission: (totalAgg._sum.commission ?? 0) - kooksCommissionSum,
       totalNbBl: totalAgg._count,
       totalEnseignes,
       totalCaDirect: directAgg._sum.amountHT ?? 0,
       totalCaCentrale: centraleAgg._sum.amountHT ?? 0,
       totalBlDirect: directAgg._count,
       totalBlCentrale: centraleAgg._count,
-      totalCommissionDirect: directAgg._sum.commission ?? 0,
-      totalCommissionCentrale: centraleAgg._sum.commission ?? 0,
+      totalCommissionDirect: (directAgg._sum.commission ?? 0) - kooksCommissionDirectSum,
+      totalCommissionCentrale: (centraleAgg._sum.commission ?? 0) - kooksCommissionCentraleSum,
       totalColis: colisAgg ?? 0,
       totalPots: potsAgg ?? 0,
       dateRange: {
@@ -1119,8 +1139,9 @@ export async function getDashboardDataForDateRange(
       totalCaHT: caHT, totalCommission: commission, totalNbBl: nbBl, totalEnseignes,
       totalCaDirect: caDirect, totalCaCentrale: caCentrale,
       totalBlDirect: nbBlDirect, totalBlCentrale: nbBlCentrale,
-      totalCommissionDirect: directSales.reduce((s, r) => s + r.commission, 0),
-      totalCommissionCentrale: centraleSales.reduce((s, r) => s + r.commission, 0),
+      // KOOK'S = nous-mêmes : commission forcée à 0 via commissionOf
+      totalCommissionDirect: directSales.reduce((s, r) => s + commissionOf(r), 0),
+      totalCommissionCentrale: centraleSales.reduce((s, r) => s + commissionOf(r), 0),
       totalColis: colisAgg, totalPots: potsAgg,
       dateRange: { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] },
     },

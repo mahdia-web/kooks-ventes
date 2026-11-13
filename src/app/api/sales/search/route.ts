@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
+import { isKooksAgent } from '@/lib/dashboard-service';
 
 /**
  * GET /api/sales/search?q=AUCHAN&limit=50
@@ -158,9 +159,16 @@ export async function GET(req: NextRequest) {
       salesCount: salesCountMap.get(m.name) ?? 0,
     }));
 
+    // KOOK'S = nous-mêmes : commission et taux forcés à 0
+    const sanitizedSales = sales.map((s) => ({
+      ...s,
+      rate: isKooksAgent(s.agent) ? 0 : s.rate,
+      commission: isKooksAgent(s.agent) ? 0 : s.commission,
+    }));
+
     return NextResponse.json({
       ok: true,
-      results: sales,
+      results: sanitizedSales,
       matchedEnseignes,
       total: sales.length,
       query,

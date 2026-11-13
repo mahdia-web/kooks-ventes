@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { isKooksAgent } from '@/lib/dashboard-service';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -13,8 +14,10 @@ export async function GET(req: NextRequest) {
     const byStore = new Map<string, any>();
     for (const s of sales) {
       const loc = locationMap.get(s.enseigne) || 'Autre';
+      // KOOK'S = nous-mêmes : commission forcée à 0
+      const effCommission = isKooksAgent(s.agent) ? 0 : s.commission;
       const st = byStore.get(s.enseigne) || { enseigne: s.enseigne, location: loc, caHT: 0, caTTC: 0, commission: 0, nbBL: 0, firstOrder: null as any, lastOrder: null as any, agents: new Set<string>() };
-      st.caHT += s.amountHT; st.caTTC += s.amountTTC; st.commission += s.commission; st.nbBL++; st.agents.add(s.agent);
+      st.caHT += s.amountHT; st.caTTC += s.amountTTC; st.commission += effCommission; st.nbBL++; st.agents.add(s.agent);
       if (!st.firstOrder || s.date < st.firstOrder) st.firstOrder = s.date;
       if (!st.lastOrder || s.date > st.lastOrder) st.lastOrder = s.date;
       byStore.set(s.enseigne, st);
