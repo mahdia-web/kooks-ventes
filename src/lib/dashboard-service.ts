@@ -132,6 +132,7 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
   const sales = await db.sale.findMany({
     where,
     select: {
+      agent: true,
       amountHT: true,
       amountTTC: true,
       commission: true,
@@ -154,7 +155,7 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
   const prevWhere = agentFilter ? { year: prev.year, month: prev.month, agent: agentFilter } : { year: prev.year, month: prev.month };
   const prevSales = await db.sale.findMany({
     where: prevWhere,
-    select: { amountHT: true, amountTTC: true, commission: true, type: true },
+    select: { agent: true, amountHT: true, amountTTC: true, commission: true, type: true },
   });
 
   const prevCaHT = prevSales.reduce((s, r) => s + r.amountHT, 0);
@@ -219,7 +220,7 @@ async function computeMonthlySeries(agentFilter?: string | null): Promise<Monthl
   const rows = await db.sale.findMany({
     where,
     select: {
-      year: true, month: true, amountHT: true, amountTTC: true,
+      agent: true, year: true, month: true, amountHT: true, amountTTC: true,
       commission: true, type: true,
     },
   });
