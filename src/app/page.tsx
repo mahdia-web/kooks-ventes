@@ -39,6 +39,7 @@ import { EvolutionCaCentrale } from '@/components/evolution-ca-centrale';
 import { AgentTable, CustomerFollowupTable, EnseigneTable } from '@/components/followup-tables';
 import { SalesDetailTable } from '@/components/sales-detail-table';
 import { SalesSearch } from '@/components/sales-search';
+import { ClientDetail } from '@/components/client-detail';
 import { MessageSummary } from '@/components/message-summary';
 import { ImportDialog } from '@/components/import-dialog';
 import { PeriodSelector } from '@/components/period-selector';
@@ -633,6 +634,12 @@ export default function Home() {
               </TabsContent>
 
               <TabsContent value="data" className="space-y-4">
+                {/* Fiche détaillée par client — sélection + analyse */}
+                <ClientDetail
+                  availableClients={data.customerFollowup.map((c) => c.enseigne)}
+                  agentFilter={agentFilter}
+                />
+
                 <div className="flex items-center justify-end gap-2">
                   <SalesSearch agentFilter={agentFilter} />
                 </div>
