@@ -97,12 +97,34 @@ export async function POST(req: NextRequest) {
     const colClient = findCol(['Client', 'Enseigne', 'Magasin', 'client']) ?? headers.find(h => /client|enseigne|magasin/i.test(h));
     if (colClient) usedCols.add(colClient);
     const colProduit = findCol(['Libellé', 'Libelle', 'Produit', 'Description', 'Référence', 'Ref', 'libelle']);
-    const colQte = findCol(['Qté', 'Qté', 'qte', 'Quantité', 'Colis', 'Nb. Colis', 'Nb Colis', 'quantity', 'nb']);
+    // IMPORTANT: 'Nb. Colis' (quantité) doit être essayé AVANT 'Colis' (format),
+    // sinon findCol() matche la colonne format (BARQUETTE PCB 6) au lieu de la quantité.
+    const colQte = findCol(['Nb. Colis', 'Nb Colis', 'Qté', 'Qté', 'qte', 'Quantité', 'quantity', 'nb colis', 'Colis']);
     if (colQte) usedCols.add(colQte);
     const colPU = findCol(['PU HT', 'PU', 'Prix unitaire', 'unitPrice', 'pu']);
     const colFacture = findCol(['Facture', 'N° Facture', 'Ref Facture', 'Référence', 'Reference', 'facture']);
 
     console.log(`[volumes/import] Columns mapped: date=${colDate}, client=${colClient}, produit=${colProduit}, qte=${colQte}, pu=${colPU}, facture=${colFacture}`);
+
+    // Date par défaut : si le fichier n'a pas de colonne Date (ex: export ERP qui
+    // ne contient que des numéros de BL séquentiels), on utilise defaultDate
+    // passée en formData, sinon la date du jour. Toutes les lignes auront cette
+    // date — l'utilisateur peut re-importer avec une autre date si besoin.
+    const defaultDateStr = String(formData.get('defaultDate') ?? '');
+    let defaultDate: Date | null = null;
+    if (defaultDateStr) {
+      const m = defaultDateStr.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+      if (m) {
+        const d = parseInt(m[1], 10);
+        const mo = parseInt(m[2], 10);
+        let y = parseInt(m[3], 10);
+        if (y < 100) y += 2000;
+        defaultDate = new Date(y, mo - 1, d);
+      }
+    }
+    if (!defaultDate) defaultDate = new Date();
+    const hasDateColumn = !!colDate;
+    console.log(`[volumes/import] hasDateColumn=${hasDateColumn}, defaultDate=${defaultDate.toISOString().split('T')[0]}`);
 
     if (!colClient || !colQte) {
       return NextResponse.json({
@@ -171,7 +193,7 @@ export async function POST(req: NextRequest) {
       const puRaw = colPU ? row[colPU] : null;
       const factureRaw = colFacture ? row[colFacture] : null;
 
-      // Parse date
+      // Parse date — si pas de colonne date, utilise defaultDate (configurable)
       let date: Date | null = null;
       if (dateRaw instanceof Date) date = dateRaw;
       else if (typeof dateRaw === 'number') {
@@ -190,6 +212,10 @@ export async function POST(req: NextRequest) {
           const d = new Date(t);
           if (!isNaN(d.getTime())) date = d;
         }
+      }
+      // Fallback: pas de colonne date ou date invalide → defaultDate
+      if ((!date || isNaN(date.getTime()) || date.getFullYear() < 2020) && defaultDate) {
+        date = defaultDate;
       }
       if (!date || isNaN(date.getTime()) || date.getFullYear() < 2020) { skipped++; continue; }
 

@@ -10,6 +10,7 @@ import {
   Users,
   Store,
   Receipt,
+  Package,
 } from 'lucide-react';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatEuro, formatNumber, monthLabel, formatDate } from '@/lib/dashboard-service';
@@ -70,6 +71,15 @@ export function AppSidebar({ data, agentFilter, onHome }: AppSidebarProps) {
           >
             <Receipt className="h-4 w-4 mr-3 text-primary" />
             Charges
+          </Button>
+        </Link>
+        <Link href="/volumes" className="block">
+          <Button
+            variant="ghost"
+            className="w-full justify-start font-medium hover:bg-sidebar-accent"
+          >
+            <Package className="h-4 w-4 mr-3 text-primary" />
+            Volumes clients
           </Button>
         </Link>
         <Link href="/settings" className="block">
