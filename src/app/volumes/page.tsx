@@ -13,9 +13,6 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from '@/components/ui/tabs';
 import { ArrowLeft, Package, Upload, Search, TrendingUp, ShoppingCart, Euro, Percent, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SettingsPanel } from '@/components/settings-panel';
@@ -305,7 +302,6 @@ export default function VolumesPage() {
               <CardTitle className="text-sm font-medium">Filtre période</CardTitle>
               <CardDescription>
                 Sélectionne une période pour voir la performance et la comparaison vs période précédente.
-                La répartition Direct/Centrale ne concerne que les agents — pas affichée ici par client.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -423,173 +419,162 @@ export default function VolumesPage() {
             </Alert>
           )}
 
-          {/* Onglets : Clients / Prix par produit×format / Mensuel */}
-          <Tabs defaultValue="clients">
-            <TabsList>
-              <TabsTrigger value="clients">Détail par client</TabsTrigger>
-              <TabsTrigger value="prix-format">Prix moyen par produit × format</TabsTrigger>
-              <TabsTrigger value="mensuel">Colis par mois</TabsTrigger>
-            </TabsList>
-
-            {/* Onglet clients */}
-            <TabsContent value="clients" className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Rechercher un client…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          {/* Prix moyen par produit × format (visible en premier) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-title">Prix de vente unitaire moyen par produit × format</CardTitle>
+              <CardDescription>
+                Prix auquel on vend chaque combinaison produit × format sur la période filtrée.
+                Calculé comme CA HT ÷ pots (ou colis).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {prixParProduitFormat.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée pour cette période.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produit</TableHead>
+                        <TableHead>Parfum</TableHead>
+                        <TableHead>Format</TableHead>
+                        <TableHead className="text-right">Colis</TableHead>
+                        <TableHead className="text-right">Pots</TableHead>
+                        <TableHead className="text-right">CA HT</TableHead>
+                        <TableHead className="text-right">Prix moy./pot</TableHead>
+                        <TableHead className="text-right">Prix moy./colis</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {prixParProduitFormat.map((p) => (
+                        <TableRow key={`${p.productLabel}-${p.format}`} className="hover:bg-muted/40">
+                          <TableCell className="font-medium text-xs">{p.productLabel}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{p.parfum ?? '—'}</TableCell>
+                          <TableCell className="text-xs">{p.format ?? '—'}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">{formatNumber(p.colis)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(p.pots)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(p.caHT)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs font-semibold">{formatEuro(p.prixMoyenParPot)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">{formatEuro(p.prixMoyenParColis)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {filteredClients.length} client(s) affiché(s){search && ` sur ${clients.length}`}
-                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Colis par mois */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-title">Colis par mois</CardTitle>
+              <CardDescription>
+                Évolution mensuelle des colis commandés sur la période filtrée.
+                Moyenne = {totals ? `${formatNumber(totals.colisMoyenParMois)} colis/mois` : '—'} sur {totals ? totals.nbMois : 0} mois.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {monthlySeries.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée pour cette période.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mois</TableHead>
+                        <TableHead className="text-right">Colis</TableHead>
+                        <TableHead className="text-right">CA HT</TableHead>
+                        <TableHead className="text-right">Colis / jour (moy.)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monthlySeries.map((m) => (
+                        <TableRow key={m.label} className="hover:bg-muted/40">
+                          <TableCell className="font-medium">{m.label}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">{formatNumber(m.colis)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs text-emerald-700">{formatEuro(m.caHT)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(Math.round(m.colis / 30))}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Détail par client */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Rechercher un client…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
               </div>
+              <p className="text-sm text-muted-foreground">
+                {filteredClients.length} client(s) affiché(s){search && ` sur ${clients.length}`}
+              </p>
+            </div>
 
-              <Card>
-                <CardContent className="pt-6">
-                  {loading ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">Chargement…</p>
-                  ) : sortedClients.length === 0 ? (
-                    <div className="py-12 text-center">
-                      <Package className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-                      <p className="text-sm text-muted-foreground">Aucune donnée pour cette période. Importez un fichier ou changez le filtre.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('enseigne')}>Client{sortArrow('enseigne')}</TableHead>
-                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('nbBL')}>BL{sortArrow('nbBL')}</TableHead>
-                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('colisCommandes')}>Colis{sortArrow('colisCommandes')}</TableHead>
-                            <TableHead className="text-right">Pots</TableHead>
-                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('caHT')}>CA HT{sortArrow('caHT')}</TableHead>
-                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('prixVenteMoyenParPot')}>Prix moy./pot{sortArrow('prixVenteMoyenParPot')}</TableHead>
-                            <TableHead className="text-right">Prix moy./colis</TableHead>
-                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('panierMoyenBL')}>Panier moy./BL{sortArrow('panierMoyenBL')}</TableHead>
-                            <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('referencesProduits')}>Réf. produits{sortArrow('referencesProduits')}</TableHead>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-title">Détail par client</CardTitle>
+                <CardDescription>Performance de chaque enseigne sur la période filtrée.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">Chargement…</p>
+                ) : sortedClients.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                    <p className="text-sm text-muted-foreground">Aucune donnée pour cette période. Importez un fichier ou changez le filtre.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('enseigne')}>Client{sortArrow('enseigne')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('nbBL')}>BL{sortArrow('nbBL')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('colisCommandes')}>Colis{sortArrow('colisCommandes')}</TableHead>
+                          <TableHead className="text-right">Pots</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('caHT')}>CA HT{sortArrow('caHT')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('prixVenteMoyenParPot')}>Prix moy./pot{sortArrow('prixVenteMoyenParPot')}</TableHead>
+                          <TableHead className="text-right">Prix moy./colis</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('panierMoyenBL')}>Panier moy./BL{sortArrow('panierMoyenBL')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('referencesProduits')}>Réf. produits{sortArrow('referencesProduits')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedClients.map((c) => (
+                          <TableRow key={c.enseigne} className="hover:bg-muted/40">
+                            <TableCell className="font-medium">
+                              {c.enseigne}
+                              {c.variants.length > 1 && <span className="ml-2 text-[10px] text-muted-foreground">({c.variants.length} variants)</span>}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs">{c.nbBL}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatNumber(c.colisCommandes)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(c.potsCommandes)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(c.caHT)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatEuro(c.prixVenteMoyenParPot)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatEuro(c.prixVenteMoyenParColis)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatEuro(c.panierMoyenBL)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">
+                              <span className="inline-flex items-center gap-1">
+                                {c.referencesProduits}
+                                <span className="text-[10px] text-muted-foreground">({c.nbParfums} parfums)</span>
+                              </span>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {sortedClients.map((c) => (
-                            <TableRow key={c.enseigne} className="hover:bg-muted/40">
-                              <TableCell className="font-medium">
-                                {c.enseigne}
-                                {c.variants.length > 1 && <span className="ml-2 text-[10px] text-muted-foreground">({c.variants.length} variants)</span>}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-xs">{c.nbBL}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatNumber(c.colisCommandes)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(c.potsCommandes)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(c.caHT)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatEuro(c.prixVenteMoyenParPot)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatEuro(c.prixVenteMoyenParColis)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatEuro(c.panierMoyenBL)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                <span className="inline-flex items-center gap-1">
-                                  {c.referencesProduits}
-                                  <span className="text-[10px] text-muted-foreground">({c.nbParfums} parfums)</span>
-                                </span>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Onglet prix par produit × format */}
-            <TabsContent value="prix-format">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-title">Prix de vente moyen par produit × format</CardTitle>
-                  <CardDescription>
-                    Prix unitaire moyen auquel on vend chaque combinaison produit × format.
-                    Calculé comme CA HT ÷ pots (ou colis) sur la période filtrée.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {prixParProduitFormat.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Produit</TableHead>
-                            <TableHead>Parfum</TableHead>
-                            <TableHead>Format</TableHead>
-                            <TableHead className="text-right">Colis</TableHead>
-                            <TableHead className="text-right">Pots</TableHead>
-                            <TableHead className="text-right">CA HT</TableHead>
-                            <TableHead className="text-right">Prix moy./pot</TableHead>
-                            <TableHead className="text-right">Prix moy./colis</TableHead>
-                            <TableHead className="text-right">Lignes</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {prixParProduitFormat.map((p) => (
-                            <TableRow key={`${p.productLabel}-${p.format}`} className="hover:bg-muted/40">
-                              <TableCell className="font-medium text-xs">{p.productLabel}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{p.parfum ?? '—'}</TableCell>
-                              <TableCell className="text-xs">{p.format ?? '—'}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatNumber(p.colis)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(p.pots)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(p.caHT)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs font-semibold">{formatEuro(p.prixMoyenParPot)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatEuro(p.prixMoyenParColis)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-muted-foreground">{p.lignes}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Onglet mensuel */}
-            <TabsContent value="mensuel">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-title">Colis par mois</CardTitle>
-                  <CardDescription>
-                    Évolution mensuelle des colis commandés sur la période filtrée.
-                    Moyenne = {totals ? `${formatNumber(totals.colisMoyenParMois)} colis/mois` : '—'} sur {totals ? totals.nbMois : 0} mois.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {monthlySeries.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée.</p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Mois</TableHead>
-                            <TableHead className="text-right">Colis</TableHead>
-                            <TableHead className="text-right">CA HT</TableHead>
-                            <TableHead className="text-right">Colis / jour (moy.)</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {monthlySeries.map((m) => (
-                            <TableRow key={m.label} className="hover:bg-muted/40">
-                              <TableCell className="font-medium">{m.label}</TableCell>
-                              <TableCell className="text-right font-mono text-xs">{formatNumber(m.colis)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-emerald-700">{formatEuro(m.caHT)}</TableCell>
-                              <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(Math.round(m.colis / 30))}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </div>
       <SettingsPanel />
