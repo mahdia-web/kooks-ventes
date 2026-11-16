@@ -79,14 +79,30 @@ export async function POST(req: NextRequest) {
 
     // Helper: trouve une colonne par pattern
     const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[''`]/g, '').trim();
+    // Recherche en 3 passes pour éviter les faux positifs :
+    //   1. Match exact (normalisé) — priorité maximale
+    //   2. Header contient le pattern complet (header plus long) — ex: pattern "Colis" matche "Nb. Colis"
+    //   3. Pattern contient le header (pattern plus long) — ex: pattern "Nb. Colis" matche "Colis"
+    //      Uniquement si aucune colonne n'a été trouvée en passes 1 et 2.
+    // Sans ça, pattern "Nb. Colis" matchait faussement "Colis" (car "nb colis" contient "colis").
     const findCol = (patterns: string[]): string | null => {
+      // Pass 1: exact match
       for (const p of patterns) {
         const pl = normalize(p);
-        const found = headers.find(h => {
-          const hl = normalize(h);
-          return hl === pl || hl.includes(pl) || pl.includes(hl);
-        });
-        if (found) return found;
+        const f = headers.find(h => normalize(h) === pl);
+        if (f) return f;
+      }
+      // Pass 2: header contient le pattern (header plus long ou égal)
+      for (const p of patterns) {
+        const pl = normalize(p);
+        const f = headers.find(h => { const hl = normalize(h); return hl.includes(pl); });
+        if (f) return f;
+      }
+      // Pass 3: pattern contient le header (fallback — pattern plus long)
+      for (const p of patterns) {
+        const pl = normalize(p);
+        const f = headers.find(h => { const hl = normalize(h); return pl.includes(hl); });
+        if (f) return f;
       }
       return null;
     };
@@ -101,10 +117,16 @@ export async function POST(req: NextRequest) {
     // sinon findCol() matche la colonne format (BARQUETTE PCB 6) au lieu de la quantité.
     const colQte = findCol(['Nb. Colis', 'Nb Colis', 'Qté', 'Qté', 'qte', 'Quantité', 'quantity', 'nb colis', 'Colis']);
     if (colQte) usedCols.add(colQte);
+    // Colonne 'Colis' (format/conditionnement) — distincte de 'Nb. Colis' (quantité)
+    // L'ERP a une colonne 'Colis' avec des valeurs comme 'BARQUETTE PCB 6', 'COLIS PCB 4', 'COLIS PCB 8'
+    // On la détecte APRES 'Nb. Colis' pour éviter le conflit (findCol 3-passes gère ça).
+    const colFormat = findCol(['Colis', 'Format', 'Conditionnement', 'Packaging']);
     const colPU = findCol(['PU HT', 'PU', 'Prix unitaire', 'unitPrice', 'pu']);
     const colFacture = findCol(['Facture', 'N° Facture', 'Ref Facture', 'Référence', 'Reference', 'facture']);
+    // Colonne 'Pièces' (nombre de pots/unités) — pour calcul alternatif des pots
+    const colPieces = findCol(['Pièces', 'Pieces', 'Nb Pièces', 'Nb. Pièces', 'pots']);
 
-    console.log(`[volumes/import] Columns mapped: date=${colDate}, client=${colClient}, produit=${colProduit}, qte=${colQte}, pu=${colPU}, facture=${colFacture}`);
+    console.log(`[volumes/import] Columns mapped: date=${colDate}, client=${colClient}, produit=${colProduit}, qte=${colQte}, format=${colFormat}, pieces=${colPieces}, pu=${colPU}, facture=${colFacture}`);
 
     // Date par défaut : si le fichier n'a pas de colonne Date (ex: export ERP qui
     // ne contient que des numéros de BL séquentiels), on utilise defaultDate
@@ -168,13 +190,25 @@ export async function POST(req: NextRequest) {
     };
 
     const PARFUM_KEYWORDS = ['ORIGINAL', 'PEANUT BUTTER', 'CRISPY CHOCO', 'CARAMEL PECAN', 'SPECULOOS', 'COCO', 'SPEC'];
+    // Format détecté depuis le libellé produit (fallback si pas de colonne 'Colis')
     const FORMAT_KEYWORDS: Array<[string, string]> = [
       ['LOT 2', 'Lot de 2'], ['LOT DE 2', 'Lot de 2'],
       ['BOX 9', 'Box de 9'], ['BOX DE 9', 'Box de 9'],
       ['PAV 8', 'Indiv PAV 8'], ['PAV8', 'Indiv PAV 8'],
       ['FOURO', 'Indiv Fouro'], ['INDIV', 'Indiv Fouro'],
       ['BARQUETTE PCB 6', 'Lot de 2'], ['COLIS PCB 8', 'Indiv PAV 8'],
+      // Patterns ERP : "X2 BQ", "X1 PAV", "ETUI X9"
+      ['X2 BQ', 'Lot de 2'], ['X1 PAV', 'Indiv PAV 8'], ['ETUI X9', 'Box de 9'],
     ];
+    // Mapping direct valeur colonne 'Colis' (format ERP) → nom canonique
+    // BARQUETTE PCB 6 = Lot de 2 (6 pots/colis), COLIS PCB 4 = Box de 9 (4 colis... non, 4 pots/colis vérifié),
+    // COLIS PCB 8 = Indiv PAV 8 (8 pots/colis)
+    // Vérifié depuis le fichier ERP : BARQUETTE=6p/colis, COLIS PCB 4=4p/colis, COLIS PCB 8=8p/colis
+    const COLIS_FORMAT_MAP: Record<string, string> = {
+      'BARQUETTE PCB 6': 'Lot de 2',
+      'COLIS PCB 4': 'Box de 9',
+      'COLIS PCB 8': 'Indiv PAV 8',
+    };
 
     const toInsert: Array<{
       date: Date; month: number; year: number; enseigne: string;
@@ -246,10 +280,19 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Format
+      // Format — priorité 1 : valeur de la colonne 'Colis' (format ERP, ex: 'BARQUETTE PCB 6')
+      //          priorité 2 : détection depuis le libellé produit (FORMAT_KEYWORDS)
       let format: string | null = null;
-      for (const [kw, label] of FORMAT_KEYWORDS) {
-        if (labelUpper.includes(kw)) { format = label; break; }
+      if (colFormat) {
+        const formatVal = String(row[colFormat] ?? '').trim().toUpperCase();
+        if (formatVal && COLIS_FORMAT_MAP[formatVal]) {
+          format = COLIS_FORMAT_MAP[formatVal];
+        }
+      }
+      if (!format) {
+        for (const [kw, label] of FORMAT_KEYWORDS) {
+          if (labelUpper.includes(kw)) { format = label; break; }
+        }
       }
 
       // PU
@@ -296,7 +339,7 @@ export async function POST(req: NextRequest) {
       detail: `${inserted} ligne(s) importée(s), ${skipped} ignorée(s) sur ${rows.length} total`,
       sheetUsed: sheetName,
       detectedColumns: headers,
-      columnMapping: { date: colDate, client: colClient, produit: colProduit, qte: colQte, pu: colPU, facture: colFacture },
+      columnMapping: { date: colDate, client: colClient, produit: colProduit, qte: colQte, format: colFormat, pieces: colPieces, pu: colPU, facture: colFacture },
       resolvedCount,
     });
   } catch (e) {
