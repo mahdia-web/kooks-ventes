@@ -405,7 +405,7 @@ export default function ChargesPage() {
   return (
     <div className="min-h-screen bg-background flex">
       <AppSidebar data={data} agentFilter="all" onHome={handleHome} />
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 ml-64 flex flex-col min-h-screen min-w-0 max-w-full overflow-x-hidden">
 
         {/* === HEADER PREMIUM === */}
         <header className="border-b border-border bg-card sticky top-0 z-40">
