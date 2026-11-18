@@ -1,25 +1,29 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export const maxDuration = 60;
 
 /**
- * POST /api/products/apply-direct-tariffs
+ * POST /api/products/apply-direct-tariffs?batch=N&size=M
  *
- * Applique les tarifs DIRECT à tous les clients de type "Direct" actifs.
- * Tarifs fournis par l'utilisateur:
- *   - Lot de 2:        tarifDepart = 14.784 €, remise = 5.84%
- *   - Pot individuel:  tarifDepart = 9.856 €,  remise = 5.84%
- *     (finalPrice = tarifDepart × (1 - remise/100))
- *
- * Les "pots individuels" = formats "Indiv PAV 8" et "Indiv Fouro".
+ * Applique les tarifs DIRECT aux clients de type "Direct" actifs.
+ * Comme il y a ~87 clients × 13 produits = 1131 upserts, on traite par
+ * lots (batch/size) pour rester sous la limite Vercel de 60s.
+ *   batch=0&size=400 → clients 0..399
+ *   batch=400&size=400 → clients 400..799
+ *   batch=800&size=400 → clients 800..1131
+ * Sans paramètres: traite TOUT (peut expirer si trop d'opérations).
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     const LOT2_TARIF = 14.784;
     const LOT2_REMISE = 5.84;
     const INDIV_TARIF = 9.856;
     const INDIV_REMISE = 5.84;
+
+    const { searchParams } = new URL(req.url);
+    const batchStart = parseInt(searchParams.get('batch') || '0', 10);
+    const batchSize = parseInt(searchParams.get('size') || '0', 10); // 0 = tout
 
     // 1. Enseignes Direct actives
     const directEnseignes = await db.enseigne.findMany({
@@ -37,14 +41,11 @@ export async function POST() {
     const indivProducts = products.filter((p) => /indiv/i.test(p.format?.name ?? ''));
 
     const tarifs = [
-      ...lot2Products.map((p) => ({ productId: p.id, tarif: LOT2_TARIF, remise: LOT2_REMISE, format: p.format?.name })),
-      ...indivProducts.map((p) => ({ productId: p.id, tarif: INDIV_TARIF, remise: INDIV_REMISE, format: p.format?.name })),
+      ...lot2Products.map((p) => ({ productId: p.id, tarif: LOT2_TARIF, remise: LOT2_REMISE })),
+      ...indivProducts.map((p) => ({ productId: p.id, tarif: INDIV_TARIF, remise: INDIV_REMISE })),
     ];
 
-    let upserted = 0;
-    let failed = 0;
-    // Construit toutes les opérations puis les exécute en lots parallèles
-    // pour rester sous la limite de durée Vercel (60s).
+    // Construit toutes les opérations
     const operations: Array<{ enseigne: string; productId: string; tarif: number; remise: number; final: number }> = [];
     for (const enseigne of directNames) {
       for (const t of tarifs) {
@@ -53,10 +54,15 @@ export async function POST() {
       }
     }
 
+    const total = operations.length;
+    const slice = batchSize > 0 ? operations.slice(batchStart, batchStart + batchSize) : operations;
+    let upserted = 0;
+    let failed = 0;
+
     // Lots de 25 opérations en parallèle
-    const BATCH_SIZE = 25;
-    for (let i = 0; i < operations.length; i += BATCH_SIZE) {
-      const batch = operations.slice(i, i + BATCH_SIZE);
+    const PARALLEL = 25;
+    for (let i = 0; i < slice.length; i += PARALLEL) {
+      const batch = slice.slice(i, i + PARALLEL);
       const results = await Promise.allSettled(batch.map((op) =>
         db.productSalesPrice.upsert({
           where: { productId_enseigne: { productId: op.productId, enseigne: op.enseigne } },
@@ -85,6 +91,10 @@ export async function POST() {
       directClients: directNames.length,
       lot2Products: lot2Products.length,
       indivProducts: indivProducts.length,
+      totalOperations: total,
+      batchStart,
+      batchSize: batchSize > 0 ? batchSize : total,
+      processed: slice.length,
       upserted,
       failed,
       tarifs: {
