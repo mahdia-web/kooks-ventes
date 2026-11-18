@@ -82,16 +82,16 @@ export async function GET(req: NextRequest) {
         totalTTC: d.amountTTC,
         count: d.count,
         category: d.category,
-        pct: totalHTAll > 0 ? (d.totalHT / totalHTAll) * 100 : 0,
+        pct: totalTTCAll > 0 ? (d.amountTTC / totalTTCAll) * 100 : 0,
       }))
-      .sort((a, b) => b.totalHT - a.totalHT)
+      .sort((a, b) => b.totalTTC - a.totalTTC)
       .slice(0, 15);
 
-    // Top catégories (avec pct et count) — déjà groupé par label lisible
+    // Top catégories (avec pct et count) — TTC (ce qu'on paie réellement)
     const categoryMap = new Map<string, { total: number; count: number }>();
     for (const c of charges) {
       const cur = categoryMap.get(c.category) ?? { total: 0, count: 0 };
-      cur.total += c.amountHT;
+      cur.total += c.amountTTC;
       cur.count += 1;
       categoryMap.set(c.category, cur);
     }
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
         category,
         total: d.total,
         count: d.count,
-        pct: totalHTAll > 0 ? (d.total / totalHTAll) * 100 : 0,
+        pct: totalTTCAll > 0 ? (d.total / totalTTCAll) * 100 : 0,
         // Indique si cette catégorie est comptabilisée comme charge directe
         // (liée à la production/vente) ou indirecte (charge de structure).
         isDirecte: isChargeDirecte(category),
@@ -145,6 +145,7 @@ export async function GET(req: NextRequest) {
     let marginPreview: {
       caHT: number;
       chargesHT: number;
+      chargesTTC: number;
       margeBrute: number;
       margePct: number;
       nbVentes: number;
@@ -159,18 +160,20 @@ export async function GET(req: NextRequest) {
       marginPreview = {
         caHT,
         chargesHT: totalHTAll,
+        chargesTTC: totalTTCAll,
         margeBrute: caHT - totalHTAll,
         margePct: caHT > 0 ? ((caHT - totalHTAll) / caHT) * 100 : 0,
         nbVentes: sales.length,
       };
     }
 
-    // Série mensuelle: charges par mois (sur la période filtrée)
-    const monthlyMap = new Map<string, { year: number; month: number; totalHT: number; count: number }>();
+    // Série mensuelle: charges par mois (sur la période filtrée) — HT + TTC
+    const monthlyMap = new Map<string, { year: number; month: number; totalHT: number; totalTTC: number; count: number }>();
     for (const c of charges) {
       const key = `${c.year}-${c.month}`;
-      const m = monthlyMap.get(key) ?? { year: c.year, month: c.month, totalHT: 0, count: 0 };
+      const m = monthlyMap.get(key) ?? { year: c.year, month: c.month, totalHT: 0, totalTTC: 0, count: 0 };
       m.totalHT += c.amountHT;
+      m.totalTTC += c.amountTTC;
       m.count += 1;
       monthlyMap.set(key, m);
     }

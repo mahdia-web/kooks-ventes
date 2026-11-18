@@ -196,12 +196,12 @@ export default function ChargesPage() {
     return list;
   }, [charges, search, sortField, sortDir]);
 
-  // KPIs from filtered charges
+  // KPIs from filtered charges — basés sur le TTC (ce qu'on paie réellement)
   const kpis = useMemo(() => {
     const totalHT = filtered.reduce((s, c) => s + c.amountHT, 0);
     const totalTTC = filtered.reduce((s, c) => s + c.amountTTC, 0);
-    const direct = filtered.filter(c => c.allocationMethod === 'DIRECT').reduce((s, c) => s + c.amountHT, 0);
-    const indirect = totalHT - direct;
+    const direct = filtered.filter(c => c.allocationMethod === 'DIRECT').reduce((s, c) => s + c.amountTTC, 0);
+    const indirect = totalTTC - direct;
     const distinctVendors = new Set(filtered.map(c => (c.vendor ?? '').trim()).filter(Boolean));
     return {
       totalHT, totalTTC, direct, indirect,
@@ -246,7 +246,7 @@ export default function ChargesPage() {
         icon: Award,
         title: 'Fournisseur principal',
         value: top.vendor,
-        sub: `${formatEuro(top.totalHT)} • ${top.pct.toFixed(1)}% • ${top.count} factures`,
+        sub: `${formatEuro(top.totalTTC ?? top.totalHT)} • ${top.pct.toFixed(1)}% • ${top.count} factures`,
         color: '#3674b5',
         bg: 'rgba(54,116,181,0.08)',
       });
@@ -294,7 +294,7 @@ export default function ChargesPage() {
     // 6. Économie potentielle (si top fournisseur représente +20% du total)
     if (topVendors.length > 0 && topVendors[0].pct > 20) {
       const top = topVendors[0];
-      const potentialSaving = top.totalHT * 0.05; // hypothèse 5% négociation
+      const potentialSaving = (top.totalTTC ?? top.totalHT) * 0.05; // hypothèse 5% négociation
       cards.push({
         icon: Lightbulb,
         title: 'Économie potentielle (5% sur top fournisseur)',
@@ -649,14 +649,31 @@ export default function ChargesPage() {
 
           {/* === 6 KPI PRINCIPAUX === */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            {/* Total Charges HT */}
+            {/* Total Charges TTC (mise en avant — ce qu'on paie réellement) */}
+            <Card className="rounded-2xl shadow-sm border-primary/30 hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Charges TTC</p>
+                  <Euro className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <p className="text-xl font-title font-bold text-primary">{formatEuro(kpis.totalTTC)}</p>
+                {previousPeriod && (
+                  <p className={`text-[10px] mt-1 flex items-center gap-1 ${previousPeriod.variationTTC >= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                    {previousPeriod.variationTTC >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                    {fmtVar(previousPeriod.variationTTC)}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Total Charges HT (secondaire) */}
             <Card className="rounded-2xl shadow-sm border-border hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Charges HT</p>
-                  <Euro className="h-3.5 w-3.5 text-primary" />
+                  <Euro className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
-                <p className="text-xl font-title font-bold text-primary">{formatEuro(kpis.totalHT)}</p>
+                <p className="text-xl font-title font-bold">{formatEuro(kpis.totalHT)}</p>
                 {previousPeriod && (
                   <p className={`text-[10px] mt-1 flex items-center gap-1 ${previousPeriod.variationHT >= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
                     {previousPeriod.variationHT >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -666,46 +683,30 @@ export default function ChargesPage() {
               </CardContent>
             </Card>
 
-            {/* Total Charges TTC */}
+            {/* Charges Directes (TTC) */}
             <Card className="rounded-2xl shadow-sm border-border hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Charges TTC</p>
-                  <Euro className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-                <p className="text-xl font-title font-bold">{formatEuro(kpis.totalTTC)}</p>
-                {previousPeriod && (
-                  <p className={`text-[10px] mt-1 ${previousPeriod.variationTTC >= 0 ? 'text-destructive' : 'text-emerald-600'}`}>
-                    {fmtVar(previousPeriod.variationTTC)}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Charges Directes */}
-            <Card className="rounded-2xl shadow-sm border-border hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Charges Directes</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Charges Directes TTC</p>
                   <Building2 className="h-3.5 w-3.5" style={{ color: '#3674b5' }} />
                 </div>
                 <p className="text-xl font-title font-bold" style={{ color: '#3674b5' }}>{formatEuro(kpis.direct)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {kpis.totalHT > 0 ? `${(kpis.direct / kpis.totalHT * 100).toFixed(1)}% du total` : '—'}
+                  {kpis.totalTTC > 0 ? `${(kpis.direct / kpis.totalTTC * 100).toFixed(1)}% du total` : '—'}
                 </p>
               </CardContent>
             </Card>
 
-            {/* Charges Indirectes */}
+            {/* Charges Indirectes (TTC) */}
             <Card className="rounded-2xl shadow-sm border-border hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Charges Indirectes</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Charges Indirectes TTC</p>
                   <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
                 <p className="text-xl font-title font-bold" style={{ color: '#bb7e40' }}>{formatEuro(kpis.indirect)}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {kpis.totalHT > 0 ? `${(kpis.indirect / kpis.totalHT * 100).toFixed(1)}% du total` : '—'}
+                  {kpis.totalTTC > 0 ? `${(kpis.indirect / kpis.totalTTC * 100).toFixed(1)}% du total` : '—'}
                 </p>
               </CardContent>
             </Card>
@@ -779,36 +780,36 @@ export default function ChargesPage() {
                           borderRadius: '8px',
                           fontSize: '12px',
                         }}
-                        formatter={(value: number) => [formatEuro(value), 'Charges HT']}
+                        formatter={(value: number) => [formatEuro(value), 'Charges TTC']}
                         labelFormatter={(label) => {
                           const item = monthlySeries.find(m => m.label === label);
                           return item ? `${label} (${item.count} factures)` : label;
                         }}
                       />
-                      <Bar dataKey="totalHT" name="Charges HT" fill="#f7a941" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="totalTTC" name="Charges TTC" fill="#f7a941" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                {/* Stats résumé */}
+                {/* Stats résumé — TTC (ce qu'on paie) */}
                 <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-4">
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total période</p>
-                    <p className="text-sm font-bold text-primary">{formatEuro(monthlySeries.reduce((s, m) => s + m.totalHT, 0))}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total période (TTC)</p>
+                    <p className="text-sm font-bold text-primary">{formatEuro(monthlySeries.reduce((s, m) => s + m.totalTTC, 0))}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Moyenne / mois</p>
-                    <p className="text-sm font-bold">{formatEuro(monthlySeries.reduce((s, m) => s + m.totalHT, 0) / Math.max(monthlySeries.length, 1))}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Moyenne / mois (TTC)</p>
+                    <p className="text-sm font-bold">{formatEuro(monthlySeries.reduce((s, m) => s + m.totalTTC, 0) / Math.max(monthlySeries.length, 1))}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mois le plus cher</p>
                     <p className="text-sm font-bold text-destructive">
-                      {monthlySeries.reduce((max, m) => m.totalHT > max.totalHT ? m : max, monthlySeries[0])?.label}
+                      {monthlySeries.reduce((max, m) => m.totalTTC > max.totalTTC ? m : max, monthlySeries[0])?.label}
                     </p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mois le moins cher</p>
                     <p className="text-sm font-bold text-emerald-600">
-                      {monthlySeries.reduce((min, m) => m.totalHT < min.totalHT ? m : min, monthlySeries[0])?.label}
+                      {monthlySeries.reduce((min, m) => m.totalTTC < min.totalTTC ? m : min, monthlySeries[0])?.label}
                     </p>
                   </div>
                 </div>
@@ -1114,12 +1115,12 @@ export default function ChargesPage() {
                           <span className="flex items-center gap-1">Catégorie {sortField === 'category' && (sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}</span>
                         </TableHead>
                         <TableHead className="hidden md:table-cell">Client</TableHead>
-                        <TableHead className="text-right cursor-pointer select-none hover:bg-muted/80" onClick={() => toggleSort('amountHT')}>
-                          <span className="flex items-center gap-1 justify-end">Montant HT {sortField === 'amountHT' && (sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}</span>
+                        <TableHead className="text-right cursor-pointer select-none hover:bg-muted/80" onClick={() => toggleSort('amountTTC')}>
+                          <span className="flex items-center gap-1 justify-end">Montant TTC {sortField === 'amountTTC' && (sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}</span>
                         </TableHead>
                         <TableHead className="text-right hidden lg:table-cell">TVA</TableHead>
-                        <TableHead className="text-right hidden lg:table-cell cursor-pointer select-none hover:bg-muted/80" onClick={() => toggleSort('amountTTC')}>
-                          <span className="flex items-center gap-1 justify-end">TTC {sortField === 'amountTTC' && (sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}</span>
+                        <TableHead className="text-right hidden lg:table-cell cursor-pointer select-none hover:bg-muted/80" onClick={() => toggleSort('amountHT')}>
+                          <span className="flex items-center gap-1 justify-end">HT {sortField === 'amountHT' && (sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}</span>
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1136,9 +1137,9 @@ export default function ChargesPage() {
                               </span>
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-sm">{c.enseigne ?? '—'}</TableCell>
-                            <TableCell className="text-right font-semibold text-destructive text-sm whitespace-nowrap">{formatEuro(c.amountHT)}</TableCell>
+                            <TableCell className="text-right font-semibold text-destructive text-sm whitespace-nowrap">{formatEuro(c.amountTTC)}</TableCell>
                             <TableCell className="text-right hidden lg:table-cell text-sm text-muted-foreground">{formatEuro(tva)}</TableCell>
-                            <TableCell className="text-right hidden lg:table-cell text-sm whitespace-nowrap">{formatEuro(c.amountTTC)}</TableCell>
+                            <TableCell className="text-right hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{formatEuro(c.amountHT)}</TableCell>
                           </TableRow>
                         );
                       })}
@@ -1170,18 +1171,18 @@ export default function ChargesPage() {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-4 mt-6">
-                  {/* Montant principal */}
+                  {/* Montant principal — TTC (ce qu'on paie réellement) */}
                   <div className="rounded-xl bg-destructive/5 p-4 border border-destructive/20">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">Montant HT</p>
-                    <p className="text-3xl font-title font-bold text-destructive">{formatEuro(selectedCharge.amountHT)}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">Montant TTC (payé)</p>
+                    <p className="text-3xl font-title font-bold text-destructive">{formatEuro(selectedCharge.amountTTC)}</p>
                     <div className="flex gap-4 mt-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">HT: </span>
+                        <span className="font-medium">{formatEuro(selectedCharge.amountHT)}</span>
+                      </div>
                       <div>
                         <span className="text-muted-foreground">TVA: </span>
                         <span className="font-medium">{formatEuro(selectedCharge.amountTTC - selectedCharge.amountHT)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">TTC: </span>
-                        <span className="font-medium">{formatEuro(selectedCharge.amountTTC)}</span>
                       </div>
                     </div>
                   </div>

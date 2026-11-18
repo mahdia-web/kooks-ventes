@@ -370,13 +370,13 @@ export default function VolumesPage() {
           </Card>
 
           {/* KPIs globaux avec comparaison N-1 */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
                   <ShoppingCart className="h-3.5 w-3.5" /> Colis commandés
                 </CardDescription>
-                <CardTitle className="text-2xl font-title">{totals ? formatNumber(totals.totalColis) : '—'}</CardTitle>
+                <CardTitle className="text-xl font-title">{totals ? formatNumber(totals.totalColis) : '—'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -390,7 +390,7 @@ export default function VolumesPage() {
                 <CardDescription className="flex items-center gap-2">
                   <Euro className="h-3.5 w-3.5" /> CA HT (volumes)
                 </CardDescription>
-                <CardTitle className="text-2xl font-title">{totals ? formatEuro(totals.totalCA) : '—'}</CardTitle>
+                <CardTitle className="text-xl font-title">{totals ? formatEuro(totals.totalCA) : '—'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -404,7 +404,7 @@ export default function VolumesPage() {
                 <CardDescription className="flex items-center gap-2">
                   <Percent className="h-3.5 w-3.5" /> Prix vente moy. / pot
                 </CardDescription>
-                <CardTitle className="text-2xl font-title">{totals ? formatEuro(totals.prixMoyenGlobalParPot) : '—'}</CardTitle>
+                <CardTitle className="text-xl font-title">{totals ? formatEuro(totals.prixMoyenGlobalParPot) : '—'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -418,7 +418,7 @@ export default function VolumesPage() {
                 <CardDescription className="flex items-center gap-2">
                   <Euro className="h-3.5 w-3.5" /> Prix vente moy. / colis
                 </CardDescription>
-                <CardTitle className="text-2xl font-title">{totals ? formatEuro(totals.prixMoyenGlobalParColis) : '—'}</CardTitle>
+                <CardTitle className="text-xl font-title">{totals ? formatEuro(totals.prixMoyenGlobalParColis) : '—'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -432,7 +432,7 @@ export default function VolumesPage() {
                 <CardDescription className="flex items-center gap-2">
                   <TrendingUp className="h-3.5 w-3.5" /> Colis moyen / mois
                 </CardDescription>
-                <CardTitle className="text-2xl font-title">{totals ? formatNumber(totals.colisMoyenParMois) : '—'}</CardTitle>
+                <CardTitle className="text-xl font-title">{totals ? formatNumber(totals.colisMoyenParMois) : '—'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
@@ -660,9 +660,12 @@ export default function VolumesPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Réglages (agents / enseignes / doublons) — dans le flux de contenu,
+              pas en plein écran sous la barre latérale. */}
+          <SettingsPanel />
         </main>
       </div>
-      <SettingsPanel />
     </div>
   );
 }

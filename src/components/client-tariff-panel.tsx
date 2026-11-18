@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ChevronDown, ChevronRight, Store, Search } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, Store, Search, Calculator, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatEuro } from '@/lib/dashboard-service';
 
@@ -28,6 +28,22 @@ interface ClientWithTariffs {
   totalColis: number;
 }
 
+// === Marge estimée par pot (avec charges directes) ===
+interface MargeProduct {
+  productId: string; name: string; parfum: string; format: string;
+  potsPerColis: number; nbColis: number; nbPots: number; caProduct: number;
+  prixVenteMoyenParPot: number; achatParPot: number | null; achatParColis: number | null;
+  margeBruteParPot: number | null; chargesParPot: number;
+  margeNetteParPot: number | null; margePct: number | null;
+}
+interface MargeTotals {
+  chargesDirectesTTC: number; chargesTransport: number; chargesMarketing: number;
+  chargesCatalogues: number; chargesImprimes: number;
+  totalCAProduits: number; totalPots: number;
+  periode: { start: string; end: string };
+  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeTransport: boolean; };
+}
+
 export function ClientTariffPanel() {
   const [clients, setClients] = useState<ClientWithTariffs[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,6 +56,18 @@ export function ClientTariffPanel() {
   const [newClientAgent, setNewClientAgent] = useState('CAP FRAIS');
   // Per-client add-product form state
   const [addForms, setAddForms] = useState<Record<string, { productId: string; tarif: string; remise: string; show: boolean }>>({});
+  // Marge estimée par pot (charges directes) — partagée entre la carte dédiée
+  // et la colonne "Marge nette" de la grille tarifaire.
+  const [margeProducts, setMargeProducts] = useState<MargeProduct[]>([]);
+  const [margeTotals, setMargeTotals] = useState<MargeTotals | null>(null);
+  const [margeOptions, setMargeOptions] = useState({ includeMarketing: true, includeCatalogues: false, includeImprimes: false });
+
+  // Map productId → chargesParPot pour lookup rapide dans la grille tarifaire
+  const chargesParPotByProduct = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of margeProducts) m.set(p.productId, p.chargesParPot);
+    return m;
+  }, [margeProducts]);
 
   const loadAll = useCallback(async () => {
     try {
@@ -79,6 +107,41 @@ export function ClientTariffPanel() {
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Chargement de la marge estimée par pot (avec charges directes)
+  const [margeExpanded, setMargeExpanded] = useState(false);
+  const [margeLoading, setMargeLoading] = useState(false);
+  const [margeExpandedProduct, setMargeExpandedProduct] = useState<string | null>(null);
+  const loadMarge = useCallback(async () => {
+    setMargeLoading(true);
+    try {
+      const params = new URLSearchParams({
+        includeMarketing: String(margeOptions.includeMarketing),
+        includeCatalogues: String(margeOptions.includeCatalogues),
+        includeImprimes: String(margeOptions.includeImprimes),
+      });
+      const res = await fetch(`/api/products/marge-estimee?${params}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (json.ok) {
+        setMargeProducts(json.products);
+        setMargeTotals(json.totals);
+      } else {
+        toast.error(json.error || 'Erreur marge');
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setMargeLoading(false);
+    }
+  }, [margeOptions]);
+
+  useEffect(() => {
+    if (margeExpanded && margeProducts.length === 0) loadMarge();
+  }, [margeExpanded, loadMarge, margeProducts.length]);
+
+  useEffect(() => {
+    if (margeExpanded) loadMarge();
+  }, [margeOptions, margeExpanded, loadMarge]);
 
   const filtered = clients.filter(c =>
     !search.trim() ||
@@ -202,6 +265,20 @@ export function ClientTariffPanel() {
         </Card>
       )}
 
+      {/* === Marge estimée par pot (avec charges directes) === */}
+      <EstimatedMarginCard
+        products={margeProducts}
+        totals={margeTotals}
+        options={margeOptions}
+        expanded={margeExpanded}
+        expandedProduct={margeExpandedProduct}
+        loading={margeLoading}
+        setExpanded={setMargeExpanded}
+        setExpandedProduct={setMargeExpandedProduct}
+        setOptions={setMargeOptions}
+        load={loadMarge}
+      />
+
       {/* Liste des clients avec tarifs */}
       <div className="space-y-2">
         {filtered.map((client) => {
@@ -252,7 +329,8 @@ export function ClientTariffPanel() {
                             <TableHead className="text-right">Tarif départ</TableHead>
                             <TableHead className="text-right">Remise %</TableHead>
                             <TableHead className="text-right">Prix final</TableHead>
-                            <TableHead className="text-right hidden md:table-cell">Marge/pot</TableHead>
+                            <TableHead className="text-right hidden md:table-cell">Marge brute/pot</TableHead>
+                            <TableHead className="text-right hidden lg:table-cell">Marge nette/pot <span className="text-[10px] font-normal text-muted-foreground">(charges directes)</span></TableHead>
                             <TableHead className="text-right hidden md:table-cell">Marge/colis</TableHead>
                             <TableHead className="w-10"></TableHead>
                           </TableRow>
@@ -271,6 +349,9 @@ export function ClientTariffPanel() {
                             const achatColis = currentPrice?.pricePerColis ?? null;
                             const margePot = achatPot !== null ? finalPot - achatPot : null;
                             const margeColis = achatColis !== null ? finalColis - achatColis : null;
+                            // Marge nette = marge brute - charges directes allouées au pot
+                            const chargesParPot = chargesParPotByProduct.get(sp.productId) ?? 0;
+                            const margeNettePot = margePot !== null ? margePot - chargesParPot : null;
 
                             return (
                               <TariffRow
@@ -279,6 +360,8 @@ export function ClientTariffPanel() {
                                 productName={product?.name ?? sp.productId}
                                 margePot={margePot}
                                 margeColis={margeColis}
+                                margeNettePot={margeNettePot}
+                                chargesParPot={chargesParPot}
                                 finalPot={finalPot}
                                 finalFormat={finalFormat}
                                 achatPot={achatPot}
@@ -350,11 +433,13 @@ export function ClientTariffPanel() {
 
 // === Ligne tarif éditable ===
 function TariffRow({
-  sp, productName, margePot, margeColis, finalPot, finalFormat, achatPot, achatColis,
+  sp, productName, margePot, margeColis, margeNettePot, chargesParPot,
+  finalPot, finalFormat, achatPot, achatColis,
   onUpdate, onDelete,
 }: {
   sp: SalesPrice; productName: string;
   margePot: number | null; margeColis: number | null;
+  margeNettePot: number | null; chargesParPot: number;
   finalPot: number; finalFormat: number;
   achatPot: number | null; achatColis: number | null;
   onUpdate: (sp: SalesPrice, tarif: number, remise: number) => void;
@@ -396,6 +481,14 @@ function TariffRow({
           </div>
         ) : <span className="text-muted-foreground">—</span>}
       </TableCell>
+      <TableCell className="text-right hidden lg:table-cell text-xs">
+        {margeNettePot !== null ? (
+          <div>
+            <div className={margeNettePot >= 0 ? 'text-primary font-semibold' : 'text-destructive font-semibold'}>{formatEuro(margeNettePot)}</div>
+            <div className="text-[10px] text-muted-foreground">charges: {formatEuro(chargesParPot)}</div>
+          </div>
+        ) : <span className="text-muted-foreground">—</span>}
+      </TableCell>
       <TableCell className="text-right hidden md:table-cell text-xs">
         {margeColis !== null ? (
           <div>
@@ -410,5 +503,199 @@ function TariffRow({
         </Button>
       </TableCell>
     </TableRow>
+  );
+}
+
+function EstimatedMarginCard({
+  products, totals, options, expanded, expandedProduct,
+  loading, setExpanded, setExpandedProduct, setOptions, load,
+}: {
+  products: MargeProduct[];
+  totals: MargeTotals | null;
+  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean };
+  expanded: boolean;
+  expandedProduct: string | null;
+  loading: boolean;
+  setExpanded: (v: boolean) => void;
+  setExpandedProduct: (v: string | null) => void;
+  setOptions: (v: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean }) => void;
+  load: () => void;
+}) {
+  const { includeMarketing, includeCatalogues, includeImprimes } = options;
+
+  return (
+    <Card className="border-primary/30 bg-primary/5 overflow-hidden">
+      <div
+        className="flex items-center justify-between p-3 cursor-pointer hover:bg-primary/10 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {expanded ? <ChevronDown className="h-4 w-4 text-primary shrink-0" /> : <ChevronRight className="h-4 w-4 text-primary shrink-0" />}
+          <Calculator className="h-4 w-4 text-primary shrink-0" />
+          <div className="min-w-0">
+            <p className="font-medium text-sm text-primary">Marge estimée par pot (avec charges directes)</p>
+            <p className="text-xs text-muted-foreground">
+              Calcule la marge nette par pot en allouant les charges directes (Transport + options) au prorata du CA.
+            </p>
+          </div>
+        </div>
+        {totals && (
+          <span className="text-xs text-muted-foreground shrink-0">
+            {products.length} réf. • {formatEuro(totals.chargesDirectesTTC)} charges directes
+          </span>
+        )}
+      </div>
+
+      {expanded && (
+        <CardContent className="p-3 border-t border-primary/20 space-y-3">
+          {/* Toggles charges directes à inclure */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Charges directes incluses :</span>
+            <Toggle on={true} disabled label="Transport (toujours)" />
+            <Toggle on={includeMarketing} onChange={(v) => setOptions({ ...options, includeMarketing: v })} label="Marketing & publicité" />
+            <Toggle on={includeCatalogues} onChange={(v) => setOptions({ ...options, includeCatalogues: v })} label="Catalogues & imprimés" />
+            <Toggle on={includeImprimes} onChange={(v) => setOptions({ ...options, includeImprimes: v })} label="Fournitures / papeterie" />
+            <Button size="sm" variant="outline" onClick={load} disabled={loading} className="h-7 text-xs">
+              {loading ? 'Calcul…' : 'Recalculer'}
+            </Button>
+          </div>
+
+          {/* Synthèse */}
+          {totals && (
+            <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 text-xs">
+              <MiniStat label="Charges directes TTC" value={formatEuro(totals.chargesDirectesTTC)} accent="primary" />
+              <MiniStat label="Dont Transport" value={formatEuro(totals.chargesTransport)} />
+              {includeMarketing && <MiniStat label="Dont Marketing" value={formatEuro(totals.chargesMarketing)} />}
+              {includeCatalogues && <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />}
+              {includeImprimes && <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />}
+              <MiniStat label="CA produits (période)" value={formatEuro(totals.totalCAProduits)} />
+              <MiniStat label="Pots vendus" value={totals.totalPots.toLocaleString('fr-FR')} />
+              <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
+            </div>
+          )}
+
+          {/* Tableau marge par produit */}
+          {loading ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Calcul en cours…</p>
+          ) : products.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Aucune donnée de volume pour la période.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+              <Table>
+                <TableHeader className="bg-muted">
+                  <TableRow>
+                    <TableHead className="cursor-pointer">Référence (parfum × format)</TableHead>
+                    <TableHead className="text-right">CA période</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Pots</TableHead>
+                    <TableHead className="text-right">Prix vente moy./pot</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Achat/pot</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Charges/pot</TableHead>
+                    <TableHead className="text-right">Marge nette/pot</TableHead>
+                    <TableHead className="text-right">Marge %</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((p) => {
+                    const isOpen = expandedProduct === p.productId;
+                    return (
+                      <React.Fragment key={p.productId}>
+                        <TableRow
+                          className="cursor-pointer hover:bg-muted/40"
+                          onClick={() => setExpandedProduct(isOpen ? null : p.productId)}
+                        >
+                          <TableCell className="font-medium text-sm">
+                            <div className="flex items-center gap-1.5">
+                              {isOpen ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                              {p.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-mono">{formatEuro(p.caProduct)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono hidden sm:table-cell">{p.nbPots.toLocaleString('fr-FR')}</TableCell>
+                          <TableCell className="text-right text-sm font-mono">{formatEuro(p.prixVenteMoyenParPot)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">{p.achatParPot !== null ? formatEuro(p.achatParPot) : '—'}</TableCell>
+                          <TableCell className="text-right text-sm font-mono text-muted-foreground hidden md:table-cell">{formatEuro(p.chargesParPot)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono font-semibold">
+                            {p.margeNetteParPot !== null ? (
+                              <span className={p.margeNetteParPot >= 0 ? 'text-emerald-600' : 'text-destructive'}>{formatEuro(p.margeNetteParPot)}</span>
+                            ) : '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-mono">
+                            {p.margePct !== null ? (
+                              <span className={p.margePct >= 0 ? 'text-emerald-600' : 'text-destructive'}>{p.margePct.toFixed(1)}%</span>
+                            ) : '—'}
+                          </TableCell>
+                        </TableRow>
+                        {isOpen && (
+                          <TableRow className="bg-muted/20">
+                            <TableCell colSpan={8} className="p-3">
+                              <div className="rounded-md border border-border bg-card p-3 space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">Détail du calcul — {p.name}</p>
+                                <div className="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 text-xs">
+                                  <DetailRow label="Format" value={p.format} />
+                                  <DetailRow label="Pots par colis" value={String(p.potsPerColis)} />
+                                  <DetailRow label="Colis vendus (période)" value={p.nbColis.toLocaleString('fr-FR')} />
+                                  <DetailRow label="Pots vendus" value={p.nbPots.toLocaleString('fr-FR')} />
+                                  <DetailRow label="CA période" value={formatEuro(p.caProduct)} />
+                                  <DetailRow label="Prix vente moyen / pot" value={formatEuro(p.prixVenteMoyenParPot)} />
+                                  <DetailRow label="Prix d'achat / pot" value={p.achatParPot !== null ? formatEuro(p.achatParPot) : '—'} />
+                                  <DetailRow label="Prix d'achat / colis" value={p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'} />
+                                  <DetailRow label="Marge brute / pot (avant charges)" value={p.margeBruteParPot !== null ? formatEuro(p.margeBruteParPot) : '—'} highlight />
+                                  <DetailRow label="Charges directes allouées / pot" value={formatEuro(p.chargesParPot)} highlight />
+                                  <DetailRow label="Marge nette / pot (après charges)" value={p.margeNetteParPot !== null ? formatEuro(p.margeNetteParPot) : '—'} highlight />
+                                  <DetailRow label="Marge nette %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
+                                </div>
+                                <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
+                                  Méthode : charges directes TTC (Transport{includeMarketing ? ' + Marketing' : ''}{includeCatalogues ? ' + Catalogues' : ''}{includeImprimes ? ' + Imprimés' : ''}) allouées au prorata du CA du produit sur la période, puis ramenées au pot.
+                                </p>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange?: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange?.(!on)}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+        on
+          ? 'bg-primary text-primary-foreground border-primary'
+          : 'bg-card text-muted-foreground border-border hover:bg-muted'
+      } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${on ? 'bg-white' : 'bg-muted-foreground'}`} />
+      {label}
+    </button>
+  );
+}
+
+function MiniStat({ label, value, accent, small }: { label: string; value: string; accent?: string; small?: boolean }) {
+  return (
+    <div className="rounded-md border border-border bg-card px-2.5 py-1.5">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className={`font-mono font-semibold ${small ? 'text-xs' : 'text-sm'} ${accent === 'primary' ? 'text-primary' : ''}`}>{value}</p>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className={`rounded px-2 py-1 ${highlight ? 'bg-primary/5 border border-primary/20' : ''}`}>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className={`font-mono text-xs font-medium ${highlight ? 'text-primary' : ''}`}>{value}</p>
+    </div>
   );
 }
