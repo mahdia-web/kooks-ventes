@@ -48,6 +48,14 @@ export async function GET(req: NextRequest) {
       select: { id: true, name: true, type: true, agent: true, isActive: true },
     });
 
+    // Map enseigne → type courant (source de vérité) pour résoudre le type
+    // effectif de chaque vente au moment du rendu (au lieu de Sale.type qui
+    // peut être resté 'Direct' alors que l'enseigne a été reclassée 'Centrale').
+    const typeByName = new Map<string, string>();
+    for (const e of allEnseignes) {
+      if (e.type) typeByName.set(e.name, e.type);
+    }
+
     // Calcule un score pour chaque enseigne
     type Match = {
       name: string;
@@ -160,11 +168,16 @@ export async function GET(req: NextRequest) {
     }));
 
     // KOOK'S = nous-mêmes : commission et taux forcés à 0
-    const sanitizedSales = sales.map((s) => ({
-      ...s,
-      rate: isKooksAgent(s.agent) ? 0 : s.rate,
-      commission: isKooksAgent(s.agent) ? 0 : s.commission,
-    }));
+    // Type effectif = type courant de l'enseigne (source de vérité), pas Sale.type
+    const sanitizedSales = sales.map((s) => {
+      const effectiveType = typeByName.get(s.enseigne) ?? s.type;
+      return {
+        ...s,
+        type: effectiveType,
+        rate: isKooksAgent(s.agent) ? 0 : s.rate,
+        commission: isKooksAgent(s.agent) ? 0 : s.commission,
+      };
+    });
 
     return NextResponse.json({
       ok: true,

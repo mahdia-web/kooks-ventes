@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isKooksAgent } from '@/lib/dashboard-service';
+import { loadEnseigneTypeMap, getTypeFromMap } from '@/lib/enseigne-type-map';
 
 /**
  * GET /api/client-detail?enseigne=XXX
@@ -113,11 +114,19 @@ export async function GET(req: NextRequest) {
     const nbBl = allSales.length;
     const panierMoyen = nbBl > 0 ? caHTTotal / nbBl : 0;
 
-    // Répartition Direct / Centrale
-    const caDirect = allSales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0);
-    const caCentrale = allSales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
-    const nbBlDirect = allSales.filter((s) => s.type === 'Direct').length;
-    const nbBlCentrale = allSales.filter((s) => s.type === 'Centrale').length;
+    // Répartition Direct / Centrale — utilise le type COURANT de l'enseigne
+    // (pas Sale.type, qui peut être resté 'Direct' pour des ventes anciennes
+    //  alors que l'enseigne a été reclassée à 'Centrale' depuis)
+    const typeMap = await loadEnseigneTypeMap();
+    const saleType = (s: { enseigne: string; type: string }) =>
+      getTypeFromMap(typeMap, s.enseigne) ?? s.type;
+    const isDirect = (s: { enseigne: string; type: string }) => saleType(s) === 'Direct';
+    const isCentrale = (s: { enseigne: string; type: string }) => saleType(s) === 'Centrale';
+
+    const caDirect = allSales.filter(isDirect).reduce((s, r) => s + r.amountHT, 0);
+    const caCentrale = allSales.filter(isCentrale).reduce((s, r) => s + r.amountHT, 0);
+    const nbBlDirect = allSales.filter(isDirect).length;
+    const nbBlCentrale = allSales.filter(isCentrale).length;
 
     // Première / dernière commande (sur toutes les ventes)
     const sortedByDate = [...allSales].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -145,10 +154,10 @@ export async function GET(req: NextRequest) {
         caTTC: periodSales.reduce((s, r) => s + r.amountTTC, 0),
         commission: periodSales.reduce((s, r) => s + effCommission(r), 0),
         nbBl: periodSales.length,
-        caDirect: periodSales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0),
-        caCentrale: periodSales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0),
-        nbBlDirect: periodSales.filter((s) => s.type === 'Direct').length,
-        nbBlCentrale: periodSales.filter((s) => s.type === 'Centrale').length,
+        caDirect: periodSales.filter(isDirect).reduce((s, r) => s + r.amountHT, 0),
+        caCentrale: periodSales.filter(isCentrale).reduce((s, r) => s + r.amountHT, 0),
+        nbBlDirect: periodSales.filter(isDirect).length,
+        nbBlCentrale: periodSales.filter(isCentrale).length,
         startDate: startDateStr,
         endDate: endDateStr,
       };
@@ -211,7 +220,7 @@ export async function GET(req: NextRequest) {
       blNumber: s.blNumber,
       date: s.date,
       enseigne: s.enseigne,
-      type: s.type,
+      type: saleType(s),  // type courant de l'enseigne (pas Sale.type qui peut être obsolète)
       agent: s.agent,
       amountHT: s.amountHT,
       amountTTC: s.amountTTC,

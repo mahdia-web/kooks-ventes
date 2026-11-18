@@ -168,7 +168,7 @@ export function SalesSearch({ agentFilter }: SalesSearchProps) {
           )}
         </div>
 
-        {/* Enseignes correspondantes */}
+        {/* Enseignes correspondantes — affichage en cartes lisibles */}
         {matchedEnseignes.length > 0 && (
           <Card className="border-border">
             <CardHeader className="py-2 px-3">
@@ -178,22 +178,29 @@ export function SalesSearch({ agentFilter }: SalesSearchProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="py-2 px-3">
-              <div className="space-y-1.5">
+              <div className="grid gap-2 sm:grid-cols-1 lg:grid-cols-2">
                 {matchedEnseignes.map((m) => (
-                  <div key={m.name} className="flex items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Badge variant="outline" className={`text-[10px] ${methodColor(m.method)}`}>
+                  <div
+                    key={m.name}
+                    className="flex flex-col gap-1.5 p-2.5 rounded-md border border-border bg-card hover:bg-muted/30"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium text-sm leading-snug break-words">{m.name}</span>
+                      <Badge variant="outline" className={`text-[10px] shrink-0 ${methodColor(m.method)}`}>
                         {methodLabel(m.method)}
                       </Badge>
-                      <span className="font-medium truncate">{m.name}</span>
-                      <span className="text-muted-foreground">({m.score.toFixed(2)})</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span>{m.type}</span>
-                      <span>•</span>
-                      <span>{m.agent || "KOOK'S"}</span>
-                      <span>•</span>
-                      <span className="font-medium text-foreground">{m.salesCount} ventes</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <Badge variant={m.type === 'Centrale' ? 'secondary' : 'outline'} className="text-[10px]">
+                        {m.type || '—'}
+                      </Badge>
+                      <span className="text-foreground/70">Agent : {m.agent || "KOOK'S"}</span>
+                      {!m.isActive && <span className="text-red-600">• Inactif</span>}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">Score : <span className="font-mono">{m.score.toFixed(2)}</span></span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="font-medium text-foreground">{m.salesCount} vente(s)</span>
                     </div>
                   </div>
                 ))}
@@ -210,7 +217,7 @@ export function SalesSearch({ agentFilter }: SalesSearchProps) {
           </div>
         )}
 
-        {/* Résultats des ventes */}
+        {/* Résultats des ventes — colonnes largeur adaptative */}
         {results.length > 0 && (
           <Card className="border-border">
             <CardHeader className="py-2 px-3">
@@ -219,33 +226,35 @@ export function SalesSearch({ agentFilter }: SalesSearchProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="py-2 px-3">
-              <div className="max-h-96 overflow-y-auto rounded-md border border-border">
-                <table className="w-full text-xs">
+              <div className="max-h-[400px] overflow-auto rounded-md border border-border">
+                <table className="w-full text-xs min-w-[680px]">
                   <thead className="bg-muted sticky top-0">
                     <tr>
-                      <th className="text-left p-2 font-medium">Date</th>
-                      <th className="text-left p-2 font-medium">Enseigne</th>
-                      <th className="text-left p-2 font-medium">Type</th>
-                      <th className="text-left p-2 font-medium">Agent</th>
-                      <th className="text-left p-2 font-medium">N° BL</th>
-                      <th className="text-right p-2 font-medium">MT HT</th>
-                      <th className="text-right p-2 font-medium">Commission</th>
+                      <th className="text-left p-2 font-medium whitespace-nowrap">Date</th>
+                      <th className="text-left p-2 font-medium min-w-[220px]">Enseigne</th>
+                      <th className="text-left p-2 font-medium whitespace-nowrap">Type</th>
+                      <th className="text-left p-2 font-medium whitespace-nowrap">Agent</th>
+                      <th className="text-left p-2 font-medium whitespace-nowrap">N° BL</th>
+                      <th className="text-right p-2 font-medium whitespace-nowrap">MT HT</th>
+                      <th className="text-right p-2 font-medium whitespace-nowrap">Commission</th>
                     </tr>
                   </thead>
                   <tbody>
                     {results.map((r) => (
                       <tr key={r.id} className="border-t border-border hover:bg-muted/50">
-                        <td className="p-2 text-muted-foreground">
+                        <td className="p-2 text-muted-foreground whitespace-nowrap">
                           {new Date(r.date).toLocaleDateString('fr-FR')}
                         </td>
-                        <td className="p-2 font-medium truncate max-w-[180px]">{r.enseigne}</td>
-                        <td className="p-2">
-                          <Badge variant="outline" className="text-[10px]">{r.type}</Badge>
+                        <td className="p-2 font-medium">
+                          <div className="break-words leading-snug">{r.enseigne}</div>
                         </td>
-                        <td className="p-2 text-muted-foreground">{r.agent}</td>
-                        <td className="p-2 text-muted-foreground">{r.blNumber || '—'}</td>
-                        <td className="p-2 text-right font-mono">{formatEuro(r.amountHT)}</td>
-                        <td className="p-2 text-right font-mono text-destructive">{formatEuro(r.commission)}</td>
+                        <td className="p-2 whitespace-nowrap">
+                          <Badge variant={r.type === 'Centrale' ? 'secondary' : 'outline'} className="text-[10px]">{r.type}</Badge>
+                        </td>
+                        <td className="p-2 text-muted-foreground whitespace-nowrap">{r.agent}</td>
+                        <td className="p-2 text-muted-foreground whitespace-nowrap">{r.blNumber || '—'}</td>
+                        <td className="p-2 text-right font-mono whitespace-nowrap">{formatEuro(r.amountHT)}</td>
+                        <td className="p-2 text-right font-mono text-destructive whitespace-nowrap">{formatEuro(r.commission)}</td>
                       </tr>
                     ))}
                   </tbody>

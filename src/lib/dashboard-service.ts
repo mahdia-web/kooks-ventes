@@ -1,5 +1,6 @@
 // Fonctions utilitaires de calcul pour le tableau de bord de suivi
 import { db } from '@/lib/db';
+import { loadEnseigneTypeMap, getTypeFromMap } from '@/lib/enseigne-type-map';
 import type {
   AgentStat,
   AgentPeriodTotal,
@@ -11,6 +12,21 @@ import type {
   MonthlyStat,
   SaleRow,
 } from './dashboard-types';
+
+/**
+ * Helper : pour une liste de ventes, retourne une fonction qui donne le type
+ * EFFECTIF d'une vente = type courant de l'enseigne (source de vérité corrigée
+ * à la main), en fallback sur Sale.type si l'enseigne n'est pas en base.
+ *
+ * On charge la map une fois pour toute la fonction, puis on l'utilise pour
+ * chaque vente. Ceci corrige le bug "vente ancienne restée à Direct alors que
+ * l'enseigne a été reclassée à Centrale".
+ */
+async function makeTypeResolver() {
+  const typeMap = await loadEnseigneTypeMap();
+  return (enseigne: string, fallbackType: string) =>
+    getTypeFromMap(typeMap, enseigne) ?? fallbackType;
+}
 
 const MONTH_NAMES = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -141,28 +157,30 @@ async function computeKpis(year: number, month: number, agentFilter?: string | n
     },
   });
 
+  const effType = await makeTypeResolver();
+
   const caHT = sales.reduce((s, r) => s + r.amountHT, 0);
   const caTTC = sales.reduce((s, r) => s + r.amountTTC, 0);
   const commission = sales.reduce((s, r) => s + commissionOf(r), 0);
   const nbBl = sales.length;
-  const nbBlDirect = sales.filter((s) => s.type === 'Direct').length;
-  const nbBlCentrale = sales.filter((s) => s.type === 'Centrale').length;
-  const caDirect = sales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0);
-  const caCentrale = sales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
+  const nbBlDirect = sales.filter((s) => effType(s.enseigne, s.type) === 'Direct').length;
+  const nbBlCentrale = sales.filter((s) => effType(s.enseigne, s.type) === 'Centrale').length;
+  const caDirect = sales.filter((s) => effType(s.enseigne, s.type) === 'Direct').reduce((s, r) => s + r.amountHT, 0);
+  const caCentrale = sales.filter((s) => effType(s.enseigne, s.type) === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
   const enseignesActives = Array.from(new Set(sales.map((s) => s.enseigne)));
 
   const prev = previousMonth(year, month);
   const prevWhere = agentFilter ? { year: prev.year, month: prev.month, agent: agentFilter } : { year: prev.year, month: prev.month };
   const prevSales = await db.sale.findMany({
     where: prevWhere,
-    select: { agent: true, amountHT: true, amountTTC: true, commission: true, type: true },
+    select: { agent: true, amountHT: true, amountTTC: true, commission: true, type: true, enseigne: true },
   });
 
   const prevCaHT = prevSales.reduce((s, r) => s + r.amountHT, 0);
   const prevCommission = prevSales.reduce((s, r) => s + commissionOf(r), 0);
   const prevNbBl = prevSales.length;
-  const prevCaDirect = prevSales.filter((s) => s.type === 'Direct').reduce((s, r) => s + r.amountHT, 0);
-  const prevCaCentrale = prevSales.filter((s) => s.type === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
+  const prevCaDirect = prevSales.filter((s) => effType(s.enseigne, s.type) === 'Direct').reduce((s, r) => s + r.amountHT, 0);
+  const prevCaCentrale = prevSales.filter((s) => effType(s.enseigne, s.type) === 'Centrale').reduce((s, r) => s + r.amountHT, 0);
 
   const previous = prevSales.length > 0
     ? {
@@ -221,9 +239,11 @@ async function computeMonthlySeries(agentFilter?: string | null): Promise<Monthl
     where,
     select: {
       agent: true, year: true, month: true, amountHT: true, amountTTC: true,
-      commission: true, type: true,
+      commission: true, type: true, enseigne: true,
     },
   });
+
+  const effType = await makeTypeResolver();
 
   const byMonth = new Map<string, {
     year: number; month: number;
@@ -244,7 +264,7 @@ async function computeMonthlySeries(agentFilter?: string | null): Promise<Monthl
     s.caTTC += r.amountTTC;
     s.commission += commissionOf(r);
     s.nbBl += 1;
-    if (r.type === 'Direct') {
+    if (effType(r.enseigne, r.type) === 'Direct') {
       s.nbBlDirect += 1;
       s.caDirect += r.amountHT;
     } else {
@@ -274,6 +294,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
   });
 
   const totalCa = sales.reduce((s, r) => s + r.amountHT, 0);
+  const effType = await makeTypeResolver();
   const byAgent = new Map<string, {
     agent: string;
     caHT: number; caTTC: number; commission: number;
@@ -295,7 +316,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     s.commission += commissionOf(r);
     s.nbBl += 1;
     s.enseignes.add(r.enseigne);
-    if (r.type === 'Direct') {
+    if (effType(r.enseigne, r.type) === 'Direct') {
       s.nbBlDirect += 1;
       s.caDirect += r.amountHT;
     } else {
@@ -321,7 +342,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     where: {
       OR: monthWindow.map((w) => ({ year: w.year, month: w.month })),
     },
-    select: { agent: true, year: true, month: true, type: true, amountHT: true },
+    select: { agent: true, year: true, month: true, type: true, amountHT: true, enseigne: true },
   });
   // Agrège par agent × mois × type
   const agentMonthly = new Map<string, Map<string, { caDirect: number; caCentrale: number }>>();
@@ -331,7 +352,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     if (!agentMonthly.has(r.agent)) agentMonthly.set(r.agent, new Map());
     const monthlyMap = agentMonthly.get(r.agent)!;
     const entry = monthlyMap.get(key) ?? { caDirect: 0, caCentrale: 0 };
-    if (r.type === 'Direct') entry.caDirect += r.amountHT;
+    if (effType(r.enseigne, r.type) === 'Direct') entry.caDirect += r.amountHT;
     else entry.caCentrale += r.amountHT;
     monthlyMap.set(key, entry);
   }
@@ -372,7 +393,7 @@ async function computeAgentStats(year: number, month: number, _agentFilter?: str
     s.commission += commissionOf(r);
     s.nbBl += 1;
     s.enseignes.add(r.enseigne);
-    if (r.type === 'Direct') {
+    if (effType(r.enseigne, r.type) === 'Direct') {
       s.nbBlDirect += 1;
       s.caDirect += r.amountHT;
     } else {
@@ -452,6 +473,7 @@ async function computeEnseigneStats(year: number, month: number, agentFilter?: s
   });
 
   const totalCa = sales.reduce((s, r) => s + r.amountHT, 0);
+  const effType = await makeTypeResolver();
   const byEnseigne = new Map<string, {
     enseigne: string; type: string; agent: string;
     caHT: number; nbBl: number; lastOrder: Date | null;
@@ -459,7 +481,7 @@ async function computeEnseigneStats(year: number, month: number, agentFilter?: s
 
   for (const r of sales) {
     const s = byEnseigne.get(r.enseigne) ?? {
-      enseigne: r.enseigne, type: r.type, agent: r.agent,
+      enseigne: r.enseigne, type: effType(r.enseigne, r.type), agent: r.agent,
       caHT: 0, nbBl: 0, lastOrder: null as Date | null,
     };
     s.caHT += r.amountHT;
@@ -521,6 +543,7 @@ async function computeCustomerFollowup(
   });
   const inactiveNames = new Set(inactiveEnseignes.map((e) => e.name));
 
+  const effType = await makeTypeResolver();
   const byEnseigne = new Map<string, {
     enseigne: string; type: string; agent: string;
     nbBlTotal: number; caTotal: number;
@@ -530,7 +553,7 @@ async function computeCustomerFollowup(
 
   for (const r of sales) {
     const s = byEnseigne.get(r.enseigne) ?? {
-      enseigne: r.enseigne, type: r.type, agent: r.agent,
+      enseigne: r.enseigne, type: effType(r.enseigne, r.type), agent: r.agent,
       nbBlTotal: 0, caTotal: 0,
       lastOrder: null as Date | null,
       firstOrder: null as Date | null,
@@ -614,12 +637,13 @@ export async function getSales(year: number, month: number, agentFilter?: string
     where,
     orderBy: { date: 'asc' },
   });
+  const effType = await makeTypeResolver();
   return sales.map((s) => ({
     id: s.id,
     blNumber: s.blNumber,
     date: s.date.toISOString().split('T')[0],
     enseigne: s.enseigne,
-    type: s.type,
+    type: effType(s.enseigne, s.type),  // type courant de l'enseigne (source de vérité)
     agent: s.agent,
     amountHT: s.amountHT,
     amountTTC: s.amountTTC,
@@ -674,6 +698,7 @@ async function computeAgentPeriodTotals(
   }
 
   const totalCa = sales.reduce((s, r) => s + r.amountHT, 0);
+  const effType = await makeTypeResolver();
   const byAgent = new Map<string, {
     agent: string;
     caHT: number; commission: number;
@@ -702,7 +727,7 @@ async function computeAgentPeriodTotals(
     const d = new Date(r.date);
     if (!s.firstOrder || d < s.firstOrder) s.firstOrder = d;
     if (!s.lastOrder || d > s.lastOrder) s.lastOrder = d;
-    if (r.type === 'Direct') {
+    if (effType(r.enseigne, r.type) === 'Direct') {
       s.nbBlDirect += 1;
       s.caDirect += r.amountHT;
     } else {
@@ -755,6 +780,7 @@ async function computeTopEnseignesPeriod(agentFilter?: string | null): Promise<E
   });
 
   const totalCa = sales.reduce((s, r) => s + r.amountHT, 0);
+  const effType = await makeTypeResolver();
   const byEnseigne = new Map<string, {
     enseigne: string; type: string; agent: string;
     caHT: number; nbBl: number; lastOrder: Date | null;
@@ -762,7 +788,7 @@ async function computeTopEnseignesPeriod(agentFilter?: string | null): Promise<E
 
   for (const r of sales) {
     const s = byEnseigne.get(r.enseigne) ?? {
-      enseigne: r.enseigne, type: r.type, agent: r.agent,
+      enseigne: r.enseigne, type: effType(r.enseigne, r.type), agent: r.agent,
       caHT: 0, nbBl: 0, lastOrder: null as Date | null,
     };
     s.caHT += r.amountHT;
@@ -801,22 +827,36 @@ export async function getDashboardData(
 
   // Stats globales - filtrées par agent si agentFilter fourni
   const totalWhere = agentFilter ? { agent: agentFilter } : {};
-  // Agrège par type pour avoir les totaux Direct/Centrale séparés
-  const totalAgg = await db.sale.aggregate({
+  // Agrège par type pour avoir les totaux Direct/Centrale séparés.
+  // IMPORTANT : on ne filtre PAS par Sale.type (qui peut être obsolète) —
+  // on charge toutes les ventes et on agrège en mémoire via effType()
+  // (type courant de l'enseigne, source de vérité corrigée à la main).
+  const allSalesForTotals = await db.sale.findMany({
     where: totalWhere,
-    _sum: { amountHT: true, commission: true },
-    _count: true,
+    select: { enseigne: true, type: true, amountHT: true, commission: true },
   });
-  const directAgg = await db.sale.aggregate({
-    where: { ...totalWhere, type: 'Direct' },
-    _sum: { amountHT: true, commission: true },
-    _count: true,
-  });
-  const centraleAgg = await db.sale.aggregate({
-    where: { ...totalWhere, type: 'Centrale' },
-    _sum: { amountHT: true, commission: true },
-    _count: true,
-  });
+  const effType = await makeTypeResolver();
+  const totalAgg = {
+    _sum: {
+      amountHT: allSalesForTotals.reduce((s, r) => s + r.amountHT, 0),
+      commission: allSalesForTotals.reduce((s, r) => s + r.commission, 0),
+    },
+    _count: allSalesForTotals.length,
+  };
+  const directAgg = { _sum: { amountHT: 0, commission: 0 }, _count: 0 };
+  const centraleAgg = { _sum: { amountHT: 0, commission: 0 }, _count: 0 };
+  for (const r of allSalesForTotals) {
+    const eff = effType(r.enseigne, r.type);
+    if (eff === 'Direct') {
+      directAgg._sum.amountHT += r.amountHT;
+      directAgg._sum.commission += r.commission;
+      directAgg._count += 1;
+    } else {
+      centraleAgg._sum.amountHT += r.amountHT;
+      centraleAgg._sum.commission += r.commission;
+      centraleAgg._count += 1;
+    }
+  }
   const totalEnseignes = await db.enseigne.count();
   const dateRangeAgg = await db.sale.aggregate({
     where: totalWhere,
@@ -825,23 +865,21 @@ export async function getDashboardData(
   });
 
   // KOOK'S = nous-mêmes : on retire la commission de la somme brute calculée
-  // par Prisma (qui ne sait pas qu'il faut la forcer à 0 pour KOOK'S).
+  // (qui ne sait pas qu'il faut la forcer à 0 pour KOOK'S).
   const kooksWhereClause = { agent: { contains: 'KOOK', mode: 'insensitive' as const } };
-  const kooksCommissionAgg = await db.sale.aggregate({
+  const kooksSales = await db.sale.findMany({
     where: { ...totalWhere, ...kooksWhereClause },
-    _sum: { commission: true },
+    select: { enseigne: true, type: true, commission: true },
   });
-  const kooksCommissionDirectAgg = await db.sale.aggregate({
-    where: { ...totalWhere, type: 'Direct', ...kooksWhereClause },
-    _sum: { commission: true },
-  });
-  const kooksCommissionCentraleAgg = await db.sale.aggregate({
-    where: { ...totalWhere, type: 'Centrale', ...kooksWhereClause },
-    _sum: { commission: true },
-  });
-  const kooksCommissionSum = kooksCommissionAgg._sum.commission ?? 0;
-  const kooksCommissionDirectSum = kooksCommissionDirectAgg._sum.commission ?? 0;
-  const kooksCommissionCentraleSum = kooksCommissionCentraleAgg._sum.commission ?? 0;
+  let kooksCommissionSum = 0;
+  let kooksCommissionDirectSum = 0;
+  let kooksCommissionCentraleSum = 0;
+  for (const r of kooksSales) {
+    const eff = effType(r.enseigne, r.type);
+    kooksCommissionSum += r.commission;
+    if (eff === 'Direct') kooksCommissionDirectSum += r.commission;
+    else kooksCommissionCentraleSum += r.commission;
+  }
 
   // Calcule les volumes globaux (colis + pots) depuis VolumeSale
   const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
@@ -918,8 +956,9 @@ export async function getDashboardDataForDateRange(
   const caTTC = sales.reduce((s, r) => s + r.amountTTC, 0);
   const commission = sales.reduce((s, r) => s + commissionOf(r), 0);
   const nbBl = sales.length;
-  const directSales = sales.filter(s => s.type === 'Direct');
-  const centraleSales = sales.filter(s => s.type === 'Centrale');
+  const effType = await makeTypeResolver();
+  const directSales = sales.filter(s => effType(s.enseigne, s.type) === 'Direct');
+  const centraleSales = sales.filter(s => effType(s.enseigne, s.type) === 'Centrale');
   const caDirect = directSales.reduce((s, r) => s + r.amountHT, 0);
   const caCentrale = centraleSales.reduce((s, r) => s + r.amountHT, 0);
   const nbBlDirect = directSales.length;
@@ -935,7 +974,7 @@ export async function getDashboardDataForDateRange(
     };
     a.caHT += r.amountHT; a.caTTC += r.amountTTC; a.commission += commissionOf(r); a.nbBl += 1;
     a.enseignes.add(r.enseigne);
-    if (r.type === 'Direct') { a.nbBlDirect += 1; a.caDirect += r.amountHT; }
+    if (effType(r.enseigne, r.type) === 'Direct') { a.nbBlDirect += 1; a.caDirect += r.amountHT; }
     else { a.nbBlCentrale += 1; a.caCentrale += r.amountHT; }
     byAgent.set(r.agent, a);
   }
@@ -956,7 +995,7 @@ export async function getDashboardDataForDateRange(
     where: {
       OR: agentWindow.map((w) => ({ year: w.year, month: w.month })),
     },
-    select: { agent: true, year: true, month: true, type: true, amountHT: true },
+    select: { agent: true, year: true, month: true, type: true, amountHT: true, enseigne: true },
   });
   const agentMonthlyForRange = new Map<string, Map<string, { caDirect: number; caCentrale: number }>>();
   for (const r of last12AgentSales) {
@@ -965,7 +1004,7 @@ export async function getDashboardDataForDateRange(
     if (!agentMonthlyForRange.has(r.agent)) agentMonthlyForRange.set(r.agent, new Map());
     const monthlyMap = agentMonthlyForRange.get(r.agent)!;
     const entry = monthlyMap.get(key) ?? { caDirect: 0, caCentrale: 0 };
-    if (r.type === 'Direct') entry.caDirect += r.amountHT;
+    if (effType(r.enseigne, r.type) === 'Direct') entry.caDirect += r.amountHT;
     else entry.caCentrale += r.amountHT;
     monthlyMap.set(key, entry);
   }
@@ -1009,7 +1048,7 @@ export async function getDashboardDataForDateRange(
     s.caTTC += r.amountTTC;
     s.commission += commissionOf(r);
     s.nbBl += 1;
-    if (r.type === 'Direct') {
+    if (effType(r.enseigne, r.type) === 'Direct') {
       s.nbBlDirect += 1;
       s.caDirect += r.amountHT;
     } else {
@@ -1073,7 +1112,7 @@ export async function getDashboardDataForDateRange(
   // Stats par enseigne dans la plage
   const byEnseigne = new Map<string, any>();
   for (const r of sales) {
-    const e = byEnseigne.get(r.enseigne) ?? { enseigne: r.enseigne, type: r.type, agent: r.agent, caHT: 0, nbBl: 0, lastOrder: null as Date | null };
+    const e = byEnseigne.get(r.enseigne) ?? { enseigne: r.enseigne, type: effType(r.enseigne, r.type), agent: r.agent, caHT: 0, nbBl: 0, lastOrder: null as Date | null };
     e.caHT += r.amountHT; e.nbBl += 1;
     if (!e.lastOrder || r.date > e.lastOrder) e.lastOrder = r.date;
     byEnseigne.set(r.enseigne, e);
