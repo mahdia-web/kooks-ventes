@@ -288,7 +288,13 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
                   <Search className="h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[500px] p-0" align="start">
+              <PopoverContent
+                className="w-[500px] p-0"
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                avoidCollisions={false}
+              >
                 <Command shouldFilter={false}>
                   <div className="flex items-center border-b px-3">
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -300,7 +306,7 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
                       autoFocus
                     />
                   </div>
-                  <CommandList className="max-h-[400px] overflow-y-auto">
+                  <CommandList className="max-h-[min(50vh,400px)] overflow-y-auto">
                     <CommandEmpty>Aucun client trouvé.</CommandEmpty>
                     <CommandGroup>
                       {sortedClients.slice(0, 100).map((c) => (

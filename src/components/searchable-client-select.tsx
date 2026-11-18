@@ -94,7 +94,13 @@ export function SearchableClientSelect({
           <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[500px] p-0" align="start">
+      <PopoverContent
+        className="w-[500px] p-0"
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        avoidCollisions={false}
+      >
         <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -105,7 +111,7 @@ export function SearchableClientSelect({
               className="h-9 flex-1"
             />
           </div>
-          <CommandList className="max-h-[400px] overflow-y-auto">
+          <CommandList className="max-h-[min(50vh,400px)] overflow-y-auto">
             <CommandEmpty>Aucun client trouvé.</CommandEmpty>
             <CommandGroup>
               {/* Option "Tous les clients" — toujours en haut */}

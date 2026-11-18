@@ -471,30 +471,30 @@ export default function VolumesPage() {
                 <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée pour cette période.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="table-fixed">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Produit</TableHead>
-                        <TableHead>Parfum</TableHead>
-                        <TableHead>Format</TableHead>
-                        <TableHead className="text-right">Colis</TableHead>
-                        <TableHead className="text-right">Pots</TableHead>
-                        <TableHead className="text-right">CA HT</TableHead>
-                        <TableHead className="text-right">Prix moy./pot</TableHead>
-                        <TableHead className="text-right">Prix moy./colis</TableHead>
+                        <TableHead className="w-[28%] whitespace-normal break-words">Produit</TableHead>
+                        <TableHead className="w-[16%] whitespace-normal break-words">Parfum</TableHead>
+                        <TableHead className="w-[12%] whitespace-normal break-words">Format</TableHead>
+                        <TableHead className="text-right w-[10%]">Colis</TableHead>
+                        <TableHead className="text-right w-[10%]">Pots</TableHead>
+                        <TableHead className="text-right w-[12%] whitespace-normal break-words">CA HT</TableHead>
+                        <TableHead className="text-right w-[12%] whitespace-normal break-words">Prix /pot</TableHead>
+                        <TableHead className="text-right w-[12%] whitespace-normal break-words">Prix /colis</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {prixParProduitFormat.map((p) => (
                         <TableRow key={`${p.productLabel}-${p.format}`} className="hover:bg-muted/40">
-                          <TableCell className="font-medium text-xs">{p.productLabel}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{p.parfum ?? '—'}</TableCell>
-                          <TableCell className="text-xs">{p.format ?? '—'}</TableCell>
-                          <TableCell className="text-right font-mono text-xs">{formatNumber(p.colis)}</TableCell>
-                          <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(p.pots)}</TableCell>
-                          <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(p.caHT)}</TableCell>
-                          <TableCell className="text-right font-mono text-xs font-semibold">{formatEuro(p.prixMoyenParPot)}</TableCell>
-                          <TableCell className="text-right font-mono text-xs">{formatEuro(p.prixMoyenParColis)}</TableCell>
+                          <TableCell className="font-medium text-xs align-top break-words">{p.productLabel}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground align-top break-words">{p.parfum ?? '—'}</TableCell>
+                          <TableCell className="text-xs align-top">{p.format ?? '—'}</TableCell>
+                          <TableCell className="text-right font-mono text-xs align-top">{formatNumber(p.colis)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs text-muted-foreground align-top">{formatNumber(p.pots)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700 align-top">{formatEuro(p.caHT)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs font-semibold align-top">{formatEuro(p.prixMoyenParPot)}</TableCell>
+                          <TableCell className="text-right font-mono text-xs align-top">{formatEuro(p.prixMoyenParColis)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -518,19 +518,19 @@ export default function VolumesPage() {
                 <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée pour cette période.</p>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="table-fixed">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Mois</TableHead>
-                        <TableHead className="text-right">Colis</TableHead>
-                        <TableHead className="text-right">CA HT</TableHead>
-                        <TableHead className="text-right">Colis / jour (moy.)</TableHead>
+                        <TableHead className="w-[28%]">Mois</TableHead>
+                        <TableHead className="text-right w-[24%]">Colis</TableHead>
+                        <TableHead className="text-right w-[24%]">CA HT</TableHead>
+                        <TableHead className="text-right w-[24%] whitespace-normal break-words">Colis / jour</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {monthlySeries.map((m) => (
                         <TableRow key={m.label} className="hover:bg-muted/40">
-                          <TableCell className="font-medium">{m.label}</TableCell>
+                          <TableCell className="font-medium text-xs">{m.label}</TableCell>
                           <TableCell className="text-right font-mono text-xs">{formatNumber(m.colis)}</TableCell>
                           <TableCell className="text-right font-mono text-xs text-emerald-700">{formatEuro(m.caHT)}</TableCell>
                           <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(Math.round(m.colis / 30))}</TableCell>
@@ -570,16 +570,16 @@ export default function VolumesPage() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="table-fixed">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('enseigne')}>Client{sortArrow('enseigne')}</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('nbBL')}>BL{sortArrow('nbBL')}</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('colisCommandes')}>Colis{sortArrow('colisCommandes')}</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('caHT')}>CA HT{sortArrow('caHT')}</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('prixVenteMoyenParPot')}>Prix moy./pot{sortArrow('prixVenteMoyenParPot')}</TableHead>
-                          <TableHead className="text-right">Prix moy./colis</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('referencesProduits')}>Réf.{sortArrow('referencesProduits')}</TableHead>
+                          <TableHead className="cursor-pointer hover:bg-muted/50 w-[30%] whitespace-normal break-words" onClick={() => handleSort('enseigne')}>Client{sortArrow('enseigne')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50 w-[8%]">BL{sortArrow('nbBL')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50 w-[12%]">Colis{sortArrow('colisCommandes')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50 w-[14%]">CA HT{sortArrow('caHT')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50 w-[12%] whitespace-normal break-words" onClick={() => handleSort('prixVenteMoyenParPot')}>Prix /pot{sortArrow('prixVenteMoyenParPot')}</TableHead>
+                          <TableHead className="text-right w-[12%] whitespace-normal break-words">Prix /colis</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50 w-[12%] whitespace-normal break-words" onClick={() => handleSort('referencesProduits')}>Réf.{sortArrow('referencesProduits')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -594,19 +594,19 @@ export default function VolumesPage() {
                                 className="hover:bg-muted/40 cursor-pointer"
                                 onClick={() => setExpandedClient(isOpen ? null : c.enseigne)}
                               >
-                                <TableCell className="font-medium">
-                                  <div className="flex items-center gap-2">
-                                    <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                                    <span>{c.enseigne}</span>
-                                    {c.variants.length > 1 && <span className="text-[10px] text-muted-foreground">({c.variants.length})</span>}
+                                <TableCell className="font-medium text-xs align-top">
+                                  <div className="flex items-start gap-1.5">
+                                    <ChevronRight className={`h-3 w-3 mt-0.5 text-muted-foreground shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                                    <span className="break-words leading-tight">{c.enseigne}</span>
+                                    {c.variants.length > 1 && <span className="text-[10px] text-muted-foreground shrink-0">({c.variants.length})</span>}
                                   </div>
                                 </TableCell>
-                                <TableCell className="text-right font-mono text-xs">{c.nbBL}</TableCell>
-                                <TableCell className="text-right font-mono text-xs">{formatNumber(c.colisCommandes)}</TableCell>
-                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(c.caHT)}</TableCell>
-                                <TableCell className="text-right font-mono text-xs">{formatEuro(c.prixVenteMoyenParPot)}</TableCell>
-                                <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatEuro(c.prixVenteMoyenParColis)}</TableCell>
-                                <TableCell className="text-right font-mono text-xs">
+                                <TableCell className="text-right font-mono text-xs align-top">{c.nbBL}</TableCell>
+                                <TableCell className="text-right font-mono text-xs align-top">{formatNumber(c.colisCommandes)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700 align-top">{formatEuro(c.caHT)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs align-top">{formatEuro(c.prixVenteMoyenParPot)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs text-muted-foreground align-top">{formatEuro(c.prixVenteMoyenParColis)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs align-top">
                                   <span className="inline-flex items-center gap-1">
                                     {c.referencesProduits}
                                     <span className="text-[10px] text-muted-foreground">({c.nbParfums} parf.)</span>
@@ -621,26 +621,26 @@ export default function VolumesPage() {
                                         Prix de vente par format — {c.enseigne}
                                       </p>
                                       <div className="overflow-x-auto">
-                                        <Table>
+                                        <Table className="table-fixed">
                                           <TableHeader>
                                             <TableRow>
-                                              <TableHead>Format</TableHead>
-                                              <TableHead className="text-right">Colis</TableHead>
-                                              <TableHead className="text-right">Pots</TableHead>
-                                              <TableHead className="text-right">CA HT</TableHead>
-                                              <TableHead className="text-right">Prix moy./pot</TableHead>
-                                              <TableHead className="text-right">Prix moy./colis</TableHead>
+                                              <TableHead className="w-[24%]">Format</TableHead>
+                                              <TableHead className="text-right w-[14%]">Colis</TableHead>
+                                              <TableHead className="text-right w-[14%]">Pots</TableHead>
+                                              <TableHead className="text-right w-[16%]">CA HT</TableHead>
+                                              <TableHead className="text-right w-[16%] whitespace-normal break-words">Prix /pot</TableHead>
+                                              <TableHead className="text-right w-[16%] whitespace-normal break-words">Prix /colis</TableHead>
                                             </TableRow>
                                           </TableHeader>
                                           <TableBody>
                                             {formatAgg.formats.map((f) => (
                                               <TableRow key={f.format}>
-                                                <TableCell className="font-medium text-xs">{f.format}</TableCell>
-                                                <TableCell className="text-right font-mono text-xs">{formatNumber(f.colis)}</TableCell>
-                                                <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(f.pots)}</TableCell>
-                                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(f.caHT)}</TableCell>
-                                                <TableCell className="text-right font-mono text-xs">{formatEuro(f.prixMoyenParPot)}</TableCell>
-                                                <TableCell className="text-right font-mono text-xs">{formatEuro(f.prixMoyenParColis)}</TableCell>
+                                                <TableCell className="font-medium text-xs align-top break-words">{f.format}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs align-top">{formatNumber(f.colis)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs text-muted-foreground align-top">{formatNumber(f.pots)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700 align-top">{formatEuro(f.caHT)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs align-top">{formatEuro(f.prixMoyenParPot)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs align-top">{formatEuro(f.prixMoyenParColis)}</TableCell>
                                               </TableRow>
                                             ))}
                                           </TableBody>
