@@ -43,6 +43,7 @@ export function SearchableClientSelect({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const [popoverMaxH, setPopoverMaxH] = useState<number | null>(null);
 
   // Normalisation pour la recherche (insensible aux accents + casse)
   const normalize = (s: string): string =>
@@ -74,6 +75,22 @@ export function SearchableClientSelect({
       const t = setTimeout(() => setSearch(''), 200);
       return () => clearTimeout(t);
     }
+    // Calcule la hauteur max du popover = espace disponible sous le trigger,
+    // pour éviter que la liste déborde en bas de l'écran.
+    const compute = () => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const available = window.innerHeight - rect.bottom - 4 - 16;
+      setPopoverMaxH(Math.max(200, Math.min(480, Math.round(available))));
+    };
+    compute();
+    window.addEventListener('scroll', compute, true);
+    window.addEventListener('resize', compute);
+    return () => {
+      window.removeEventListener('scroll', compute, true);
+      window.removeEventListener('resize', compute);
+    };
   }, [open]);
 
   return (
@@ -100,7 +117,7 @@ export function SearchableClientSelect({
         side="bottom"
         sideOffset={4}
         avoidCollisions={false}
-        style={{ maxHeight: 'min(60vh, 420px)' }}
+        style={{ maxHeight: popoverMaxH ?? 'min(60vh, 420px)' }}
       >
         <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3 shrink-0">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -191,6 +191,9 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ClientDetailData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // Hauteur max dynamique du popover = espace disponible sous le trigger - marge
+  const [popoverMaxH, setPopoverMaxH] = useState<number | null>(null);
 
   // Tri des clients par ordre alphabétique + filtre de recherche
   const sortedClients = useMemo(() => {
@@ -246,6 +249,29 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodQuery]);
 
+  // Calcule la hauteur max du popover = espace disponible sous le trigger,
+  // pour éviter que la liste déborde en bas de l'écran (surtout si l'utilisateur
+  // a fait défiler la page et que le trigger est près du haut du viewport).
+  useEffect(() => {
+    if (!open) return;
+    const compute = () => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      // Espace sous le trigger, moins l'offset (4px) et une marge de 16px
+      const available = window.innerHeight - rect.bottom - 4 - 16;
+      // Plafonne entre 200px (min lisible) et 480px (max confortable)
+      setPopoverMaxH(Math.max(200, Math.min(480, Math.round(available))));
+    };
+    compute();
+    window.addEventListener('scroll', compute, true);
+    window.addEventListener('resize', compute);
+    return () => {
+      window.removeEventListener('scroll', compute, true);
+      window.removeEventListener('resize', compute);
+    };
+  }, [open]);
+
   const clearSelection = () => {
     setSelectedClient('');
     setData(null);
@@ -275,6 +301,7 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  ref={triggerRef}
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
@@ -294,7 +321,7 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
                 side="bottom"
                 sideOffset={4}
                 avoidCollisions={false}
-                style={{ maxHeight: 'min(60vh, 420px)' }}
+                style={{ maxHeight: popoverMaxH ?? 'min(60vh, 420px)' }}
               >
                 <Command shouldFilter={false}>
                   <div className="flex items-center border-b px-3 shrink-0">
