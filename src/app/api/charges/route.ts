@@ -101,6 +101,9 @@ export async function GET(req: NextRequest) {
         total: d.total,
         count: d.count,
         pct: totalHTAll > 0 ? (d.total / totalHTAll) * 100 : 0,
+        // Indique si cette catégorie est comptabilisée comme charge directe
+        // (liée à la production/vente) ou indirecte (charge de structure).
+        isDirecte: isChargeDirecte(category),
       }))
       .sort((a, b) => b.total - a.total);
 

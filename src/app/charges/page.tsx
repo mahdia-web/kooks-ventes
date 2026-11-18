@@ -56,6 +56,7 @@ interface TopCategory {
   total: number;
   count: number;
   pct: number;
+  isDirecte?: boolean;
 }
 
 interface PreviousPeriod {
@@ -738,6 +739,107 @@ export default function ChargesPage() {
             </Card>
           )}
 
+          {/* === CHARGES DIRECTES vs INDIRECTES — DÉTAIL === */}
+          {topCategories.length > 0 && (() => {
+            const directCats = topCategories.filter(c => c.isDirecte);
+            const indirectCats = topCategories.filter(c => !c.isDirecte);
+            const directTotal = directCats.reduce((s, c) => s + c.total, 0);
+            const indirectTotal = indirectCats.reduce((s, c) => s + c.total, 0);
+            const grandTotal = directTotal + indirectTotal || 1;
+            return (
+              <Card className="rounded-2xl shadow-sm border-border">
+                <CardHeader>
+                  <CardTitle className="font-title flex items-center gap-2">
+                    <Target className="h-5 w-5 text-primary" />
+                    Charges directes vs indirectes — détail
+                  </CardTitle>
+                  <CardDescription>
+                    Répartition par catégorie selon la nature comptable (classe 6 du PCG).
+                    Les charges <strong>directes</strong> sont affectables à un coût (production/vente) ;
+                    les charges <strong>indirectes</strong> sont des charges de structure nécessitant une répartition.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Barre de synthèse globale */}
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: '#3674b5' }} />
+                        Directes <span className="font-semibold text-foreground">{formatEuro(directTotal)}</span>
+                        <span>({(directTotal / grandTotal * 100).toFixed(1)}%)</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span>({(indirectTotal / grandTotal * 100).toFixed(1)}%)</span>
+                        <span className="font-semibold text-foreground">{formatEuro(indirectTotal)}</span>
+                        Indirectes
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: '#bb7e40' }} />
+                      </span>
+                    </div>
+                    <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+                      <div style={{ width: `${(directTotal / grandTotal) * 100}%`, backgroundColor: '#3674b5' }} />
+                      <div style={{ width: `${(indirectTotal / grandTotal) * 100}%`, backgroundColor: '#bb7e40' }} />
+                    </div>
+                  </div>
+
+                  {/* Deux colonnes : liste directe / liste indirecte */}
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    {/* Directes */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#3674b5' }} />
+                        <h4 className="text-sm font-semibold" style={{ color: '#3674b5' }}>
+                          Charges directes ({directCats.length} catégories)
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        Matières premières, emballages, transport sur ventes, prestations de production, matériel de production.
+                      </p>
+                      <div className="space-y-1.5">
+                        {directCats.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">Aucune charge directe sur la période.</p>
+                        ) : directCats.map((c) => (
+                          <div key={c.category} className="flex items-center justify-between text-xs py-1 border-b border-border/50 last:border-0">
+                            <span className="truncate flex-1 mr-2" title={c.category}>{c.category}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-muted-foreground">{c.count} fact.</span>
+                              <span className="font-semibold font-mono">{formatEuro(c.total)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Indirectes */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#bb7e40' }} />
+                        <h4 className="text-sm font-semibold" style={{ color: '#bb7e40' }}>
+                          Charges indirectes ({indirectCats.length} catégories)
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        Loyer, énergie, carburant, personnel extérieur, honoraires, frais bancaires, déplacements, marketing, assurances, etc.
+                      </p>
+                      <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                        {indirectCats.length === 0 ? (
+                          <p className="text-xs text-muted-foreground italic">Aucune charge indirecte sur la période.</p>
+                        ) : indirectCats.map((c) => (
+                          <div key={c.category} className="flex items-center justify-between text-xs py-1 border-b border-border/50 last:border-0">
+                            <span className="truncate flex-1 mr-2" title={c.category}>{c.category}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-muted-foreground">{c.count} fact.</span>
+                              <span className="font-semibold font-mono">{formatEuro(c.total)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* === ANALYSE VISUELLE (2 COLONNES) === */}
           {topCategories.length > 0 && (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -787,9 +889,19 @@ export default function ChargesPage() {
                       return (
                         <div key={c.category} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium truncate flex-1">
-                              <span className="text-muted-foreground mr-2">{idx + 1}.</span>
-                              {c.category}
+                            <span className="font-medium truncate flex-1 flex items-center gap-2">
+                              <span className="text-muted-foreground mr-1">{idx + 1}.</span>
+                              <span className="truncate" title={c.category}>{c.category}</span>
+                              <span
+                                className="text-[9px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide shrink-0"
+                                style={{
+                                  color: c.isDirecte ? '#3674b5' : '#bb7e40',
+                                  backgroundColor: c.isDirecte ? 'rgba(54,116,181,0.1)' : 'rgba(187,126,64,0.1)',
+                                }}
+                                title={c.isDirecte ? 'Charge directe (liée à la production/vente)' : 'Charge indirecte (de structure)'}
+                              >
+                                {c.isDirecte ? 'Directe' : 'Indirecte'}
+                              </span>
                             </span>
                             <div className="flex gap-3 text-right shrink-0">
                               <span className="font-semibold" style={{ color }}>{formatEuro(c.total)}</span>
