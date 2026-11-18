@@ -117,6 +117,24 @@ interface TopFormat {
   label: string;
 }
 
+interface PrixParFormat {
+  format: string;
+  colis: number;
+  pots: number;
+  caHT: number;
+  prixMoyenParPot: number;
+  prixMoyenParColis: number;
+  lignes: number;
+}
+
+interface VolumesInfo {
+  totalColis: number;
+  totalPots: number;
+  totalCaHT: number;
+  prixVenteMoyenParPot: number;
+  prixVenteMoyenParColis: number;
+}
+
 interface RecentSale {
   id: string;
   blNumber: string | null;
@@ -154,6 +172,8 @@ interface ClientDetailData {
   topProducts: TopProduct[];
   topParfums: TopParfum[];
   topFormats: TopFormat[];
+  prixParFormat?: PrixParFormat[];
+  volumes?: VolumesInfo;
   recentSales: RecentSale[];
   variantsMatched: string[];
 }
@@ -591,6 +611,70 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
                     );
                   })}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* === KPIs volumes : prix de vente moyen global + par format === */}
+          {data.volumes && data.volumes.totalColis > 0 && (
+            <Card className="border-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Euro className="h-4 w-4 text-primary" />
+                  Prix de vente moyen — volumes
+                </CardTitle>
+                <CardDescription>
+                  Calculé depuis les volumes importés (CA HT ÷ pots et ÷ colis). Toutes périodes confondues.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Colis total</p>
+                    <p className="text-lg font-title font-bold">{formatNumber(data.volumes.totalColis)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Pots total</p>
+                    <p className="text-lg font-title font-bold">{formatNumber(data.volumes.totalPots)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Prix moy. / pot</p>
+                    <p className="text-lg font-title font-bold text-primary">{formatEuro(data.volumes.prixVenteMoyenParPot)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Prix moy. / colis</p>
+                    <p className="text-lg font-title font-bold text-primary">{formatEuro(data.volumes.prixVenteMoyenParColis)}</p>
+                  </div>
+                </div>
+
+                {data.prixParFormat && data.prixParFormat.length > 0 && (
+                  <div className="rounded-md border border-border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Format</TableHead>
+                          <TableHead className="text-right">Colis</TableHead>
+                          <TableHead className="text-right">Pots</TableHead>
+                          <TableHead className="text-right">CA HT</TableHead>
+                          <TableHead className="text-right">Prix moy./pot</TableHead>
+                          <TableHead className="text-right">Prix moy./colis</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.prixParFormat.map((f) => (
+                          <TableRow key={f.format} className="hover:bg-muted/40">
+                            <TableCell className="font-medium text-xs">{f.format}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatNumber(f.colis)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(f.pots)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(f.caHT)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatEuro(f.prixMoyenParPot)}</TableCell>
+                            <TableCell className="text-right font-mono text-xs">{formatEuro(f.prixMoyenParColis)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

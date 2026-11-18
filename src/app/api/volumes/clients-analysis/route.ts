@@ -115,6 +115,20 @@ export async function GET(req: NextRequest) {
     }
     const byProductFormat = new Map<string, ProductFormatAgg>();
 
+    // === Agrège par client × format (prix de vente moyen par format, par client) ===
+    // Clé: normKey(client) | format
+    interface ClientFormatAgg {
+      enseigne: string;       // nom canonique du client (court)
+      normKey: string;        // clé normalisée (pour grouper les variants)
+      variants: Set<string>;  // tous les noms vus pour ce client
+      format: string | null;
+      colis: number;
+      pots: number;
+      caHT: number;
+      lignes: number;
+    }
+    const byClientFormat = new Map<string, ClientFormatAgg>();
+
     // === Agrège par mois (pour colis moyen par mois) ===
     const byMonth = new Map<string, { year: number; month: number; colis: number; caHT: number }>();
 
@@ -166,6 +180,26 @@ export async function GET(req: NextRequest) {
       pf.pots += v.quantity * potsPerColis;
       pf.caHT += lineCA;
       pf.lines += 1;
+
+      // --- Par client × format ---
+      const cfKey = `${normKey}|${v.format ?? 'null'}`;
+      let cf = byClientFormat.get(cfKey);
+      if (!cf) {
+        cf = {
+          enseigne: v.enseigne,
+          normKey,
+          variants: new Set<string>(),
+          format: v.format,
+          colis: 0, pots: 0, caHT: 0, lignes: 0,
+        };
+        byClientFormat.set(cfKey, cf);
+      }
+      cf.variants.add(v.enseigne);
+      if (v.enseigne.length < cf.enseigne.length) cf.enseigne = v.enseigne;
+      cf.colis += v.quantity;
+      cf.pots += v.quantity * potsPerColis;
+      cf.caHT += lineCA;
+      cf.lignes += 1;
 
       // --- Par mois ---
       const monthKey = `${v.year}-${v.month}`;
@@ -224,6 +258,62 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.caHT - a.caHT)
       .slice(0, 30);
 
+    // === Prix de vente moyen par format, pour chaque client ===
+    // Regroupé par client (normKey) → liste de {format, colis, pots, caHT, prixMoyenParPot, prixMoyenParColis}
+    const prixParClientFormatMap = new Map<string, {
+      enseigne: string;
+      normKey: string;
+      variants: string[];
+      formats: Array<{
+        format: string;
+        colis: number;
+        pots: number;
+        caHT: number;
+        prixMoyenParPot: number;
+        prixMoyenParColis: number;
+        lignes: number;
+      }>;
+      caHTTotal: number;
+      colisTotal: number;
+    }>();
+
+    for (const cf of byClientFormat.values()) {
+      const formatRow = {
+        format: cf.format ?? '—',
+        colis: cf.colis,
+        pots: cf.pots,
+        caHT: Math.round(cf.caHT * 100) / 100,
+        prixMoyenParPot: cf.pots > 0 ? Math.round((cf.caHT / cf.pots) * 100) / 100 : 0,
+        prixMoyenParColis: cf.colis > 0 ? Math.round((cf.caHT / cf.colis) * 100) / 100 : 0,
+        lignes: cf.lignes,
+      };
+      let entry = prixParClientFormatMap.get(cf.normKey);
+      if (!entry) {
+        entry = {
+          enseigne: cf.enseigne,
+          normKey: cf.normKey,
+          variants: Array.from(cf.variants),
+          formats: [],
+          caHTTotal: 0,
+          colisTotal: 0,
+        };
+        prixParClientFormatMap.set(cf.normKey, entry);
+      }
+      entry.formats.push(formatRow);
+      entry.caHTTotal += cf.caHT;
+      entry.colisTotal += cf.colis;
+    }
+
+    // Trie les formats par CA décroissant au sein de chaque client,
+    // et trie les clients par CA total décroissant
+    const prixParClientFormat = Array.from(prixParClientFormatMap.values())
+      .map((c) => ({
+        ...c,
+        caHTTotal: Math.round(c.caHTTotal * 100) / 100,
+        formats: c.formats.sort((a, b) => b.caHT - a.caHT),
+      }))
+      .sort((a, b) => b.caHTTotal - a.caHTTotal);
+
     // === Colis moyen par mois ===
     const monthlySeries = Array.from(byMonth.values())
       .sort((a, b) => (a.year - b.year) || (a.month - b.month))
@@ -240,6 +330,7 @@ export async function GET(req: NextRequest) {
     const colisMoyenParMois = nbMonths > 0 ? Math.round(totalColis / nbMonths) : 0;
     const caMoyenParMois = nbMonths > 0 ? Math.round((totalCA / nbMonths) * 100) / 100 : 0;
     const prixMoyenGlobalParPot = totalPots > 0 ? Math.round((totalCA / totalPots) * 100) / 100 : 0;
+    const prixMoyenGlobalParColis = totalColis > 0 ? Math.round((totalCA / totalColis) * 100) / 100 : 0;
 
     // === Totaux globaux ===
     const totals = {
@@ -252,6 +343,7 @@ export async function GET(req: NextRequest) {
       caMoyenParMois,
       nbMois: nbMonths,
       prixMoyenGlobalParPot,
+      prixMoyenGlobalParColis,
     };
 
     // === Comparaison vs période précédente ===
@@ -304,6 +396,7 @@ export async function GET(req: NextRequest) {
         clients,
         totals,
         prixParProduitFormat,
+        prixParClientFormat,
         monthlySeries,
         previousPeriod,
         evolutions,

@@ -182,16 +182,38 @@ export async function GET(req: NextRequest) {
       }));
 
     // === Top produits (depuis VolumeSale) ===
+    // On récupère aussi unitPrice pour calculer le prix de vente par format
     const volumeSales = await db.volumeSale.findMany({
       where: { enseigne: { in: variants } },
-      select: { productLabel: true, parfum: true, format: true, quantity: true },
+      select: { productLabel: true, parfum: true, format: true, quantity: true, unitPrice: true, factureRef: true },
     });
+
+    // Pots par format (conversion colis → pots)
+    const FORMAT_POTS: Record<string, number> = {
+      'Lot de 2': 12,
+      'Indiv Fouro': 8,
+      'Indiv PAV 8': 8,
+      'Box de 9': 36,
+    };
 
     const productMap = new Map<string, { label: string; qty: number }>();
     const parfumMap = new Map<string, number>();
     const formatMap = new Map<string, { qty: number; label: string }>();
 
+    // Agrégation prix de vente par format pour ce client
+    // (format → colis, pots, caHT, prixMoyenParPot, prixMoyenParColis)
+    const formatAggMap = new Map<string, {
+      format: string;
+      colis: number;
+      pots: number;
+      caHT: number;
+      lignes: number;
+    }>();
+
     for (const v of volumeSales) {
+      const potsPerColis = v.format ? (FORMAT_POTS[v.format] ?? 1) : 1;
+      const lineCA = (v.unitPrice != null && v.unitPrice > 0) ? v.quantity * v.unitPrice : 0;
+
       if (v.productLabel) {
         const existing = productMap.get(v.productLabel) ?? { label: v.productLabel, qty: 0 };
         existing.qty += v.quantity;
@@ -205,6 +227,18 @@ export async function GET(req: NextRequest) {
         existing.qty += v.quantity;
         formatMap.set(v.format, existing);
       }
+
+      // Par format (avec prix de vente)
+      const formatKey = v.format ?? '—';
+      let fa = formatAggMap.get(formatKey);
+      if (!fa) {
+        fa = { format: formatKey, colis: 0, pots: 0, caHT: 0, lignes: 0 };
+        formatAggMap.set(formatKey, fa);
+      }
+      fa.colis += v.quantity;
+      fa.pots += v.quantity * potsPerColis;
+      fa.caHT += lineCA;
+      fa.lignes += 1;
     }
 
     const topProducts = Array.from(productMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 10);
@@ -213,6 +247,26 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5);
     const topFormats = Array.from(formatMap.values()).sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+    // === Prix de vente moyen par format (ce client) ===
+    const prixParFormat = Array.from(formatAggMap.values())
+      .map((fa) => ({
+        format: fa.format,
+        colis: fa.colis,
+        pots: fa.pots,
+        caHT: Math.round(fa.caHT * 100) / 100,
+        prixMoyenParPot: fa.pots > 0 ? Math.round((fa.caHT / fa.pots) * 100) / 100 : 0,
+        prixMoyenParColis: fa.colis > 0 ? Math.round((fa.caHT / fa.colis) * 100) / 100 : 0,
+        lignes: fa.lignes,
+      }))
+      .sort((a, b) => b.caHT - a.caHT);
+
+    // === KPIs volumes globaux (ce client) ===
+    const totalColisClient = prixParFormat.reduce((s, f) => s + f.colis, 0);
+    const totalPotsClient = prixParFormat.reduce((s, f) => s + f.pots, 0);
+    const totalCaVolumesClient = prixParFormat.reduce((s, f) => s + f.caHT, 0);
+    const prixVenteMoyenParPotGlobal = totalPotsClient > 0 ? Math.round((totalCaVolumesClient / totalPotsClient) * 100) / 100 : 0;
+    const prixVenteMoyenParColisGlobal = totalColisClient > 0 ? Math.round((totalCaVolumesClient / totalColisClient) * 100) / 100 : 0;
 
     // === Dernières ventes (10 plus récentes) — commission KOOK'S forcée à 0 ===
     const recentSales = allSales.slice(0, 10).map((s) => ({
@@ -289,6 +343,15 @@ export async function GET(req: NextRequest) {
         topProducts,
         topParfums,
         topFormats,
+        // === Nouveaux KPIs prix de vente par format ===
+        prixParFormat,
+        volumes: {
+          totalColis: totalColisClient,
+          totalPots: totalPotsClient,
+          totalCaHT: Math.round(totalCaVolumesClient * 100) / 100,
+          prixVenteMoyenParPot: prixVenteMoyenParPotGlobal,
+          prixVenteMoyenParColis: prixVenteMoyenParColisGlobal,
+        },
         recentSales,
         variantsMatched: Array.from(new Set(allSales.map((s) => s.enseigne))),
       },

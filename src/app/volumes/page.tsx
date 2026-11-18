@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Package, Upload, Search, TrendingUp, ShoppingCart, Euro, Percent, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { ArrowLeft, Package, Upload, Search, TrendingUp, ShoppingCart, Euro, Percent, ArrowUp, ArrowDown, Minus, ChevronRight } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SettingsPanel } from '@/components/settings-panel';
 import type { DashboardData } from '@/lib/dashboard-types';
@@ -33,6 +33,25 @@ interface ClientAnalysisRow {
   nbParfums: number;
   nbFormats: number;
   lignes: number;
+}
+
+interface ClientFormatRow {
+  format: string;
+  colis: number;
+  pots: number;
+  caHT: number;
+  prixMoyenParPot: number;
+  prixMoyenParColis: number;
+  lignes: number;
+}
+
+interface ClientFormatAgg {
+  enseigne: string;
+  normKey: string;
+  variants: string[];
+  formats: ClientFormatRow[];
+  caHTTotal: number;
+  colisTotal: number;
 }
 
 interface ProductFormatRow {
@@ -65,6 +84,7 @@ interface Totals {
   caMoyenParMois: number;
   nbMois: number;
   prixMoyenGlobalParPot: number;
+  prixMoyenGlobalParColis: number;
 }
 
 interface PreviousPeriod {
@@ -84,7 +104,7 @@ interface Evolutions {
   colisMoyenParMoisPercent: number;
 }
 
-type SortKey = 'enseigne' | 'colisCommandes' | 'caHT' | 'prixVenteMoyenParPot' | 'referencesProduits' | 'nbBL' | 'panierMoyenBL';
+type SortKey = 'enseigne' | 'colisCommandes' | 'caHT' | 'prixVenteMoyenParPot' | 'referencesProduits' | 'nbBL';
 type SortDir = 'asc' | 'desc';
 
 const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -93,6 +113,7 @@ export default function VolumesPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [clients, setClients] = useState<ClientAnalysisRow[]>([]);
   const [prixParProduitFormat, setPrixParProduitFormat] = useState<ProductFormatRow[]>([]);
+  const [prixParClientFormat, setPrixParClientFormat] = useState<ClientFormatAgg[]>([]);
   const [monthlySeries, setMonthlySeries] = useState<MonthlyRow[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
   const [previousPeriod, setPreviousPeriod] = useState<PreviousPeriod | null>(null);
@@ -100,8 +121,10 @@ export default function VolumesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [clientFormatSearch, setClientFormatSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('caHT');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [defaultDate, setDefaultDate] = useState('');
@@ -146,6 +169,7 @@ export default function VolumesPage() {
         setClients(json.data.clients);
         setTotals(json.data.totals);
         setPrixParProduitFormat(json.data.prixParProduitFormat ?? []);
+        setPrixParClientFormat(json.data.prixParClientFormat ?? []);
         setMonthlySeries(json.data.monthlySeries ?? []);
         setPreviousPeriod(json.data.previousPeriod ?? null);
         setEvolutions(json.data.evolutions ?? null);
@@ -346,7 +370,7 @@ export default function VolumesPage() {
           </Card>
 
           {/* KPIs globaux avec comparaison N-1 */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
@@ -378,7 +402,7 @@ export default function VolumesPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
-                  <Percent className="h-3.5 w-3.5" /> Prix vente moyen / pot
+                  <Percent className="h-3.5 w-3.5" /> Prix vente moy. / pot
                 </CardDescription>
                 <CardTitle className="text-2xl font-title">{totals ? formatEuro(totals.prixMoyenGlobalParPot) : '—'}</CardTitle>
               </CardHeader>
@@ -386,6 +410,20 @@ export default function VolumesPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">Moyenne pondérée (CA HT ÷ pots)</p>
                   {evolutions && <EvolutionBadge pct={evolutions.prixMoyenParPotPercent} />}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription className="flex items-center gap-2">
+                  <Euro className="h-3.5 w-3.5" /> Prix vente moy. / colis
+                </CardDescription>
+                <CardTitle className="text-2xl font-title">{totals ? formatEuro(totals.prixMoyenGlobalParColis) : '—'}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Moyenne pondérée (CA HT ÷ colis)</p>
+                  {!evolutions && <span />}
                 </div>
               </CardContent>
             </Card>
@@ -520,7 +558,7 @@ export default function VolumesPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="font-title">Détail par client</CardTitle>
-                <CardDescription>Performance de chaque enseigne sur la période filtrée.</CardDescription>
+                <CardDescription>Performance de chaque enseigne sur la période filtrée. Cliquez sur une ligne pour voir le prix par format.</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -538,36 +576,83 @@ export default function VolumesPage() {
                           <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort('enseigne')}>Client{sortArrow('enseigne')}</TableHead>
                           <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('nbBL')}>BL{sortArrow('nbBL')}</TableHead>
                           <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('colisCommandes')}>Colis{sortArrow('colisCommandes')}</TableHead>
-                          <TableHead className="text-right">Pots</TableHead>
                           <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('caHT')}>CA HT{sortArrow('caHT')}</TableHead>
                           <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('prixVenteMoyenParPot')}>Prix moy./pot{sortArrow('prixVenteMoyenParPot')}</TableHead>
                           <TableHead className="text-right">Prix moy./colis</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('panierMoyenBL')}>Panier moy./BL{sortArrow('panierMoyenBL')}</TableHead>
-                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('referencesProduits')}>Réf. produits{sortArrow('referencesProduits')}</TableHead>
+                          <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort('referencesProduits')}>Réf.{sortArrow('referencesProduits')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sortedClients.map((c) => (
-                          <TableRow key={c.enseigne} className="hover:bg-muted/40">
-                            <TableCell className="font-medium">
-                              {c.enseigne}
-                              {c.variants.length > 1 && <span className="ml-2 text-[10px] text-muted-foreground">({c.variants.length} variants)</span>}
-                            </TableCell>
-                            <TableCell className="text-right font-mono text-xs">{c.nbBL}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">{formatNumber(c.colisCommandes)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(c.potsCommandes)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(c.caHT)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">{formatEuro(c.prixVenteMoyenParPot)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatEuro(c.prixVenteMoyenParColis)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">{formatEuro(c.panierMoyenBL)}</TableCell>
-                            <TableCell className="text-right font-mono text-xs">
-                              <span className="inline-flex items-center gap-1">
-                                {c.referencesProduits}
-                                <span className="text-[10px] text-muted-foreground">({c.nbParfums} parfums)</span>
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {sortedClients.map((c) => {
+                          const isOpen = expandedClient === c.enseigne;
+                          const formatAgg = prixParClientFormat.find((p) =>
+                            p.enseigne === c.enseigne || p.variants.includes(c.enseigne)
+                          );
+                          return (
+                            <React.Fragment key={c.enseigne}>
+                              <TableRow
+                                className="hover:bg-muted/40 cursor-pointer"
+                                onClick={() => setExpandedClient(isOpen ? null : c.enseigne)}
+                              >
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                                    <span>{c.enseigne}</span>
+                                    {c.variants.length > 1 && <span className="text-[10px] text-muted-foreground">({c.variants.length})</span>}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">{c.nbBL}</TableCell>
+                                <TableCell className="text-right font-mono text-xs">{formatNumber(c.colisCommandes)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(c.caHT)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs">{formatEuro(c.prixVenteMoyenParPot)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatEuro(c.prixVenteMoyenParColis)}</TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                  <span className="inline-flex items-center gap-1">
+                                    {c.referencesProduits}
+                                    <span className="text-[10px] text-muted-foreground">({c.nbParfums} parf.)</span>
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                              {isOpen && formatAgg && formatAgg.formats.length > 0 && (
+                                <TableRow className="bg-muted/20">
+                                  <TableCell colSpan={7} className="p-3">
+                                    <div className="rounded-md border border-border bg-card p-3">
+                                      <p className="text-xs font-medium mb-2 text-muted-foreground">
+                                        Prix de vente par format — {c.enseigne}
+                                      </p>
+                                      <div className="overflow-x-auto">
+                                        <Table>
+                                          <TableHeader>
+                                            <TableRow>
+                                              <TableHead>Format</TableHead>
+                                              <TableHead className="text-right">Colis</TableHead>
+                                              <TableHead className="text-right">Pots</TableHead>
+                                              <TableHead className="text-right">CA HT</TableHead>
+                                              <TableHead className="text-right">Prix moy./pot</TableHead>
+                                              <TableHead className="text-right">Prix moy./colis</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {formatAgg.formats.map((f) => (
+                                              <TableRow key={f.format}>
+                                                <TableCell className="font-medium text-xs">{f.format}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs">{formatNumber(f.colis)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs text-muted-foreground">{formatNumber(f.pots)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs font-semibold text-emerald-700">{formatEuro(f.caHT)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs">{formatEuro(f.prixMoyenParPot)}</TableCell>
+                                                <TableCell className="text-right font-mono text-xs">{formatEuro(f.prixMoyenParColis)}</TableCell>
+                                              </TableRow>
+                                            ))}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
