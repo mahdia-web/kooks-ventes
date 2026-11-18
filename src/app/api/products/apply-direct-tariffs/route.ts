@@ -43,29 +43,40 @@ export async function POST() {
 
     let upserted = 0;
     let failed = 0;
+    // Construit toutes les opérations puis les exécute en lots parallèles
+    // pour rester sous la limite de durée Vercel (60s).
+    const operations: Array<{ enseigne: string; productId: string; tarif: number; remise: number; final: number }> = [];
     for (const enseigne of directNames) {
       for (const t of tarifs) {
         const finalPrice = t.tarif * (1 - t.remise / 100);
-        try {
-          await db.productSalesPrice.upsert({
-            where: { productId_enseigne: { productId: t.productId, enseigne } },
-            create: {
-              productId: t.productId,
-              enseigne,
-              tarifDepart: t.tarif,
-              remisePercent: t.remise,
-              finalPrice,
-            },
-            update: {
-              tarifDepart: t.tarif,
-              remisePercent: t.remise,
-              finalPrice,
-            },
-          });
-          upserted++;
-        } catch {
-          failed++;
-        }
+        operations.push({ enseigne, productId: t.productId, tarif: t.tarif, remise: t.remise, final: finalPrice });
+      }
+    }
+
+    // Lots de 25 opérations en parallèle
+    const BATCH_SIZE = 25;
+    for (let i = 0; i < operations.length; i += BATCH_SIZE) {
+      const batch = operations.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map((op) =>
+        db.productSalesPrice.upsert({
+          where: { productId_enseigne: { productId: op.productId, enseigne: op.enseigne } },
+          create: {
+            productId: op.productId,
+            enseigne: op.enseigne,
+            tarifDepart: op.tarif,
+            remisePercent: op.remise,
+            finalPrice: op.final,
+          },
+          update: {
+            tarifDepart: op.tarif,
+            remisePercent: op.remise,
+            finalPrice: op.final,
+          },
+        })
+      ));
+      for (const r of results) {
+        if (r.status === 'fulfilled') upserted++;
+        else failed++;
       }
     }
 
