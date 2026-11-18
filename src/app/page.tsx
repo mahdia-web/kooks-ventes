@@ -63,6 +63,11 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'month' | 'global' | 'daterange'>('month');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [error, setError] = useState<string | null>(null);
+  // Onglet actif persistant : conservé entre les rechargements de période/agent
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  // Client sélectionné dans l'onglet « Détail ventes » — persisté entre les
+  // rechargements de période pour ne pas tout perdre quand on change la période.
+  const [selectedDetailClient, setSelectedDetailClient] = useState<string>('');
 
   // Chargement initial : période courante + agents
   useEffect(() => {
@@ -233,7 +238,7 @@ export default function Home() {
       <AppSidebar data={data} agentFilter={agentFilter} onHome={handleHome} />
 
       {/* Contenu principal décalé à droite du sidebar (w-64 = 16rem) */}
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 ml-64 flex flex-col min-h-screen min-w-0 max-w-full overflow-x-hidden">
         {/* === TOP BAR : uniquement Période + Agent + Bilan + Import === */}
         <header className="border-b border-border bg-card sticky top-0 z-30">
           <div className="px-4 sm:px-6 lg:px-8 py-3">
@@ -386,8 +391,8 @@ export default function Home() {
             </div>
           )}
 
-          {!loading && data && (
-            <Tabs defaultValue="overview" className="space-y-4">
+          {data && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="bg-muted flex flex-wrap h-auto">
                 <TabsTrigger
                   value="overview"
@@ -643,6 +648,8 @@ export default function Home() {
                 <ClientDetail
                   availableClients={data.customerFollowup.map((c) => c.enseigne)}
                   agentFilter={agentFilter}
+                  selectedClient={selectedDetailClient}
+                  onSelectedClientChange={setSelectedDetailClient}
                   periodFilter={
                     viewMode === 'daterange' && dateRange.start && dateRange.end
                       ? { start: dateRange.start, end: dateRange.end }

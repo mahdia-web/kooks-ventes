@@ -47,6 +47,16 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { toast } from 'sonner';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 interface ClientDetailProps {
   /** Liste des enseignes (clients) disponibles — vient du dashboard */
@@ -59,6 +69,10 @@ interface ClientDetailProps {
    *  - null : vue globale (toute la période)
    */
   periodFilter?: { year?: number; month?: number; start?: string; end?: string } | null;
+  /** Client sélectionné (contrôlé par le parent pour persister entre les
+   *  rechargements de période). Si non fourni, l'état est local au composant. */
+  selectedClient?: string;
+  onSelectedClientChange?: (client: string) => void;
 }
 
 interface ClientInfo {
@@ -184,8 +198,15 @@ const STATUS_COLORS: Record<string, string> = {
   'INACTIF': 'bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400',
 };
 
-export function ClientDetail({ availableClients, agentFilter, periodFilter }: ClientDetailProps) {
-  const [selectedClient, setSelectedClient] = useState<string>('');
+export function ClientDetail({ availableClients, agentFilter, periodFilter, selectedClient: controlledClient, onSelectedClientChange }: ClientDetailProps) {
+  // Si le parent contrôle selectedClient (recommandé pour la persistance),
+  // on utilise sa valeur ; sinon on retombe sur un état local.
+  const [localClient, setLocalClient] = useState<string>('');
+  const selectedClient = controlledClient !== undefined ? controlledClient : localClient;
+  const setSelectedClient = (c: string) => {
+    if (onSelectedClientChange) onSelectedClientChange(c);
+    if (controlledClient === undefined) setLocalClient(c);
+  };
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -245,6 +266,15 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodQuery]);
+
+  // Au montage, si un client est déjà sélectionné (état persisté du parent)
+  // mais qu'aucune donnée n'est chargée, on charge la fiche.
+  useEffect(() => {
+    if (selectedClient && !data && !loading) {
+      loadClient(selectedClient);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClient]);
 
   const clearSelection = () => {
     setSelectedClient('');
@@ -587,35 +617,88 @@ export function ClientDetail({ availableClients, agentFilter, periodFilter }: Cl
             </Card>
           </div>
 
-          {/* Évolution mensuelle (barres) */}
+          {/* Évolution mensuelle (courbe) */}
           {data.monthlyEvolution.length > 0 && (
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="text-sm">Évolution mensuelle du CA HT</CardTitle>
+                <CardTitle className="text-sm">Évolution mensuelle — CA HT & panier moyen</CardTitle>
                 <CardDescription>12 derniers mois avec données</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end gap-1 h-40">
-                  {data.monthlyEvolution.map((m) => {
-                    const maxCa = Math.max(...data.monthlyEvolution.map((x) => x.caHT), 1);
-                    const heightPct = (m.caHT / maxCa) * 100;
-                    return (
-                      <div key={`${m.year}-${m.month}`} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                        <div className="text-[9px] text-muted-foreground truncate w-full text-center">
-                          {m.caHT > 0 ? formatEuro(m.caHT).replace(/\s/g, '') : ''}
-                        </div>
-                        <div className="w-full bg-muted rounded-t-sm overflow-hidden flex-1 flex items-end">
-                          <div
-                            className="w-full bg-primary rounded-t-sm transition-all"
-                            style={{ height: `${heightPct}%`, minHeight: m.caHT > 0 ? '4px' : '0' }}
-                          />
-                        </div>
-                        <div className="text-[9px] text-muted-foreground truncate w-full text-center">
-                          {m.label}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={data.monthlyEvolution.map((m) => ({
+                        label: m.label,
+                        caHT: m.caHT,
+                        panierMoyen: m.nbBl > 0 ? m.caHT / m.nbBl : 0,
+                      }))}
+                      margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 11 }}
+                        stroke="hsl(var(--muted-foreground))"
+                        tickLine={false}
+                        axisLine={false}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        yAxisId="ca"
+                        tick={{ fontSize: 11 }}
+                        stroke="hsl(var(--muted-foreground))"
+                        tickLine={false}
+                        axisLine={false}
+                        width={56}
+                        tickFormatter={(v) =>
+                          v >= 1000 ? `${(v / 1000).toFixed(0)}k€` : `${v.toFixed(0)}€`
+                        }
+                      />
+                      <YAxis
+                        yAxisId="panier"
+                        orientation="right"
+                        tick={{ fontSize: 11 }}
+                        stroke="hsl(var(--muted-foreground))"
+                        tickLine={false}
+                        axisLine={false}
+                        width={48}
+                        tickFormatter={(v) => `${v.toFixed(0)}€`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--popover))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                        }}
+                        labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                        formatter={(value: number, name: string) => [formatEuro(value), name]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                      <Line
+                        yAxisId="ca"
+                        type="monotone"
+                        dataKey="caHT"
+                        name="CA HT"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: 'hsl(var(--primary))' }}
+                        activeDot={{ r: 5 }}
+                      />
+                      <Line
+                        yAxisId="panier"
+                        type="monotone"
+                        dataKey="panierMoyen"
+                        name="Panier moyen"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        strokeDasharray="4 3"
+                        dot={{ r: 3, fill: '#f59e0b' }}
+                        activeDot={{ r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
