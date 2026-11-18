@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
 import { labelForCompte, isChargeDirecte } from '@/lib/compte-comptable';
+import { reclassifyByVendor } from '@/lib/vendor-rules';
 import { normalizeEnseigne, similarityScore } from '@/lib/normalize-enseigne';
 
 // Augmente le timeout Vercel à 60s
@@ -352,11 +353,18 @@ export async function POST(req: NextRequest) {
         vatRate = (finalTTC - finalHT) / finalHT;
       }
 
-      // Catégorie : forceCategory > colonne fichier > inférence libellé
+      // Catégorie : vendor-rules > forceCategory > colonne fichier > inférence libellé
+      // Les règles par fournisseur (vendor-rules.ts) priment car le numéro de
+      // compte comptable ne reflète pas toujours la nature réelle de la dépense
+      // (ex: SARL AGENCE BROCARD classé "Frais bancaires" mais en réalité une
+      // commission d'agent commercial).
       const subLabel = auto.subLabel ? toStr(row[auto.subLabel]) : '';
       const vendor = auto.vendor ? toStr(row[auto.vendor]) : '';
       let category: string;
-      if (forceCategory && forceCategory.trim()) {
+      const vendorResult = reclassifyByVendor(vendor, null);
+      if (vendorResult.category) {
+        category = vendorResult.category;
+      } else if (forceCategory && forceCategory.trim()) {
         category = forceCategory.trim();
       } else if (auto.category) {
         // La colonne "Comptes comptables" contient des numéros de compte (ex: "60614000"

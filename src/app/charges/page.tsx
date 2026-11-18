@@ -12,6 +12,7 @@ import {
   ArrowLeft, Receipt, Upload, Loader2, Trash2, Euro, Truck, Search, Plus, Building2,
   TrendingUp, TrendingDown, Wallet, FileText, PieChart as PieIcon, Award, AlertTriangle,
   Lightbulb, Target, ArrowUpRight, ArrowDownRight, X, ChevronDown, ChevronUp,
+  Sparkles, Pencil, Check,
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
@@ -384,6 +385,67 @@ export default function ChargesPage() {
     }
   };
 
+  // Reclassification en lot par fournisseur (cf. src/lib/vendor-rules.ts).
+  // Corrige les mauvaises catégorisations dues au numéro de compte comptable.
+  const [reclassifying, setReclassifying] = useState(false);
+  const reclassifyCharges = async () => {
+    if (!confirm(
+      'Reclasser les charges à partir du nom du fournisseur ?\n\n' +
+      'Cela va corriger automatiquement :\n' +
+      '• BROCARD → Honoraires (commission agent)\n' +
+      '• HIGHCODATA, MONOPRIX, SCADIF → Marketing & publicité (promo)\n' +
+      '• CHRONOFRESH, SAMADA, STG, ECOLISE, SUPPLYFRESH → Transport sur ventes\n\n' +
+      'Le calcul des charges directes/indirectes sera aussi mis à jour.'
+    )) return;
+    setReclassifying(true);
+    try {
+      const res = await fetch('/api/charges/reclassify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Erreur serveur');
+      toast.success(
+        `${json.reclassified} charge(s) reclassée(s)`,
+        {
+          description: json.allocationChanged
+            ? `${json.allocationChanged} méthode(s) d'allocation recalculée(s) (DIRECT/GLOBAL)`
+            : 'Aucune méthode d\'allocation à recalculer',
+          duration: 6000,
+        },
+      );
+      loadCharges();
+    } catch (e: any) {
+      toast.error('Reclassification impossible', { description: e.message });
+    } finally {
+      setReclassifying(false);
+    }
+  };
+
+  // Override manuel de la catégorie d'une charge (depuis le panneau détail).
+  const [editingCategory, setEditingCategory] = useState(false);
+  const [pendingCategory, setPendingCategory] = useState('');
+  const saveCategoryOverride = async (id: string, newCategory: string) => {
+    try {
+      const res = await fetch(`/api/charges?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: newCategory }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error);
+      toast.success('Catégorie mise à jour', {
+        description: `→ ${newCategory}${json.charge?.allocationMethod === 'DIRECT' ? ' (charge directe)' : ''}`,
+      });
+      setSelectedCharge(json.charge);
+      setEditingCategory(false);
+      loadCharges();
+    } catch (e: any) {
+      toast.error('Mise à jour impossible', { description: e.message });
+    }
+  };
+
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -425,6 +487,21 @@ export default function ChargesPage() {
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" onClick={handleExport} className="rounded-lg">
                   <FileText className="h-4 w-4 mr-2" /> Export Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={reclassifyCharges}
+                  disabled={reclassifying}
+                  className="rounded-lg"
+                  title="Corriger les catégories à partir du nom du fournisseur (Brocard, HIGHCODATA, Chronofresh, etc.)"
+                >
+                  {reclassifying ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Reclasser par fournisseur
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowAddForm(!showAddForm)} className="rounded-lg">
                   <Plus className="h-4 w-4 mr-2" /> Ajouter une charge
@@ -1082,7 +1159,7 @@ export default function ChargesPage() {
         </main>
 
         {/* === PANNEAU LATÉRAL DE DÉTAIL (DRAWER) === */}
-        <Sheet open={!!selectedCharge} onOpenChange={(open) => !open && setSelectedCharge(null)}>
+        <Sheet open={!!selectedCharge} onOpenChange={(open) => { if (!open) { setSelectedCharge(null); setEditingCategory(false); } }}>
           <SheetContent className="w-full sm:max-w-md overflow-y-auto">
             {selectedCharge && (
               <>
@@ -1120,8 +1197,51 @@ export default function ChargesPage() {
                       <p className="text-sm font-medium">{selectedCharge.vendor ?? '—'}</p>
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Catégorie</Label>
-                      <p className="text-sm font-medium">{selectedCharge.category}</p>
+                      <Label className="text-xs text-muted-foreground flex items-center justify-between">
+                        <span>Catégorie</span>
+                        {!editingCategory && (
+                          <button
+                            onClick={() => { setPendingCategory(selectedCharge.category); setEditingCategory(true); }}
+                            className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-[11px] font-medium"
+                            title="Corriger la catégorie"
+                          >
+                            <Pencil className="h-3 w-3" /> Corriger
+                          </button>
+                        )}
+                      </Label>
+                      {editingCategory ? (
+                        <div className="space-y-2 mt-1">
+                          <Select value={pendingCategory} onValueChange={setPendingCategory}>
+                            <SelectTrigger className="h-9 text-sm rounded-lg">
+                              <SelectValue placeholder="Choisir une catégorie" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => saveCategoryOverride(selectedCharge.id, pendingCategory)}
+                              className="h-8 rounded-lg"
+                            >
+                              <Check className="h-3.5 w-3.5 mr-1" /> Enregistrer
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingCategory(false)}
+                              className="h-8 rounded-lg"
+                            >
+                              Annuler
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-medium">{selectedCharge.category}</p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Client associé</Label>

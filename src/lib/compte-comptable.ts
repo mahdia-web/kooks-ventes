@@ -184,15 +184,25 @@ export function isChargeDirecte(categoryLabel: string | null | undefined): boole
   if (l.includes('emballage') || l.includes('conditionnement')) return true;
   // 6241 — Transport sur ventes (livraison aux clients)
   if (l.includes('transport sur ventes')) return true;
+  // Tout type de transport / logistique — charges opérationnelles directement
+  // liées à la vente. Inclut Chronofresh, Samada, STG, Ecolise, Supply Fresh
+  // reclassés par src/lib/vendor-rules.ts.
+  if (l.includes('transport') || l.includes('logistique')) return true;
   // 604 — Études & prestations liées à la production
   if (l.includes('études & prestations') && !l.includes('compte mixte')) return true;
   // 605 — Achats de matériel & équipements (pour production)
   if (l.includes('achats de matériel')) return true;
+  // Marketing & promo : opérations de mise en avant, salons, promotion
+  // directement liées à l'écoulement des produits vendus. L'utilisateur
+  // considère que les frais de promo font partie des charges directes.
+  if (l.includes('marketing') || l.includes('publicité') || l.includes('promotion')) return true;
+  // Honoraires d'agents commerciaux (commissions sur ventes) — Brocard & co.
+  if (l.includes('honoraire') && l.includes('agent')) return true;
 
   // === Tout le reste = INDIRECT (charges de structure) ===
-  // Loyer, électricité, carburant, salaires, intérim, honoraires, frais
-  // bancaires, déplacements, téléphone, assurances, entretien, marketing,
-  // logiciels, mobilier, etc.
+  // Loyer, électricité, carburant, salaires, intérim, honoraires (hors agents),
+  // frais bancaires, déplacements, téléphone, assurances, entretien, logiciels,
+  // mobilier, etc.
   return false;
 }
 

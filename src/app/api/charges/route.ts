@@ -292,3 +292,48 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
+
+/**
+ * PATCH /api/charges?id=<chargeId>
+ * Body: { category?: string, allocationMethod?: 'DIRECT'|'GLOBAL', ... }
+ *
+ * Permet de corriger manuellement la catégorie d'une charge (override) et
+ * recalcule allocationMethod si la catégorie change.
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ ok: false, error: 'ID requis' }, { status: 400 });
+    }
+    const body = await req.json();
+    const { category, allocationMethod } = body as { category?: string; allocationMethod?: string };
+
+    const data: Record<string, unknown> = {};
+    if (category && category.trim()) {
+      data.category = category.trim();
+      // Recalcule allocationMethod selon la nouvelle catégorie, sauf si
+      // l'appelant impose explicitement allocationMethod.
+      if (!allocationMethod) {
+        data.allocationMethod = isChargeDirecte(category.trim()) ? 'DIRECT' : 'GLOBAL';
+      }
+    }
+    if (allocationMethod && ['DIRECT', 'GLOBAL', 'PROPORTIONAL'].includes(allocationMethod)) {
+      data.allocationMethod = allocationMethod;
+    }
+    if (body.enseigne !== undefined) data.enseigne = body.enseigne || null;
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ ok: false, error: 'Rien à modifier' }, { status: 400 });
+    }
+
+    const updated = await db.charge.update({ where: { id }, data });
+    return NextResponse.json({ ok: true, charge: updated });
+  } catch (e) {
+    return NextResponse.json(
+      { ok: false, error: e instanceof Error ? e.message : 'Erreur' },
+      { status: 500 },
+    );
+  }
+}
