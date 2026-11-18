@@ -19,7 +19,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
 import type { DashboardData } from '@/lib/dashboard-types';
-import { formatNumber, formatEuro, formatDate, formatPercent } from '@/lib/dashboard-service';
+import { formatNumber, formatEuro, formatDate } from '@/lib/dashboard-service';
 import { toast } from 'sonner';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
@@ -282,7 +282,7 @@ export default function ChargesPage() {
       cards.push({
         icon: Target,
         title: 'Taux de marge (période)',
-        value: formatPercent(marginPreview.margePct),
+        value: `${marginPreview.margePct.toFixed(1)}%`,
         sub: `CA ${formatEuro(marginPreview.caHT)} • Marge ${formatEuro(marginPreview.margeBrute)}`,
         color: marginPreview.margePct >= 30 ? '#16a34a' : (marginPreview.margePct >= 10 ? '#bb7e40' : '#e30613'),
         bg: marginPreview.margePct >= 30 ? 'rgba(22,163,74,0.08)' : (marginPreview.margePct >= 10 ? 'rgba(187,126,64,0.08)' : 'rgba(227,6,19,0.08)'),
@@ -561,7 +561,7 @@ export default function ChargesPage() {
                     <Target className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <p className={`text-2xl font-title font-bold ${marginPreview.margePct >= 30 ? 'text-emerald-600' : (marginPreview.margePct >= 10 ? 'text-amber-500' : 'text-destructive')}`}>
-                    {formatPercent(marginPreview.margePct)}
+                    {marginPreview.margePct.toFixed(1)}%
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">Indicateur stratégique de rentabilité</p>
                 </CardContent>
