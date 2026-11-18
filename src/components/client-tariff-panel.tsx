@@ -112,6 +112,36 @@ export function ClientTariffPanel() {
   const [margeExpanded, setMargeExpanded] = useState(false);
   const [margeLoading, setMargeLoading] = useState(false);
   const [margeExpandedProduct, setMargeExpandedProduct] = useState<string | null>(null);
+  // Sélecteur de période pour le calcul de marge
+  // filterMode: 'all' | 'month' | 'range'
+  const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const [margeFilterMode, setMargeFilterMode] = useState<'all' | 'month' | 'range'>('all');
+  const [margeMonth, setMargeMonth] = useState<number>(new Date().getMonth() + 1);
+  const [margeYear, setMargeYear] = useState<number>(new Date().getFullYear());
+  const [margeRangeStart, setMargeRangeStart] = useState<string>('');
+  const [margeRangeEnd, setMargeRangeEnd] = useState<string>('');
+
+  // Calcule les dates startDate/endDate (JJ/MM/AAAA) selon le mode sélectionné
+  const margePeriodParams = useMemo(() => {
+    if (margeFilterMode === 'month') {
+      const lastDay = new Date(margeYear, margeMonth, 0).getDate();
+      return {
+        startDate: `${String(margeMonth).padStart(2, '0')}/01/${margeYear}`,
+        endDate: `${String(margeMonth).padStart(2, '0')}/${String(lastDay).padStart(2, '0')}/${margeYear}`,
+      };
+    }
+    if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) {
+      return { startDate: margeRangeStart, endDate: margeRangeEnd };
+    }
+    return { startDate: '', endDate: '' }; // 'all' = année civile en cours (default API)
+  }, [margeFilterMode, margeMonth, margeYear, margeRangeStart, margeRangeEnd]);
+
+  const margePeriodLabel = useMemo(() => {
+    if (margeFilterMode === 'month') return `${MONTHS[margeMonth - 1]} ${margeYear}`;
+    if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) return `${margeRangeStart} → ${margeRangeEnd}`;
+    return 'Toute la période (année civile en cours)';
+  }, [margeFilterMode, margeMonth, margeYear, margeRangeStart, margeRangeEnd]);
+
   const loadMarge = useCallback(async () => {
     setMargeLoading(true);
     try {
@@ -120,6 +150,8 @@ export function ClientTariffPanel() {
         includeCatalogues: String(margeOptions.includeCatalogues),
         includeImprimes: String(margeOptions.includeImprimes),
       });
+      if (margePeriodParams.startDate) params.set('startDate', margePeriodParams.startDate);
+      if (margePeriodParams.endDate) params.set('endDate', margePeriodParams.endDate);
       const res = await fetch(`/api/products/marge-estimee?${params}`, { cache: 'no-store' });
       const json = await res.json();
       if (json.ok) {
@@ -133,7 +165,7 @@ export function ClientTariffPanel() {
     } finally {
       setMargeLoading(false);
     }
-  }, [margeOptions]);
+  }, [margeOptions, margePeriodParams]);
 
   useEffect(() => {
     if (margeExpanded && margeProducts.length === 0) loadMarge();
@@ -141,7 +173,7 @@ export function ClientTariffPanel() {
 
   useEffect(() => {
     if (margeExpanded) loadMarge();
-  }, [margeOptions, margeExpanded, loadMarge]);
+  }, [margeOptions, margeExpanded, margePeriodParams, loadMarge]);
 
   const filtered = clients.filter(c =>
     !search.trim() ||
@@ -277,6 +309,17 @@ export function ClientTariffPanel() {
         setExpandedProduct={setMargeExpandedProduct}
         setOptions={setMargeOptions}
         load={loadMarge}
+        filterMode={margeFilterMode}
+        setFilterMode={setMargeFilterMode}
+        month={margeMonth}
+        setMonth={setMargeMonth}
+        year={margeYear}
+        setYear={setMargeYear}
+        rangeStart={margeRangeStart}
+        setRangeStart={setMargeRangeStart}
+        rangeEnd={margeRangeEnd}
+        setRangeEnd={setMargeRangeEnd}
+        periodLabel={margePeriodLabel}
       />
 
       {/* Liste des clients avec tarifs */}
@@ -509,6 +552,8 @@ function TariffRow({
 function EstimatedMarginCard({
   products, totals, options, expanded, expandedProduct,
   loading, setExpanded, setExpandedProduct, setOptions, load,
+  filterMode, setFilterMode, month, setMonth, year, setYear,
+  rangeStart, setRangeStart, rangeEnd, setRangeEnd, periodLabel,
 }: {
   products: MargeProduct[];
   totals: MargeTotals | null;
@@ -520,8 +565,20 @@ function EstimatedMarginCard({
   setExpandedProduct: (v: string | null) => void;
   setOptions: (v: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean }) => void;
   load: () => void;
+  filterMode: 'all' | 'month' | 'range';
+  setFilterMode: (v: 'all' | 'month' | 'range') => void;
+  month: number;
+  setMonth: (v: number) => void;
+  year: number;
+  setYear: (v: number) => void;
+  rangeStart: string;
+  setRangeStart: (v: string) => void;
+  rangeEnd: string;
+  setRangeEnd: (v: string) => void;
+  periodLabel: string;
 }) {
   const { includeMarketing, includeCatalogues, includeImprimes } = options;
+  const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
   return (
     <Card className="border-primary/30 bg-primary/5 overflow-hidden">
@@ -540,14 +597,61 @@ function EstimatedMarginCard({
           </div>
         </div>
         {totals && (
-          <span className="text-xs text-muted-foreground shrink-0">
-            {products.length} réf. • {formatEuro(totals.chargesDirectesTTC)} charges directes
+          <span className="text-xs text-muted-foreground shrink-0 text-right">
+            <span className="block">{products.length} réf. • {formatEuro(totals.chargesDirectesTTC)} charges directes</span>
+            <span className="block text-[10px]">Période : {periodLabel}</span>
           </span>
         )}
       </div>
 
       {expanded && (
         <CardContent className="p-3 border-t border-primary/20 space-y-3">
+          {/* Sélecteur de période */}
+          <div className="rounded-md border border-border bg-card p-2.5 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">Période du calcul :</span>
+              <div className="flex gap-1">
+                <Button size="sm" variant={filterMode === 'all' ? 'default' : 'outline'} onClick={() => setFilterMode('all')} className="h-7 text-xs">Tout</Button>
+                <Button size="sm" variant={filterMode === 'month' ? 'default' : 'outline'} onClick={() => setFilterMode('month')} className="h-7 text-xs">Mois</Button>
+                <Button size="sm" variant={filterMode === 'range' ? 'default' : 'outline'} onClick={() => setFilterMode('range')} className="h-7 text-xs">Plage</Button>
+              </div>
+              {filterMode === 'month' && (
+                <div className="flex items-center gap-1.5">
+                  <select
+                    className="border rounded px-2 py-1 text-xs h-7 bg-card"
+                    value={month}
+                    onChange={(e) => setMonth(parseInt(e.target.value))}
+                  >
+                    {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <Input
+                    type="number"
+                    className="w-20 h-7 text-xs"
+                    value={year}
+                    onChange={(e) => setYear(parseInt(e.target.value) || new Date().getFullYear())}
+                  />
+                </div>
+              )}
+              {filterMode === 'range' && (
+                <div className="flex items-center gap-1.5">
+                  <Input className="w-32 h-7 text-xs" placeholder="01/11/2026" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} />
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <Input className="w-32 h-7 text-xs" placeholder="15/11/2026" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} />
+                </div>
+              )}
+              {filterMode === 'range' && (!rangeStart || !rangeEnd) && (
+                <span className="text-[11px] text-amber-600">Renseigne début et fin (JJ/MM/AAAA)</span>
+              )}
+              <span className="text-xs text-muted-foreground ml-auto">
+                Sélection : <span className="font-medium text-foreground">{periodLabel}</span>
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Les volumes (CA, pots) et les charges directes TTC sont calculés sur cette période.
+              Les marges nettes par pot s'adaptent automatiquement.
+            </p>
+          </div>
+
           {/* Toggles charges directes à inclure */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">Charges directes incluses :</span>
