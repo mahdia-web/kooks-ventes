@@ -681,7 +681,7 @@ async function computeAgentPeriodTotals(
   const volumes = await db.volumeSale.findMany({
     select: { enseigne: true, quantity: true, format: true },
   });
-  const FORMAT_POTS: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
+  const FORMAT_POTS: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 9 };
   // Map enseigne → total colis + total pots
   const volByEnseigne = new Map<string, { colis: number; pots: number }>();
   for (const v of volumes) {
@@ -882,7 +882,7 @@ export async function getDashboardData(
   }
 
   // Calcule les volumes globaux (colis + pots) depuis VolumeSale
-  const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
+  const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 9 };
   const allVolumes = await db.volumeSale.findMany({
     select: { quantity: true, format: true },
   });
@@ -1145,7 +1145,7 @@ export async function getDashboardDataForDateRange(
   const availablePeriods = await getAvailablePeriods(agentFilter);
 
   // Volumes
-  const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
+  const FORMAT_POTS_MAP: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 9 };
   const allVolumes = await db.volumeSale.findMany({ select: { quantity: true, format: true } });
   let colisAgg = 0, potsAgg = 0;
   for (const v of allVolumes) {

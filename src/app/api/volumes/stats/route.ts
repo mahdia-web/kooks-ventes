@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       orderBy: { date: 'asc' },
     });
 
-    const FORMAT_POTS: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 36 };
+    const FORMAT_POTS: Record<string, number> = { 'Lot de 2': 12, 'Indiv Fouro': 8, 'Indiv PAV 8': 8, 'Box de 9': 9 };
 
     let minDate: Date | null = null;
     let maxDate: Date | null = null;

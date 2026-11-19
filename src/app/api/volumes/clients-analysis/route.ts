@@ -81,11 +81,13 @@ export async function GET(req: NextRequest) {
     });
 
     // Pots par format (pour convertir colis → pots)
+    // Box de 9 = 9 pots par colis (1 boîte de 9), NON 36 (qui était 4 boîtes × 9 pots).
+    // Voir migration /api/migrations/fix-box9-pots pour le contexte.
     const FORMAT_POTS: Record<string, number> = {
       'Lot de 2': 12,
       'Indiv Fouro': 8,
       'Indiv PAV 8': 8,
-      'Box de 9': 36,
+      'Box de 9': 9,
     };
 
     // === Agrège par client ===
