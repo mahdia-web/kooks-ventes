@@ -126,8 +126,8 @@ export function ClientTariffPanel() {
     if (margeFilterMode === 'month') {
       const lastDay = new Date(margeYear, margeMonth, 0).getDate();
       return {
-        startDate: `${String(margeMonth).padStart(2, '0')}/01/${margeYear}`,
-        endDate: `${String(margeMonth).padStart(2, '0')}/${String(lastDay).padStart(2, '0')}/${margeYear}`,
+        startDate: `01/${String(margeMonth).padStart(2, '0')}/${margeYear}`,
+        endDate: `${String(lastDay).padStart(2, '0')}/${String(margeMonth).padStart(2, '0')}/${margeYear}`,
       };
     }
     if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) {
