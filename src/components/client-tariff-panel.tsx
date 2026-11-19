@@ -133,13 +133,13 @@ export function ClientTariffPanel() {
     if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) {
       return { startDate: margeRangeStart, endDate: margeRangeEnd };
     }
-    return { startDate: '', endDate: '' }; // 'all' = année civile en cours (default API)
+    return { startDate: '', endDate: '' }; // 'all' = toutes les données disponibles (default API)
   }, [margeFilterMode, margeMonth, margeYear, margeRangeStart, margeRangeEnd]);
 
   const margePeriodLabel = useMemo(() => {
     if (margeFilterMode === 'month') return `${MONTHS[margeMonth - 1]} ${margeYear}`;
     if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) return `${margeRangeStart} → ${margeRangeEnd}`;
-    return 'Toute la période (année civile en cours)';
+    return 'Toutes les données (depuis le 1er import)';
   }, [margeFilterMode, margeMonth, margeYear, margeRangeStart, margeRangeEnd]);
 
   const loadMarge = useCallback(async () => {

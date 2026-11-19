@@ -14,8 +14,8 @@ export const maxDuration = 60;
  *   includeMarketing=true|false  (default true)
  *   includeCatalogues=true|false (default false)
  *   includeImprimes=true|false   (default false)
- *   startDate=JJ/MM/AAAA    (default: 1er janvier année en cours)
- *   endDate=JJ/MM/AAAA      (default: 31 décembre année en cours)
+ *   startDate=JJ/MM/AAAA    (default: 1er VolumeSale disponible)
+ *   endDate=JJ/MM/AAAA      (default: dernier VolumeSale disponible)
  *
  * Réponse:
  *   { ok, products: [{ productId, name, parfum, format, caProduct, nbPots,
@@ -43,9 +43,25 @@ export async function GET(req: NextRequest) {
       start = new Date(parseInt(m1[3]), parseInt(m1[2]) - 1, parseInt(m1[1]));
       end = new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]));
     } else {
-      const now = new Date();
-      start = new Date(now.getFullYear(), 0, 1);
-      end = new Date(now.getFullYear(), 11, 31);
+      // Pas de dates fournies = mode "Tout": couvre toute la plage de données
+      // disponible (du premier au dernier VolumeSale), pas seulement l'année en cours.
+      const range = await db.volumeSale.aggregate({
+        _min: { date: true },
+        _max: { date: true },
+      });
+      const minDate = range._min.date;
+      const maxDate = range._max.date;
+      if (minDate && maxDate) {
+        start = new Date(minDate);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(maxDate);
+        end.setHours(23, 59, 59);
+      } else {
+        // Aucune donnée : fallback sur l'année civile en cours
+        const now = new Date();
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+      }
     }
     end.setHours(23, 59, 59);
 
