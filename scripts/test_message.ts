@@ -77,6 +77,9 @@ const mockData: DashboardData = {
   enseignes: [
     { enseigne: 'SCACHAP', type: 'Centrale', agent: 'BROCARD', caHT: 800.00, nbBl: 1, share: 5.7, lastOrder: '2026-10-15', prixVenteMoyen: 800 },
     { enseigne: 'OTERA SAS', type: 'Centrale', agent: 'BROCARD', caHT: 600.00, nbBl: 2, share: 4.3, lastOrder: '2026-10-12', prixVenteMoyen: 300 },
+    { enseigne: "SAS O'TERA AMIENS", type: 'Centrale', agent: 'CAP FRAIS', caHT: 1500.00, nbBl: 3, share: 10.7, lastOrder: '2026-10-18', prixVenteMoyen: 500 },
+    { enseigne: "O'TERA BREST", type: 'Centrale', agent: 'CAP FRAIS', caHT: 900.00, nbBl: 2, share: 6.4, lastOrder: '2026-10-20', prixVenteMoyen: 450 },
+    { enseigne: "O'TERA - ARRAS", type: 'Centrale', agent: 'CAP FRAIS', caHT: 700.00, nbBl: 1, share: 5.0, lastOrder: '2026-10-14', prixVenteMoyen: 700 },
     { enseigne: 'SCAOUEST', type: 'Centrale', agent: 'CAP FRAIS', caHT: 1200.00, nbBl: 2, share: 8.6, lastOrder: '2026-10-18', prixVenteMoyen: 600 },
     { enseigne: 'ALDOUEST', type: 'Centrale', agent: 'CAP FRAIS', caHT: 600.00, nbBl: 1, share: 4.3, lastOrder: '2026-10-10', prixVenteMoyen: 600 },
     { enseigne: 'MONOPRIX PARIS', type: 'Direct', agent: 'BROCARD', caHT: 1200.00, nbBl: 3, share: 8.6, lastOrder: '2026-10-20', prixVenteMoyen: 400 },

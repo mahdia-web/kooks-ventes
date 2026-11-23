@@ -188,6 +188,57 @@ export function isCooperativeName(name: string): boolean {
 }
 
 /**
+ * Détecte si un nom d'enseigne correspond à un magasin OTERA.
+ * Gère les deux orthographes en base : "OTERA" et "O'TERA" (apostrophe courbe ou droite).
+ * Exemples: "SAS OTERA AMIENS", "O'TERA BREST", "O'TERA - ARRAS", "O'TERA JB LEBAS"
+ */
+export function isOteraName(name: string): boolean {
+  if (!name) return false;
+  const n = name.toUpperCase().replace(/[''`]/g, '');
+  return n.includes('OTERA');
+}
+
+/**
+ * Regroupe une liste d'enseignes en remplaçant tous les magasins OTERA par
+ * une seule ligne "OTERA FRANCE" (somme des CA + somme des colis + somme BL).
+ *
+ * Toutes les autres enseignes sont conservées telles quelles.
+ *
+ * Utilisé dans le message de synthèse et le PDF bilan mensuel pour présenter
+ * une vision agrégée "OTERA FRANCE" (le détail par magasin reste disponible
+ * dans les sections "clients à relancer" et "clients inactifs" car ces sections
+ * n'utilisent PAS cette fonction — voir clients-pdf.ts qui garde le détail).
+ *
+ * @param items Liste d'objets ayant au minimum { enseigne, caHT } (+ optionnellement nbBl, totalColis)
+ * @returns Nouvelle liste avec OTERA regroupés en une entrée "OTERA FRANCE"
+ */
+export function groupOteraFrance<
+  T extends { enseigne: string; caHT: number; nbBl?: number; totalColis?: number; share?: number }
+>(items: T[]): T[] {
+  const oteraItems = items.filter((it) => isOteraName(it.enseigne));
+  if (oteraItems.length === 0) return items;
+
+  const others = items.filter((it) => !isOteraName(it.enseigne));
+
+  // Somme des OTERA → "OTERA FRANCE"
+  const sumCaHT = oteraItems.reduce((s, it) => s + it.caHT, 0);
+  const sumNbBl = oteraItems.reduce((s, it) => s + (it.nbBl ?? 0), 0);
+  const sumColis = oteraItems.reduce((s, it) => s + (it.totalColis ?? 0), 0);
+  const sumShare = oteraItems.reduce((s, it) => s + (it.share ?? 0), 0);
+
+  const oteraFrance = {
+    enseigne: 'OTERA FRANCE',
+    caHT: sumCaHT,
+    nbBl: sumNbBl,
+    totalColis: sumColis,
+    share: sumShare,
+  } as T;
+
+  // On insère OTERA FRANCE au début (le tri par caHT se fait ensuite par l'appelant)
+  return [oteraFrance, ...others];
+}
+
+/**
  * Pour un import de ventes : étant donné un nom d'enseigne entrant et la liste
  * des enseignes déjà en base, retourne le nom canonique à utiliser.
  *

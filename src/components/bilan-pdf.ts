@@ -9,6 +9,7 @@ import {
   formatDate,
   monthLabel,
 } from '@/lib/dashboard-service';
+import { isOteraName } from '@/lib/normalize-enseigne';
 import type {
   AgentStat,
   CustomerFollowup,
@@ -209,6 +210,32 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   const targetCustomers = isAgentSpecific
     ? customerFollowup.filter((cu) => cu.agent === agentFilter)
     : customerFollowup;
+
+  // Regroupe tous les magasins OTERA en une seule ligne "OTERA FRANCE" pour les
+  // sections agrégées (Top 10, Classement Direct/Centrale). Le détail par magasin
+  // OTERA reste disponible dans les sections "clients à relancer" / "inactifs"
+  // car elles utilisent targetCustomers (non regroupé).
+  const oteraEnseignes = targetEnseignes.filter((e) => isOteraName(e.enseigne));
+  const nonOteraEnseignes = targetEnseignes.filter((e) => !isOteraName(e.enseigne));
+  const groupedEnseignes: EnseigneStat[] = oteraEnseignes.length > 0
+    ? [
+        {
+          enseigne: 'OTERA FRANCE',
+          type: 'Centrale',
+          agent: oteraEnseignes[0]?.agent ?? agentFilter ?? '',
+          caHT: oteraEnseignes.reduce((s, e) => s + e.caHT, 0),
+          nbBl: oteraEnseignes.reduce((s, e) => s + e.nbBl, 0),
+          share: oteraEnseignes.reduce((s, e) => s + e.share, 0),
+          lastOrder: oteraEnseignes.reduce(
+            (latest, e) => (!e.lastOrder || (latest && e.lastOrder < latest)) ? latest : e.lastOrder,
+            null as string | null
+          ),
+          prixVenteMoyen: 0, // non pertinent pour un regroupement
+          previousMonthCa: oteraEnseignes.reduce((s, e) => s + (e.previousMonthCa ?? 0), 0),
+        },
+        ...nonOteraEnseignes,
+      ]
+    : targetEnseignes;
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -421,7 +448,7 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.text('Top 10 enseignes', margin, yPos);
   yPos += 8;
 
-  const top10 = targetEnseignes.slice(0, 10);
+  const top10 = groupedEnseignes.slice().sort((a, b) => b.caHT - a.caHT).slice(0, 10);
 
   autoTable(doc, {
     startY: yPos,
@@ -666,8 +693,8 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
   doc.text('Classement des enseignes', margin, yPos);
   yPos += 8;
 
-  const allDirect = targetEnseignes.filter((e) => e.type === 'Direct').sort((a, b) => b.caHT - a.caHT);
-  const allCentrale = targetEnseignes.filter((e) => e.type === 'Centrale').sort((a, b) => b.caHT - a.caHT);
+  const allDirect = groupedEnseignes.filter((e) => e.type === 'Direct').sort((a, b) => b.caHT - a.caHT);
+  const allCentrale = groupedEnseignes.filter((e) => e.type === 'Centrale').sort((a, b) => b.caHT - a.caHT);
 
   // Direct
   doc.setFont('helvetica', 'bold');

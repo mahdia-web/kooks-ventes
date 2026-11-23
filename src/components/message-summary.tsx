@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { MessageSquare, Copy, Check, Loader2 } from 'lucide-react';
 import { formatEuro, formatNumber, monthLabel } from '@/lib/dashboard-service';
+import { isOteraName } from '@/lib/normalize-enseigne';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { toast } from 'sonner';
 
@@ -240,6 +241,22 @@ Kooks`;
     .filter((e) => !isAgentSpecific || e.agent === agent)
     .sort((a, b) => b.caHT - a.caHT);
 
+  // Regroupe tous les magasins OTERA en une seule ligne "OTERA FRANCE"
+  // (le détail par magasin reste disponible dans le PDF "Clients à relancer")
+  const oteraCentrales = centrales.filter((c) => isOteraName(c.enseigne));
+  const nonOteraCentrales = centrales.filter((c) => !isOteraName(c.enseigne));
+  const groupedCentrales = oteraCentrales.length > 0
+    ? [
+        {
+          enseigne: 'OTERA FRANCE',
+          caHT: oteraCentrales.reduce((s, c) => s + c.caHT, 0),
+          agent: oteraCentrales[0]?.agent ?? agent ?? '',
+          _oteraStoreCount: oteraCentrales.length, // nb de magasins OTERA regroupés
+        },
+        ...nonOteraCentrales,
+      ].sort((a, b) => b.caHT - a.caHT)
+    : centrales;
+
   // Construit les lignes "• ENSEIGNE_COURT : X€ (N colis)"
   // Raccourcit les noms de coopératives pour la lisibilité
   const shortName = (name: string): string => {
@@ -260,8 +277,26 @@ Kooks`;
       colisMap.set(c.enseigne, c.totalColis);
     }
   }
-  const centralesLines = centrales.length > 0
-    ? centrales.map((c) => {
+  // Pour OTERA FRANCE : somme des colis de tous les magasins OTERA
+  const oteraTotalColis = oteraCentrales.length > 0
+    ? oteraCentrales.reduce((sum, c) => {
+        let colis = colisMap.get(c.enseigne) ?? 0;
+        if (colis === 0 && colisByEnseigne) {
+          const match = colisByEnseigne.find((v) =>
+            v.enseigne.includes(c.enseigne) || c.enseigne.includes(v.enseigne)
+          );
+          if (match) colis = match.totalColis;
+        }
+        return sum + colis;
+      }, 0)
+    : 0;
+
+  const centralesLines = groupedCentrales.length > 0
+    ? groupedCentrales.map((c) => {
+        if (c.enseigne === 'OTERA FRANCE') {
+          const nbStores = (c as any)._oteraStoreCount || oteraCentrales.length;
+          return `• OTERA FRANCE : ${fmtEuroLocal(c.caHT)}${oteraTotalColis > 0 ? ` (${oteraTotalColis} colis)` : ''} (${nbStores} ${nbStores > 1 ? 'magasins' : 'magasin'})`;
+        }
         // Cherche les colis pour cette centrale (match exact ou partiel)
         let colis = colisMap.get(c.enseigne) ?? 0;
         if (colis === 0 && colisByEnseigne) {
