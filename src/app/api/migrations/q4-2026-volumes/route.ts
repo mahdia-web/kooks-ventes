@@ -32,14 +32,31 @@ export const maxDuration = 60;
  *   4. Insère les nouvelles lignes avec vraies dates + parfum + format + quantity + PU
  */
 export async function POST(req: NextRequest) {
-  console.log('[q4-2026-volumes] Starting import — 2444 lines expected');
+    console.log('[q4-2026-volumes] Starting import');
 
-  try {
+    try {
     const formData = await req.formData();
     const file = formData.get('file');
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ ok: false, error: 'Aucun fichier reçu (champ "file" requis)' }, { status: 400 });
     }
+
+    // Paramètres optionnels:
+    //   forceMonth (1-12) + forceYear: force toutes les lignes à ce mois (pour fichiers sans colonne Date)
+    //   deleteMonths (comma-separated): quels mois supprimer avant import (ex: "8,9,10" ou "11")
+    //   filterBlMin (int): ne garde que les BL dont le numéro >= cette valeur (ex: 26000600 pour novembre seulement)
+    const forceMonthRaw = String(formData.get('forceMonth') ?? '');
+    const forceYearRaw = String(formData.get('forceYear') ?? '2026');
+    const deleteMonthsRaw = String(formData.get('deleteMonths') ?? '');
+    const filterBlMinRaw = String(formData.get('filterBlMin') ?? '');
+    const forceMonth = forceMonthRaw ? parseInt(forceMonthRaw, 10) : 0;
+    const forceYear = parseInt(forceYearRaw, 10) || 2026;
+    const deleteMonths: number[] = deleteMonthsRaw
+      ? deleteMonthsRaw.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n >= 1 && n <= 12)
+      : [];
+    const filterBlMin = filterBlMinRaw ? parseInt(filterBlMinRaw, 10) : 0;
+
+    console.log(`[q4-2026-volumes] forceMonth=${forceMonth || 'none'}, forceYear=${forceYear}, deleteMonths=${JSON.stringify(deleteMonths)}, filterBlMin=${filterBlMin || 'none'}`);
 
     console.log(`[q4-2026-volumes] File: ${file.name} (${file.size} bytes)`);
     const buffer = await file.arrayBuffer();
@@ -161,18 +178,18 @@ export async function POST(req: NextRequest) {
       return null;
     };
 
-    // 4) Supprime les VolumeSale existants pour août+sept+oct 2026
-    // Ces données ont été importées avec dates inférées (15/09, 15/10) — on les remplace
-    // par les vraies dates du nouveau fichier.
+    // 4) Supprime les VolumeSale existants pour les mois spécifiés (deleteMonths)
+    //    Si deleteMonths vide, supprime août+sept+oct 2026 (comportement par défaut).
+    const monthsToDelete = deleteMonths.length > 0 ? deleteMonths : [8, 9, 10];
     const deleted = await db.volumeSale.deleteMany({
       where: {
         AND: [
-          { year: 2026 },
-          { month: { in: [8, 9, 10] } },
+          { year: forceYear },
+          { month: { in: monthsToDelete } },
         ],
       },
     });
-    console.log(`[q4-2026-volumes] Deleted ${deleted.count} existing VolumeSale for août+sept+oct 2026`);
+    console.log(`[q4-2026-volumes] Deleted ${deleted.count} existing VolumeSale for ${forceYear} months ${JSON.stringify(monthsToDelete)}`);
 
     // 5) Extraction parfum/format (même logique que /api/volumes/import)
     const PARFUM_KEYWORDS = ['ORIGINAL', 'PEANUT BUTTER', 'CRISPY CHOCO', 'CARAMEL PECAN', 'SPECULOOS', 'COCO', 'SPEC'];
@@ -207,29 +224,43 @@ export async function POST(req: NextRequest) {
       const refStr = String(refRaw).trim();
       if (!refStr) { skipped++; continue; }
 
+      // Filtre par numéro de BL minimum (ex: ne garder que les BL >= 26000600 pour novembre)
+      if (filterBlMin) {
+        const m = refStr.match(/^(\d{8,})$/);
+        const num = m ? parseInt(m[1], 10) : 0;
+        if (num < filterBlMin) { skipped++; continue; }
+      }
+
       const clientStr = String(row[colClient] ?? '').trim();
       const productLabel = String(row[colProduit] ?? '').trim();
       if (!clientStr || !productLabel) { skipped++; continue; }
 
-      // Date — priorité 1: colonne "Date d'expédition" du fichier
-      //          priorité 2: date du BL depuis Sale
-      //          priorité 3: inférée (15 sept si BL<26000600, sinon 15 oct)
+      // Date — priorité 1: forceMonth (si fourni, fichier sans colonne Date)
+      //          priorité 2: colonne "Date d'expédition" du fichier
+      //          priorité 3: date du BL depuis Sale
+      //          priorité 4: inférée (15 sept si BL<26000600, sinon 15 oct)
       let date: Date | null = null;
-      if (colDate) {
-        date = parseDateCell(row[colDate]);
-        if (date) dateFromFile++;
-      }
-      if (!date && blDateMap.has(refStr)) {
-        date = blDateMap.get(refStr)!;
-        dateFromSale++;
-      }
-      if (!date) {
-        // Inférence: BL < 26000600 → sept 2026, sinon oct 2026
-        const m = refStr.match(/^(\d{8,})$/);
-        const num = m ? parseInt(m[1], 10) : 0;
-        if (num >= 26000600) date = new Date(2026, 9, 15); // 15 oct 2026
-        else date = new Date(2026, 8, 15); // 15 sept 2026
+      if (forceMonth) {
+        // Toutes les lignes au 15 du mois forcé (mi-mois = approximation)
+        date = new Date(forceYear, forceMonth - 1, 15);
         dateInferred++;
+      } else {
+        if (colDate) {
+          date = parseDateCell(row[colDate]);
+          if (date) dateFromFile++;
+        }
+        if (!date && blDateMap.has(refStr)) {
+          date = blDateMap.get(refStr)!;
+          dateFromSale++;
+        }
+        if (!date) {
+          // Inférence: BL < 26000600 → sept 2026, sinon oct 2026
+          const m = refStr.match(/^(\d{8,})$/);
+          const num = m ? parseInt(m[1], 10) : 0;
+          if (num >= 26000600) date = new Date(2026, 9, 15); // 15 oct 2026
+          else date = new Date(2026, 8, 15); // 15 sept 2026
+          dateInferred++;
+        }
       }
 
       // Rejette les dates hors plage plausible (avant 2024)
