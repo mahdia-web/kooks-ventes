@@ -8,28 +8,31 @@ export const maxDuration = 60;
  * POST /api/migrations/q4-2026-volumes
  * Body: multipart/form-data avec un champ "file" (Excel)
  *
- * Importe les volumes (colis) pour septembre + octobre + novembre 2026
- * depuis un fichier Excel de détail produits ERP.
+ * Importe les volumes (colis) pour août + septembre + octobre 2026
+ * depuis un fichier Excel de détail produits ERP avec VRAIES DATES.
  *
- * Source: export-1795100361416.xlsx fourni par l'utilisateur (2026-11-19).
- *   - 763 BL uniques, 424 602 € HT, 33 735 colis
- *   - Couvre: sept 2026 (277 BL, 150k€) + oct 2026 (290 BL, 170k€) + nov 2026 (196 BL)
+ * Source: export-1795434544738.xlsx fourni par l'utilisateur (2026-11-23).
+ *   - 603 BL uniques, 333 564 € HT, 26 413 colis, 2444 lignes
+ *   - Colonne "Date d'expédition" (DD/MM/YYYY) → vraies dates
+ *   - Couvre: 27/08/2026 → 30/10/2026
+ *     * Août 2026: 6 BL, 348 colis, 7 370 € HT
+ *     * Septembre 2026: 300 BL, 12 257 colis, 156 020 € HT
+ *     * Octobre 2026: 297 BL, 13 808 colis, 170 174 € HT
  *
- * Le fichier n'a PAS de colonne Date, seulement une colonne "Référence" (numéro BL).
- * On récupère donc la vraie date de chaque BL depuis la table Sale.
- * Pour les BL non trouvés dans Sale (195 BL), on infère le mois:
- *   - BL >= 26000600 → novembre 2026 (séquence continue après octobre)
- *   - BL < 26000600  → septembre 2026 (interpolation: premier BL du fichier = 1er sept)
+ * CA cohérents avec le dashboard Sale:
+ *   - Sept Sale = 149 759 € → fichier = 156 020 € (écart avoirs) ✓
+ *   - Oct Sale = 170 250 € → fichier = 170 174 € (quasi identique) ✓
  *
  * Étapes:
- *   1. Parse le fichier Excel (3123 lignes détail)
- *   2. Récupère toutes les dates BL depuis Sale
- *   3. Supprime les VolumeSale existants pour sept+oct+nov 2026
- *   4. Pour chaque ligne, détermine date + parfum + format + quantity + unitPrice
- *   5. Insère par lots dans VolumeSale
+ *   1. Parse le fichier Excel (2444 lignes détail)
+ *   2. Pour chaque ligne, lit la date d'expédition (priorité 1)
+ *      Fallback: date du BL depuis Sale, sinon 15 du mois inféré
+ *   3. Supprime les VolumeSale existants pour août+sept+oct 2026
+ *      (ceux importés avec dates inférées 15/09, 15/10, 15/11)
+ *   4. Insère les nouvelles lignes avec vraies dates + parfum + format + quantity + PU
  */
 export async function POST(req: NextRequest) {
-  console.log('[q4-2026-volumes] Starting import — 3123 lines expected');
+  console.log('[q4-2026-volumes] Starting import — 2444 lines expected');
 
   try {
     const formData = await req.formData();
@@ -40,12 +43,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`[q4-2026-volumes] File: ${file.name} (${file.size} bytes)`);
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array', cellDates: false });
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     console.log(`[q4-2026-volumes] Sheet: ${sheetName}`);
 
-    // Lecture en raw (préserve les références comme string)
+    // Lecture avec cellDates: true → les dates deviennent des objets Date JS
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
       raw: true,
       defval: null,
@@ -56,15 +59,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Fichier vide' }, { status: 400 });
     }
 
-    // Mapping des colonnes (le fichier a: Référence, Client, Produit, Colis, Nb. Colis, Pièces, PU, Total HT, Total Ac ligne)
+    // Mapping des colonnes
+    // Nouveau fichier: Référence, Date d'expédition, Client, Produit, Colis, Nb. Colis, Pièces, PU, Total HT, Total Ac ligne
     const headers = Object.keys(rows[0]);
     const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[''`]/g, '').trim();
     const findCol = (patterns: string[]): string | null => {
+      // Pass 1: match exact normalisé
       for (const p of patterns) {
         const pl = normalize(p);
         const f = headers.find(h => normalize(h) === pl);
         if (f) return f;
       }
+      // Pass 2: header contient le pattern (header plus long)
       for (const p of patterns) {
         const pl = normalize(p);
         const f = headers.find(h => { const hl = normalize(h); return hl.includes(pl); });
@@ -74,6 +80,7 @@ export async function POST(req: NextRequest) {
     };
 
     const colRef = findCol(['Référence', 'Reference', 'Ref']);
+    const colDate = findCol(["Date d'expédition", "Date d'expedition", 'Date expedition', 'Date expédition', 'Date', 'date']);
     const colClient = findCol(['Client', 'Enseigne']);
     const colProduit = findCol(['Produit', 'Libellé', 'Libelle']);
     const colFormat = findCol(['Colis', 'Format']); // BARQUETTE PCB 6, COLIS PCB 4, COLIS PCB 8
@@ -81,13 +88,17 @@ export async function POST(req: NextRequest) {
     const colPU = findCol(['PU']);
     const colHT = findCol(['Total HT']);
 
-    console.log(`[q4-2026-volumes] Columns: ref=${colRef}, client=${colClient}, produit=${colProduit}, format=${colFormat}, qte=${colQte}, pu=${colPU}, ht=${colHT}`);
+    console.log(`[q4-2026-volumes] Columns: ref=${colRef}, date=${colDate}, client=${colClient}, produit=${colProduit}, format=${colFormat}, qte=${colQte}, pu=${colPU}, ht=${colHT}`);
 
     if (!colRef || !colClient || !colProduit || !colQte) {
       return NextResponse.json({
         ok: false,
         error: `Colonnes manquantes. Détecté: ${headers.join(', ')}`,
       }, { status: 400 });
+    }
+
+    if (!colDate) {
+      console.warn('[q4-2026-volumes] WARNING: pas de colonne Date détectée — fallback sur Sale/inférence');
     }
 
     // Filtre les lignes de données (saute la ligne TOTAL)
@@ -98,7 +109,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[q4-2026-volumes] ${dataRows.length} data rows (after TOTAL filter)`);
 
-    // 1) Récupère toutes les BL refs du fichier
+    // 1) Récupère toutes les BL refs du fichier (pour fallback date via Sale)
     const blRefs = new Set<string>();
     for (const r of dataRows) {
       const ref = r[colRef];
@@ -106,7 +117,7 @@ export async function POST(req: NextRequest) {
     }
     console.log(`[q4-2026-volumes] ${blRefs.size} unique BL refs in file`);
 
-    // 2) Récupère les dates depuis Sale pour ces BL
+    // 2) Récupère les dates depuis Sale (fallback si pas de colonne Date)
     const sales = await db.sale.findMany({
       where: { blNumber: { in: Array.from(blRefs) } },
       select: { blNumber: true, date: true },
@@ -115,33 +126,53 @@ export async function POST(req: NextRequest) {
     for (const s of sales) {
       if (s.blNumber) blDateMap.set(s.blNumber, s.date);
     }
-    console.log(`[q4-2026-volumes] Found ${blDateMap.size} matching sales (out of ${blRefs.size} BLs)`);
+    console.log(`[q4-2026-volumes] Found ${blDateMap.size} matching sales in Sale (fallback)`);
 
-    // 3) Pour les BL non trouvés dans Sale, infère le mois
-    // BL >= 26000600 → novembre 2026 (15 nov = mi-mois)
-    // BL < 26000600  → septembre 2026 (15 sept = mi-mois)
-    const inferDate = (refStr: string): Date => {
-      const m = refStr.match(/^(\d{8,})$/);
-      if (m) {
-        const num = parseInt(m[1], 10);
-        if (num >= 26000600) return new Date(2026, 10, 15); // 15 nov 2026
-        return new Date(2026, 8, 15); // 15 sept 2026
+    // 3) Parse une date depuis la colonne "Date d'expédition"
+    //    (peut être un objet Date si cellDates:true, ou un string DD/MM/YYYY, ou un nombre série Excel)
+    const parseDateCell = (raw: unknown): Date | null => {
+      if (raw == null) return null;
+      if (raw instanceof Date) {
+        if (!isNaN(raw.getTime())) return raw;
+        return null;
       }
-      return new Date(2026, 10, 15); // fallback novembre
+      if (typeof raw === 'number') {
+        // Série Excel (jours depuis 1899-12-30)
+        const d = new Date(Date.UTC(1899, 11, 30) + raw * 86400000);
+        if (!isNaN(d.getTime())) return d;
+        return null;
+      }
+      if (typeof raw === 'string') {
+        const t = raw.trim();
+        // DD/MM/YYYY ou DD-MM-YYYY
+        const m = t.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
+        if (m) {
+          const d = parseInt(m[1], 10);
+          const mo = parseInt(m[2], 10);
+          let y = parseInt(m[3], 10);
+          if (y < 100) y += 2000;
+          const dt = new Date(y, mo - 1, d);
+          if (!isNaN(dt.getTime())) return dt;
+        }
+        // Fallback Date.parse
+        const dt = new Date(t);
+        if (!isNaN(dt.getTime())) return dt;
+      }
+      return null;
     };
 
-    // 4) Supprime les VolumeSale existants pour sept+oct+nov 2026
-    // Ces données ont été importées via l'ancien fichier FV-xxxxx (474 BL novembre)
-    // et sont incomplètes (manque sept+oct). On repart de zéro.
+    // 4) Supprime les VolumeSale existants pour août+sept+oct 2026
+    // Ces données ont été importées avec dates inférées (15/09, 15/10) — on les remplace
+    // par les vraies dates du nouveau fichier.
     const deleted = await db.volumeSale.deleteMany({
       where: {
         AND: [
           { year: 2026 },
-          { month: { in: [9, 10, 11] } },
+          { month: { in: [8, 9, 10] } },
         ],
       },
     });
-    console.log(`[q4-2026-volumes] Deleted ${deleted.count} existing VolumeSale for sept+oct+nov 2026`);
+    console.log(`[q4-2026-volumes] Deleted ${deleted.count} existing VolumeSale for août+sept+oct 2026`);
 
     // 5) Extraction parfum/format (même logique que /api/volumes/import)
     const PARFUM_KEYWORDS = ['ORIGINAL', 'PEANUT BUTTER', 'CRISPY CHOCO', 'CARAMEL PECAN', 'SPECULOOS', 'COCO', 'SPEC'];
@@ -166,7 +197,9 @@ export async function POST(req: NextRequest) {
     }> = [];
 
     let skipped = 0;
-    let inferredCount = 0;
+    let dateFromFile = 0;
+    let dateFromSale = 0;
+    let dateInferred = 0;
 
     for (const row of dataRows) {
       const refRaw = row[colRef];
@@ -178,14 +211,29 @@ export async function POST(req: NextRequest) {
       const productLabel = String(row[colProduit] ?? '').trim();
       if (!clientStr || !productLabel) { skipped++; continue; }
 
-      // Date: priorité Sale, sinon inférée
-      let date: Date;
-      if (blDateMap.has(refStr)) {
-        date = blDateMap.get(refStr)!;
-      } else {
-        date = inferDate(refStr);
-        inferredCount++;
+      // Date — priorité 1: colonne "Date d'expédition" du fichier
+      //          priorité 2: date du BL depuis Sale
+      //          priorité 3: inférée (15 sept si BL<26000600, sinon 15 oct)
+      let date: Date | null = null;
+      if (colDate) {
+        date = parseDateCell(row[colDate]);
+        if (date) dateFromFile++;
       }
+      if (!date && blDateMap.has(refStr)) {
+        date = blDateMap.get(refStr)!;
+        dateFromSale++;
+      }
+      if (!date) {
+        // Inférence: BL < 26000600 → sept 2026, sinon oct 2026
+        const m = refStr.match(/^(\d{8,})$/);
+        const num = m ? parseInt(m[1], 10) : 0;
+        if (num >= 26000600) date = new Date(2026, 9, 15); // 15 oct 2026
+        else date = new Date(2026, 8, 15); // 15 sept 2026
+        dateInferred++;
+      }
+
+      // Rejette les dates hors plage plausible (avant 2024)
+      if (date.getFullYear() < 2024) { skipped++; continue; }
 
       // Quantity (Nb. Colis)
       let quantity = 0;
@@ -241,7 +289,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    console.log(`[q4-2026-volumes] Prepared ${toInsert.length} rows (${skipped} skipped, ${inferredCount} dates inférées)`);
+    console.log(`[q4-2026-volumes] Prepared ${toInsert.length} rows (skipped ${skipped}, dates: file=${dateFromFile}, sale=${dateFromSale}, inferred=${dateInferred})`);
 
     // 6) Insertion par lots
     const BATCH_SIZE = 500;
@@ -278,7 +326,9 @@ export async function POST(req: NextRequest) {
         inserted,
         skipped,
         total: toInsert.length,
-        inferredDates: inferredCount,
+        datesFromFile: dateFromFile,
+        datesFromSale: dateFromSale,
+        datesInferred: dateInferred,
         deletedBefore: deleted.count,
         byMonth: Array.from(byMonth.entries()).map(([k, v]) => ({ month: k, lines: v.count, colis: v.colis, ht: Math.round(v.ht * 100) / 100 })),
       },
