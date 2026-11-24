@@ -88,9 +88,11 @@ export async function GET(req: NextRequest) {
 
     // Helper: extrait parfum + format depuis le productLabel quand VolumeSale.parfum
     // ou VolumeSale.format sont null. Les règles d'extraction couvrent les libellés
-    // ERP observés (COOKIE DOUGH PEANUT X2 BQ F, PAV 8*75G - PEANUT, etc.)
-    // CONSERVATEUR: on ne matche que les patterns clairs pour éviter les faux positifs
-    // (ex: SAC 5 KG n'est PAS un Lot de 2).
+    // ERP observés (COOKIE DOUGH PEANUT X2 BQ F, PAV 8*75G - PEANUT, SAC 5 KG, etc.)
+    // Mapping confirmé par l'utilisateur:
+    //   - "X2 BQ" (± "F" = frais) → Lot de 2
+    //   - "PAV 8*75G" (± variante PAV*8, PAV 8) → Indiv PAV 8
+    //   - "SAC 5 KG" / "SACHET 5 KG" (format CHR) → Sachet
     const extractFromLabel = (label: string): { parfum: string | null; format: string | null } => {
       const l = (label || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       // Parfum
@@ -101,11 +103,12 @@ export async function GET(req: NextRequest) {
       else if (l.includes('SPECUL') || l.includes('SPEC')) parfum = 'Speculoos';
       else if (l.includes('COCO') || l.includes('NOIX DE COCO')) parfum = 'Coco';
       else if (l.includes('ORIGINAL')) parfum = 'Original';
-      // Format — patterns clairs uniquement
+      // Format — patterns clairs uniquement (par ordre de priorité)
       let format: string | null = null;
       if (l.includes('BOX 9') || l.includes('BOX DE 9') || l.includes('BOITE 9')) format = 'Box de 9';
       else if (l.includes('PAV 8') || l.includes('PAV*8') || l.includes('PAV 8*75G')) format = 'Indiv PAV 8';
-      else if (l.includes('X2') || l.includes('LOT 2') || l.includes('LOT DE 2') || l.includes('BQ F')) format = 'Lot de 2';
+      else if (l.includes('SAC 5 KG') || l.includes('SACHET 5 KG') || l.includes('SACHET 5KG') || l.includes('SAC 5KG')) format = 'Sachet';
+      else if (l.includes('X2') || l.includes('LOT 2') || l.includes('LOT DE 2') || l.includes('BQ F') || l.includes('BQ')) format = 'Lot de 2';
       else if (l.includes('FOURO')) format = 'Indiv Fouro';
       return { parfum, format };
     };
@@ -122,7 +125,7 @@ export async function GET(req: NextRequest) {
       if ((!parfum || !format) && vs.productLabel) {
         const ext = extractFromLabel(vs.productLabel);
         if (!parfum) parfum = ext.parfum;
-        if (!format) parfum = ext.format;
+        if (!format) format = ext.format;
       }
       if (!parfum || !format) continue; // toujours pas de match → on saute
       const unit = vs.unitPrice ?? 0;
