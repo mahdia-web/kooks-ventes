@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
+import { exerciceEnCours, formatDMY } from '@/lib/exercice-comptable';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -112,7 +113,13 @@ export default function ChargesPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterVendor, setFilterVendor] = useState<string>('all');
   const [filterEnseigne, setFilterEnseigne] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+  // Par défaut : exercice comptable en cours (01/10 → 30/09) pour que les
+  // charges totales affichées correspondent à l'exercice Kooks et non à toute
+  // l'historique.
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
+    const ex = exerciceEnCours();
+    return { start: formatDMY(ex.start), end: formatDMY(ex.end) };
+  });
 
   // Sort
   const [sortField, setSortField] = useState<'date' | 'vendor' | 'category' | 'amountHT' | 'amountTTC'>('date');
@@ -486,8 +493,19 @@ export default function ChargesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={handleExport} className="rounded-lg">
-                  <FileText className="h-4 w-4 mr-2" /> Export Excel
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() => {
+                    if (!dateRange.start || !dateRange.end) {
+                      toast.error('Sélectionne d\'abord une période');
+                      return;
+                    }
+                    window.open(`/api/charges/export-pdf?startDate=${encodeURIComponent(dateRange.start)}&endDate=${encodeURIComponent(dateRange.end)}`, '_blank');
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" /> Export PDF récap
                 </Button>
                 <Button
                   size="sm"
@@ -572,6 +590,7 @@ export default function ChargesPage() {
                       <SelectItem value="Transport">Transport</SelectItem>
                       <SelectItem value="Carburant">Carburant</SelectItem>
                       <SelectItem value="Loyer immobilier">Loyer immobilier</SelectItem>
+                      <SelectItem value="Salaires">Salaires</SelectItem>
                       <SelectItem value="Honoraires">Honoraires</SelectItem>
                       <SelectItem value="Autres charges">Autres charges</SelectItem>
                     </SelectContent>
@@ -952,9 +971,18 @@ export default function ChargesPage() {
                           nameKey="category"
                           cx="50%"
                           cy="50%"
-                          outerRadius={110}
-                          innerRadius={55}
+                          outerRadius={90}
+                          innerRadius={45}
                           paddingAngle={2}
+                          label={({ category, total }) => {
+                            // Étiquette extérieure avec nom + % (toujours visible)
+                            const sum = pieData.reduce((s: number, p: any) => s + p.total, 0);
+                            const pct = sum > 0 ? Math.round((total / sum) * 100) : 0;
+                            // Raccourcit le nom si trop long
+                            const short = category.length > 18 ? category.slice(0, 16) + '…' : category;
+                            return `${short} (${pct}%)`;
+                          }}
+                          labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
                         >
                           {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
                         </Pie>

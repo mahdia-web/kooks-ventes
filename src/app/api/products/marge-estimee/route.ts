@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     const includeMarketing = searchParams.get('includeMarketing') !== 'false';
     const includeCatalogues = searchParams.get('includeCatalogues') === 'true';
     const includeImprimes = searchParams.get('includeImprimes') === 'true';
+    const includeSalaires = searchParams.get('includeSalaires') !== 'false';
 
     const startDateStr = searchParams.get('startDate');
     const endDateStr = searchParams.get('endDate');
@@ -152,11 +153,13 @@ export async function GET(req: NextRequest) {
       /marketing|publicit|annonce|catalogue|publication|concours|promotion/i.test(cat);
     const isCatalogueCat = (cat: string) => /catalogue|imprim|impression|edition|édition/i.test(cat);
     const isImprimesCat = (cat: string) => /imprim|impression|papeterie|fourniture/i.test(cat);
+    const isSalairesCat = (cat: string) => /salaire|rémunération|paie/i.test(cat);
 
     let chargesTransport = 0;
     let chargesMarketing = 0;
     let chargesCatalogues = 0;
     let chargesImprimes = 0;
+    let chargesSalaires = 0;
     let chargesIndirectesTTC = 0; // allocationMethod !== 'DIRECT' (GLOBAL + PROPORTIONAL)
     let totalChargesTTC = 0;      // somme de TOUTES les charges (directes + indirectes)
     const chargesParCategorie: Record<string, number> = {};
@@ -175,6 +178,7 @@ export async function GET(req: NextRequest) {
         else if (isMarketingCat(cat) && includeMarketing) chargesMarketing += c.amountTTC;
         else if (isCatalogueCat(cat) && includeCatalogues) chargesCatalogues += c.amountTTC;
         else if (isImprimesCat(cat) && includeImprimes) chargesImprimes += c.amountTTC;
+        else if (isSalairesCat(cat) && includeSalaires) chargesSalaires += c.amountTTC;
       } else {
         // Charge indirecte (GLOBAL ou PROPORTIONAL)
         chargesIndirectesTTC += c.amountTTC;
@@ -182,10 +186,10 @@ export async function GET(req: NextRequest) {
     }
 
     // chargesDirectesTTC = somme des charges directes allouables au prorata du CA
-    // (Transport + options). NB: les autres charges directes (achats, emballages)
+    // (Transport + options + Salaires). NB: les autres charges directes (achats, emballages)
     // sont dans chargesParCategorie et totalChargesTTC mais ne sont PAS ré-allouées
     // au pot pour éviter un double compte avec le prix d'achat.
-    const chargesDirectesTTC = chargesTransport + chargesMarketing + chargesCatalogues + chargesImprimes;
+    const chargesDirectesTTC = chargesTransport + chargesMarketing + chargesCatalogues + chargesImprimes + chargesSalaires;
     // chargesDirectesTotalTTC = TOUTES les charges directes (y compris achats/emballages)
     // pour l'affichage du total dans la synthèse.
     const chargesDirectesTotalTTC = totalChargesTTC - chargesIndirectesTTC;
@@ -260,6 +264,7 @@ export async function GET(req: NextRequest) {
         chargesMarketing,
         chargesCatalogues,
         chargesImprimes,
+        chargesSalaires,
         chargesIndirectesTTC,
         totalChargesTTC,
         chargesParCategorie,

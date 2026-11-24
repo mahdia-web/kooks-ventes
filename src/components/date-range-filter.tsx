@@ -76,25 +76,24 @@ const PRESETS: Preset[] = [
     return { start: formatDMY(start), end: formatDMY(end) };
   }},
   { label: "Exercice en cours", getRange: () => {
-    // Kooks : exercice du 01/10 au 30/09
-    // "Exercice en cours" = l'exercice qui s'est terminé (ou se termine) cette
-    // année civile. En oct-déc, c'est l'exercice qui vient de se terminer
-    // (commencé l'année précédente) car le nouvel exercice vient de démarrer et
-    // n'a probablement pas de données. En jan-sep, c'est l'exercice en cours
-    // (commencé l'année précédente). Formule: year-1 → year.
-    // Cette logique garantit qu'on a toujours des données à afficher.
+    // Kooks : exercice du 01/10 au 30/09.
+    // "Exercice en cours" = l'exercice qui contient la date du jour.
+    // En oct-déc : exercice commencé cette année (01/10/Y → 30/09/Y+1).
+    // En jan-sep : exercice commencé l'année précédente (01/10/Y-1 → 30/09/Y).
     const now = new Date();
-    const exerciseStartYear = now.getFullYear() - 1;
-    const start = new Date(exerciseStartYear, 9, 1); // Oct 1
-    const end = new Date(exerciseStartYear + 1, 8, 30); // Sep 30
+    const m = now.getMonth(); // 0-11
+    const exerciseStartYear = m >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+    const start = new Date(exerciseStartYear, 9, 1);   // 1 oct
+    const end = new Date(exerciseStartYear + 1, 8, 30); // 30 sep
     return { start: formatDMY(start), end: formatDMY(end) };
   }},
   { label: "Exercice dernier", getRange: () => {
-    // L'exercice précédent (commencé il y a 2 ans, terminé l'année dernière)
+    // L'exercice précédent (celui d'avant l'exercice en cours).
     const now = new Date();
-    const exerciseStartYear = now.getFullYear() - 2;
-    const start = new Date(exerciseStartYear, 9, 1); // Oct 1
-    const end = new Date(exerciseStartYear + 1, 8, 30); // Sep 30
+    const m = now.getMonth();
+    const exerciseStartYear = (m >= 9 ? now.getFullYear() : now.getFullYear() - 1) - 1;
+    const start = new Date(exerciseStartYear, 9, 1);
+    const end = new Date(exerciseStartYear + 1, 8, 30);
     return { start: formatDMY(start), end: formatDMY(end) };
   }},
 ];

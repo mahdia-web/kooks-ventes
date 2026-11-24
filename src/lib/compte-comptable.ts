@@ -223,6 +223,7 @@ export function grandPosteForCategory(label: string | null | undefined): string 
   if (l.includes('achat') && l.includes('matière')) return 'Achats matières premières';
   if (l.includes('fourniture')) return 'Fournitures';
   if (l.includes('énergie') || l.includes('eau & électricité')) return 'Énergie';
+  if (l.includes('salaire') || l.includes('rémunération') || l.includes('paie')) return 'Salaires';
   if (l.includes('intérim') || l.includes('personnel')) return 'Personnel extérieur';
   if (l.includes('honoraire') || l.includes('juridique') || l.includes('comptable')) return 'Honoraires';
   if (l.includes('publicit') || l.includes('annonce') || l.includes('catalogue') || l.includes('publication') || l.includes('concours')) return 'Marketing & publicité';

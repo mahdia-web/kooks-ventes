@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, ChevronDown, ChevronRight, Store, Search, Calculator, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatEuro } from '@/lib/dashboard-service';
+import { ChargesManager } from './charges-manager';
 
 interface Product {
   id: string; name: string;
@@ -39,11 +40,11 @@ interface MargeProduct {
 interface MargeTotals {
   chargesDirectesTTC: number; chargesDirectesTotalTTC: number;
   chargesTransport: number; chargesMarketing: number;
-  chargesCatalogues: number; chargesImprimes: number;
+  chargesCatalogues: number; chargesImprimes: number; chargesSalaires: number;
   chargesIndirectesTTC: number; totalChargesTTC: number;
   totalCAProduits: number; totalCaHTPeriode: number; totalPots: number;
   periode: { start: string; end: string };
-  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeTransport: boolean; };
+  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeSalaires: boolean; includeTransport: boolean; };
 }
 
 export function ClientTariffPanel() {
@@ -62,7 +63,7 @@ export function ClientTariffPanel() {
   // et la colonne "Marge nette" de la grille tarifaire.
   const [margeProducts, setMargeProducts] = useState<MargeProduct[]>([]);
   const [margeTotals, setMargeTotals] = useState<MargeTotals | null>(null);
-  const [margeOptions, setMargeOptions] = useState({ includeMarketing: true, includeCatalogues: false, includeImprimes: false });
+  const [margeOptions, setMargeOptions] = useState({ includeMarketing: true, includeCatalogues: false, includeImprimes: false, includeSalaires: true });
 
   // Map productId → chargesParPot pour lookup rapide dans la grille tarifaire
   const chargesParPotByProduct = useMemo(() => {
@@ -157,6 +158,7 @@ export function ClientTariffPanel() {
         includeMarketing: String(margeOptions.includeMarketing),
         includeCatalogues: String(margeOptions.includeCatalogues),
         includeImprimes: String(margeOptions.includeImprimes),
+        includeSalaires: String(margeOptions.includeSalaires),
       });
       if (margePeriodParams.startDate) params.set('startDate', margePeriodParams.startDate);
       if (margePeriodParams.endDate) params.set('endDate', margePeriodParams.endDate);
@@ -328,6 +330,7 @@ export function ClientTariffPanel() {
         rangeEnd={margeRangeEnd}
         setRangeEnd={setMargeRangeEnd}
         periodLabel={margePeriodLabel}
+        periodParams={margePeriodParams}
       />
 
       {/* Liste des clients avec tarifs */}
@@ -561,17 +564,17 @@ function EstimatedMarginCard({
   products, totals, options, expanded, expandedProduct,
   loading, setExpanded, setExpandedProduct, setOptions, load,
   filterMode, setFilterMode, month, setMonth, year, setYear,
-  rangeStart, setRangeStart, rangeEnd, setRangeEnd, periodLabel,
+  rangeStart, setRangeStart, rangeEnd, setRangeEnd, periodLabel, periodParams,
 }: {
   products: MargeProduct[];
   totals: MargeTotals | null;
-  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean };
+  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeSalaires: boolean };
   expanded: boolean;
   expandedProduct: string | null;
   loading: boolean;
   setExpanded: (v: boolean) => void;
   setExpandedProduct: (v: string | null) => void;
-  setOptions: (v: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean }) => void;
+  setOptions: (v: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeSalaires: boolean }) => void;
   load: () => void;
   filterMode: 'month' | 'range';
   setFilterMode: (v: 'month' | 'range') => void;
@@ -584,8 +587,9 @@ function EstimatedMarginCard({
   rangeEnd: string;
   setRangeEnd: (v: string) => void;
   periodLabel: string;
+  periodParams: { startDate: string; endDate: string };
 }) {
-  const { includeMarketing, includeCatalogues, includeImprimes } = options;
+  const { includeMarketing, includeCatalogues, includeImprimes, includeSalaires } = options;
   const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
   return (
@@ -666,6 +670,7 @@ function EstimatedMarginCard({
             <Toggle on={includeMarketing} onChange={(v) => setOptions({ ...options, includeMarketing: v })} label="Marketing & publicité" />
             <Toggle on={includeCatalogues} onChange={(v) => setOptions({ ...options, includeCatalogues: v })} label="Catalogues & imprimés" />
             <Toggle on={includeImprimes} onChange={(v) => setOptions({ ...options, includeImprimes: v })} label="Fournitures / papeterie" />
+            <Toggle on={includeSalaires} onChange={(v) => setOptions({ ...options, includeSalaires: v })} label="Salaires" />
             <Button size="sm" variant="outline" onClick={load} disabled={loading} className="h-7 text-xs">
               {loading ? 'Calcul…' : 'Recalculer'}
             </Button>
@@ -682,10 +687,18 @@ function EstimatedMarginCard({
               {includeMarketing && <MiniStat label="Dont Marketing" value={formatEuro(totals.chargesMarketing)} />}
               {includeCatalogues && <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />}
               {includeImprimes && <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />}
+              {includeSalaires && <MiniStat label="Dont Salaires" value={formatEuro(totals.chargesSalaires)} />}
               <MiniStat label="Pots vendus" value={totals.totalPots.toLocaleString('fr-FR')} />
               <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
             </div>
           )}
+
+          {/* Gestion des charges directes vs indirectes (drag-drop + recalcul auto) */}
+          <ChargesManager
+            startDate={periodParams.startDate}
+            endDate={periodParams.endDate}
+            onReclassified={load}
+          />
 
           {/* Tableau marge par produit */}
           {loading ? (
@@ -758,7 +771,7 @@ function EstimatedMarginCard({
                                   <DetailRow label="Marge nette %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
-                                  Méthode : charges directes TTC (Transport{includeMarketing ? ' + Marketing' : ''}{includeCatalogues ? ' + Catalogues' : ''}{includeImprimes ? ' + Imprimés' : ''}) allouées au prorata du CA du produit sur la période, puis ramenées au pot.
+                                  Méthode : charges directes TTC (Transport{includeMarketing ? ' + Marketing' : ''}{includeCatalogues ? ' + Catalogues' : ''}{includeImprimes ? ' + Imprimés' : ''}{includeSalaires ? ' + Salaires' : ''}) allouées au prorata du CA du produit sur la période, puis ramenées au pot.
                                 </p>
                               </div>
                             </TableCell>

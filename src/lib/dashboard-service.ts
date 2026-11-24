@@ -857,7 +857,9 @@ export async function getDashboardData(
       centraleAgg._count += 1;
     }
   }
-  const totalEnseignes = await db.enseigne.count();
+  // Nombre d'enseignes ayant réellement commandé sur la période (et non le
+  // total enregistré en base, qui inclut des enseignes inactives sans ventes).
+  const totalEnseignes = new Set(allSalesForTotals.map(s => s.enseigne)).size;
   const dateRangeAgg = await db.sale.aggregate({
     where: totalWhere,
     _min: { date: true },
@@ -1152,7 +1154,9 @@ export async function getDashboardDataForDateRange(
     colisAgg += v.quantity;
     potsAgg += v.quantity * (v.format ? (FORMAT_POTS_MAP[v.format] ?? 1) : 1);
   }
-  const totalEnseignes = await db.enseigne.count();
+  // Nombre d'enseignes ayant réellement commandé sur la période sélectionnée
+  // (et non le total enregistré en base, qui inclut des enseignes inactives).
+  const totalEnseignes = new Set(sales.map(s => s.enseigne)).size;
 
   return {
     kpis: {
