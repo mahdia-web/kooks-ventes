@@ -89,21 +89,23 @@ export async function GET(req: NextRequest) {
     // Helper: extrait parfum + format depuis le productLabel quand VolumeSale.parfum
     // ou VolumeSale.format sont null. Les règles d'extraction couvrent les libellés
     // ERP observés (COOKIE DOUGH PEANUT X2 BQ F, PAV 8*75G - PEANUT, etc.)
+    // CONSERVATEUR: on ne matche que les patterns clairs pour éviter les faux positifs
+    // (ex: SAC 5 KG n'est PAS un Lot de 2).
     const extractFromLabel = (label: string): { parfum: string | null; format: string | null } => {
       const l = (label || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       // Parfum
       let parfum: string | null = null;
-      if (l.includes('PEANUT') || l.includes('Peanut Butter'.toUpperCase())) parfum = 'Peanut Butter';
-      else if (l.includes('CRISPY') || l.includes('CRY CHOC') || l.includes('CHOCO')) parfum = 'Crispy Choco';
+      if (l.includes('PEANUT')) parfum = 'Peanut Butter';
+      else if (l.includes('CRISPY') || l.includes('CRY CHOC')) parfum = 'Crispy Choco';
       else if (l.includes('CARAMEL') || l.includes('CARA')) parfum = 'Caramel Pecan';
       else if (l.includes('SPECUL') || l.includes('SPEC')) parfum = 'Speculoos';
       else if (l.includes('COCO') || l.includes('NOIX DE COCO')) parfum = 'Coco';
       else if (l.includes('ORIGINAL')) parfum = 'Original';
-      // Format
+      // Format — patterns clairs uniquement
       let format: string | null = null;
       if (l.includes('BOX 9') || l.includes('BOX DE 9') || l.includes('BOITE 9')) format = 'Box de 9';
-      else if (l.includes('PAV 8') || l.includes('PAV*8') || l.includes('PAV 8*75G') || l.includes('INDIV') || l.includes('120 GR') || l.includes('75G')) format = 'Indiv PAV 8';
-      else if (l.includes('X2') || l.includes('LOT 2') || l.includes('LOT DE 2') || l.includes('BQ F') || l.includes('SAC 5 KG')) format = 'Lot de 2';
+      else if (l.includes('PAV 8') || l.includes('PAV*8') || l.includes('PAV 8*75G')) format = 'Indiv PAV 8';
+      else if (l.includes('X2') || l.includes('LOT 2') || l.includes('LOT DE 2') || l.includes('BQ F')) format = 'Lot de 2';
       else if (l.includes('FOURO')) format = 'Indiv Fouro';
       return { parfum, format };
     };
