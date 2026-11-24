@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { db } from '@/lib/db';
 import { isKooksAgent } from '@/lib/dashboard-service';
+import { resolveCanonicalName } from '@/lib/normalize-enseigne';
 
 export const maxDuration = 60;
 
@@ -162,8 +163,49 @@ export async function POST(req: NextRequest) {
       return tokens.some(t => n.includes(t));
     };
 
-    // Helper: normalise le commercial fichier -> agent base
-    // Fichier vide ou 'KOOK\'S' -> 'KOOK\'S'
+    // === Affectation de l'agent : source de vérité = table Enseigne ===
+    // L'ERP n'affecte pas systématiquement le commercial à chaque BL (champ souvent
+    // vide, surtout sur les 2e commandes du mois — ex AUCHAN MANDELIEU/GRASSE).
+    // On ne peut donc PAS se fier au champ "Commercial" du fichier ERP.
+    //
+    // Règle adoptée (confirmée par l'utilisateur) :
+    //   1. Charger toutes les Enseigne en base avec leur agent canonique.
+    //   2. Pour chaque BL du fichier, résoudre le nom canonique via
+    //      resolveCanonicalName (gère les variantes orthographiques).
+    //   3. Si l'enseigne existe en base → utiliser son agent (source de vérité).
+    //   4. Sinon → fallback sur le champ Commercial de l'ERP (normalisé KOOK'S si vide).
+    //
+    // Cas AUCHAN MANDELIEU/GRASSE : 2 BL/mois, un seul avec commercial SEBASTIEN.
+    // L'enseigne étant rattachée à SEBASTIEN en base, les 2 BL vont à SEBASTIEN.
+    // Total SEBASTIEN = 723.84 + 1447.68 + 459.36 + 487.87 = 3118.75 € HT
+    //                  = 3290.27 € TTC (confirmé par l'utilisateur).
+
+    const allEnseignes = await db.enseigne.findMany();
+    const enseigneNames = allEnseignes.map(e => e.name);
+    const enseigneAgentMap = new Map<string, string>();
+    for (const e of allEnseignes) {
+      enseigneAgentMap.set(e.name, e.agent);
+    }
+
+    // Helper: détermine l'agent à partir du nom du client (priorité Enseigne.agent,
+    // fallback sur le commercial ERP normalisé).
+    const resolveAgentFromClient = (clientStr: string, commercial: string): { agent: string; canonicalName: string; source: 'enseigne' | 'erp' } => {
+      // 1. Résolution du nom canonique contre la base Enseigne
+      const { canonicalName, matchedExisting } = resolveCanonicalName(clientStr, enseigneNames);
+      if (matchedExisting) {
+        const agent = enseigneAgentMap.get(matchedExisting);
+        if (agent) {
+          return { agent, canonicalName: matchedExisting, source: 'enseigne' };
+        }
+      }
+      // 2. Fallback : champ Commercial ERP normalisé
+      const c = (commercial || '').trim();
+      const agent = (!c || c === "KOOK'S") ? "KOOK'S" : c;
+      return { agent, canonicalName, source: 'erp' };
+    };
+
+    // Helper: normalise le commercial fichier -> agent base (legacy, utilisé pour
+    // le fallback uniquement)
     const normalizeAgent = (commercial: string): string => {
       const c = (commercial || '').trim();
       if (!c || c === "KOOK'S") return "KOOK'S";
@@ -199,7 +241,9 @@ export async function POST(req: NextRequest) {
       }
 
       const commercial = colCommercial ? String(row[colCommercial] ?? '').trim() : '';
-      const newAgent = normalizeAgent(commercial);
+      // === Source de vérité agent = Enseigne.agent (pas le champ Commercial ERP) ===
+      // L'ERP n'affecte pas le commercial à chaque BL → on se fie à l'enseigne.
+      const { agent: newAgent, source: agentSource } = resolveAgentFromClient(clientStr, commercial);
       const type = isCoop(clientStr) ? 'Centrale' : 'Direct';
 
       // Commission au prorata
