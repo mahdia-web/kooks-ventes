@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,6 +94,7 @@ const fmtPct = (n: number) => {
 };
 
 export default function ChargesPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [charges, setCharges] = useState<Charge[]>([]);
   const [topVendors, setTopVendors] = useState<TopVendor[]>([]);
@@ -124,6 +125,7 @@ export default function ChargesPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCharge, setNewCharge] = useState({
     date: '', category: 'Achats matières premières', subLabel: '', vendor: '', amountHT: '', enseigne: '',
+    allocationMethod: 'GLOBAL' as 'GLOBAL' | 'DIRECT' | 'PROPORTIONAL',
   });
 
   const loadDashboard = useCallback(async () => {
@@ -360,12 +362,13 @@ export default function ChargesPage() {
           vendor: newCharge.vendor || null,
           amountHT: parseFloat(newCharge.amountHT),
           enseigne: newCharge.enseigne || null,
+          allocationMethod: newCharge.allocationMethod,
         }),
       });
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
       toast.success('Charge ajoutée');
-      setNewCharge({ date: '', category: 'Achats matières premières', subLabel: '', vendor: '', amountHT: '', enseigne: '' });
+      setNewCharge({ date: '', category: 'Achats matières premières', subLabel: '', vendor: '', amountHT: '', enseigne: '', allocationMethod: 'GLOBAL' });
       setShowAddForm(false);
       loadCharges();
     } catch (e: any) { toast.error(e.message); }
@@ -474,11 +477,9 @@ export default function ChargesPage() {
           <div className="px-4 sm:px-6 lg:px-8 py-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-4">
-                <Link href="/">
-                  <Button variant="outline" size="sm" className="rounded-lg">
-                    <ArrowLeft className="h-4 w-4 mr-2" />Retour
-                  </Button>
-                </Link>
+                <Button variant="outline" size="sm" className="rounded-lg" onClick={() => router.back()}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />Retour
+                </Button>
                 <div>
                   <h1 className="font-title text-2xl font-bold tracking-tight">Charges</h1>
                   <p className="text-sm text-muted-foreground">Pilotage et analyse des dépenses opérationnelles</p>
@@ -573,6 +574,20 @@ export default function ChargesPage() {
                       <SelectItem value="Loyer immobilier">Loyer immobilier</SelectItem>
                       <SelectItem value="Honoraires">Honoraires</SelectItem>
                       <SelectItem value="Autres charges">Autres charges</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Allocation</Label>
+                  <Select
+                    value={newCharge.allocationMethod}
+                    onValueChange={(v) => setNewCharge({ ...newCharge, allocationMethod: v as 'GLOBAL' | 'DIRECT' | 'PROPORTIONAL' })}
+                  >
+                    <SelectTrigger className="h-9 text-sm rounded-lg"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GLOBAL">Indirecte (Globale)</SelectItem>
+                      <SelectItem value="DIRECT">Directe (client)</SelectItem>
+                      <SelectItem value="PROPORTIONAL">Proportionnelle (CA)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

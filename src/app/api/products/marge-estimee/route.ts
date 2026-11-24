@@ -108,8 +108,9 @@ export async function GET(req: NextRequest) {
       // (totalPots calculé après matching, car dépend de potsPerColis)
     }
 
-    // 3. Charges directes (TTC) sur la période — filtrées par catégorie
-    // Le Transport est TOUJOURS inclus. Marketing/Catalogues/Imprimés au choix.
+    // 3. Charges sur la période — directes ET indirectes
+    // Le Transport est TOUJOURS inclus dans les directes. Marketing/Catalogues/Imprimés au choix.
+    // On calcule aussi les charges indirectes (allocationMethod !== 'DIRECT') et le total.
     const charges = await db.charge.findMany({
       where: { date: { gte: start, lte: end } },
       select: { category: true, amountTTC: true, allocationMethod: true, enseigne: true },
@@ -126,20 +127,38 @@ export async function GET(req: NextRequest) {
     let chargesMarketing = 0;
     let chargesCatalogues = 0;
     let chargesImprimes = 0;
+    let chargesIndirectesTTC = 0; // allocationMethod !== 'DIRECT' (GLOBAL + PROPORTIONAL)
+    let totalChargesTTC = 0;      // somme de TOUTES les charges (directes + indirectes)
     const chargesParCategorie: Record<string, number> = {};
 
     for (const c of charges) {
-      // On ne prend que les charges directes (allocationMethod DIRECT)
-      if (c.allocationMethod !== 'DIRECT') continue;
+      totalChargesTTC += c.amountTTC;
       const cat = c.category;
       chargesParCategorie[cat] = (chargesParCategorie[cat] ?? 0) + c.amountTTC;
-      if (isTransportCat(cat)) chargesTransport += c.amountTTC;
-      else if (isMarketingCat(cat) && includeMarketing) chargesMarketing += c.amountTTC;
-      else if (isCatalogueCat(cat) && includeCatalogues) chargesCatalogues += c.amountTTC;
-      else if (isImprimesCat(cat) && includeImprimes) chargesImprimes += c.amountTTC;
+
+      // Charges directes (allocationMethod === 'DIRECT') — ventilées par catégorie
+      if (c.allocationMethod === 'DIRECT') {
+        if (isTransportCat(cat)) chargesTransport += c.amountTTC;
+        else if (isMarketingCat(cat) && includeMarketing) chargesMarketing += c.amountTTC;
+        else if (isCatalogueCat(cat) && includeCatalogues) chargesCatalogues += c.amountTTC;
+        else if (isImprimesCat(cat) && includeImprimes) chargesImprimes += c.amountTTC;
+      } else {
+        // Charge indirecte (GLOBAL ou PROPORTIONAL)
+        chargesIndirectesTTC += c.amountTTC;
+      }
     }
 
     const chargesDirectesTTC = chargesTransport + chargesMarketing + chargesCatalogues + chargesImprimes;
+
+    // 3b. CA HT total de la période (depuis Sale.amountHT — source de vérité du dashboard)
+    //     VolumeSale donne un CA partiel (lignes avec parfum+format uniquement) qui ne
+    //     correspond pas au CA officiel. On l'inclut pour aligner la grille tarifaire sur
+    //     le dashboard et les autres "feuilles" (volumes, charges).
+    const caAgg = await db.sale.aggregate({
+      where: { date: { gte: start, lte: end } },
+      _sum: { amountHT: true },
+    });
+    const totalCaHTPeriode = caAgg._sum.amountHT ?? 0;
 
     // 4. Pour chaque produit: calcul marge/pot
     // Charges allouées au produit = chargesDirectesTTC × (CA produit / total CA produits)
@@ -200,8 +219,15 @@ export async function GET(req: NextRequest) {
         chargesMarketing,
         chargesCatalogues,
         chargesImprimes,
+        chargesIndirectesTTC,
+        totalChargesTTC,
         chargesParCategorie,
         totalCAProduits,
+        // CA HT officiel de la période (source: Sale.amountHT) — aligné sur le
+        // dashboard et les autres feuilles (volumes, charges). totalCAProduits
+        // (VolumeSale) reste dispo pour info mais ne doit PAS être utilisé comme
+        // CA officiel car il exclut les lignes sans parfum/format.
+        totalCaHTPeriode,
         totalPots,
         periode: {
           start: start.toISOString().split('T')[0],

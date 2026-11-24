@@ -39,7 +39,8 @@ interface MargeProduct {
 interface MargeTotals {
   chargesDirectesTTC: number; chargesTransport: number; chargesMarketing: number;
   chargesCatalogues: number; chargesImprimes: number;
-  totalCAProduits: number; totalPots: number;
+  chargesIndirectesTTC: number; totalChargesTTC: number;
+  totalCAProduits: number; totalCaHTPeriode: number; totalPots: number;
   periode: { start: string; end: string };
   options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeTransport: boolean; };
 }
@@ -113,9 +114,10 @@ export function ClientTariffPanel() {
   const [margeLoading, setMargeLoading] = useState(false);
   const [margeExpandedProduct, setMargeExpandedProduct] = useState<string | null>(null);
   // Sélecteur de période pour le calcul de marge
-  // filterMode: 'all' | 'month' | 'range'
+  // filterMode: 'month' | 'range' (l'option 'all'/"Tout" a été retirée à la demande
+  // de l'utilisateur — il faut toujours expliciter une période)
   const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const [margeFilterMode, setMargeFilterMode] = useState<'all' | 'month' | 'range'>('all');
+  const [margeFilterMode, setMargeFilterMode] = useState<'month' | 'range'>('month');
   const [margeMonth, setMargeMonth] = useState<number>(new Date().getMonth() + 1);
   const [margeYear, setMargeYear] = useState<number>(new Date().getFullYear());
   const [margeRangeStart, setMargeRangeStart] = useState<string>('');
@@ -133,13 +135,18 @@ export function ClientTariffPanel() {
     if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) {
       return { startDate: margeRangeStart, endDate: margeRangeEnd };
     }
-    return { startDate: '', endDate: '' }; // 'all' = toutes les données disponibles (default API)
+    // Fallback: mois courant si la plage est incomplète
+    const lastDay = new Date(margeYear, margeMonth, 0).getDate();
+    return {
+      startDate: `01/${String(margeMonth).padStart(2, '0')}/${margeYear}`,
+      endDate: `${String(lastDay).padStart(2, '0')}/${String(margeMonth).padStart(2, '0')}/${margeYear}`,
+    };
   }, [margeFilterMode, margeMonth, margeYear, margeRangeStart, margeRangeEnd]);
 
   const margePeriodLabel = useMemo(() => {
     if (margeFilterMode === 'month') return `${MONTHS[margeMonth - 1]} ${margeYear}`;
     if (margeFilterMode === 'range' && margeRangeStart && margeRangeEnd) return `${margeRangeStart} → ${margeRangeEnd}`;
-    return 'Toutes les données (depuis le 1er import)';
+    return `${MONTHS[margeMonth - 1]} ${margeYear}`;
   }, [margeFilterMode, margeMonth, margeYear, margeRangeStart, margeRangeEnd]);
 
   const loadMarge = useCallback(async () => {
@@ -565,8 +572,8 @@ function EstimatedMarginCard({
   setExpandedProduct: (v: string | null) => void;
   setOptions: (v: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean }) => void;
   load: () => void;
-  filterMode: 'all' | 'month' | 'range';
-  setFilterMode: (v: 'all' | 'month' | 'range') => void;
+  filterMode: 'month' | 'range';
+  setFilterMode: (v: 'month' | 'range') => void;
   month: number;
   setMonth: (v: number) => void;
   year: number;
@@ -598,7 +605,7 @@ function EstimatedMarginCard({
         </div>
         {totals && (
           <span className="text-xs text-muted-foreground shrink-0 text-right">
-            <span className="block">{products.length} réf. • {formatEuro(totals.chargesDirectesTTC)} charges directes</span>
+            <span className="block">{products.length} réf. • {formatEuro(totals.totalChargesTTC)} charges (total) • {formatEuro(totals.chargesIndirectesTTC)} indirectes</span>
             <span className="block text-[10px]">Période : {periodLabel}</span>
           </span>
         )}
@@ -611,7 +618,6 @@ function EstimatedMarginCard({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium text-muted-foreground">Période du calcul :</span>
               <div className="flex gap-1">
-                <Button size="sm" variant={filterMode === 'all' ? 'default' : 'outline'} onClick={() => setFilterMode('all')} className="h-7 text-xs">Tout</Button>
                 <Button size="sm" variant={filterMode === 'month' ? 'default' : 'outline'} onClick={() => setFilterMode('month')} className="h-7 text-xs">Mois</Button>
                 <Button size="sm" variant={filterMode === 'range' ? 'default' : 'outline'} onClick={() => setFilterMode('range')} className="h-7 text-xs">Plage</Button>
               </div>
@@ -667,12 +673,15 @@ function EstimatedMarginCard({
           {/* Synthèse */}
           {totals && (
             <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 text-xs">
-              <MiniStat label="Charges directes TTC" value={formatEuro(totals.chargesDirectesTTC)} accent="primary" />
+              <MiniStat label="CA HT période (officiel)" value={formatEuro(totals.totalCaHTPeriode)} accent="primary" />
+              <MiniStat label="Total charges TTC" value={formatEuro(totals.totalChargesTTC)} accent="primary" />
+              <MiniStat label="Charges directes TTC" value={formatEuro(totals.chargesDirectesTTC)} />
+              <MiniStat label="Charges indirectes TTC" value={formatEuro(totals.chargesIndirectesTTC)} />
               <MiniStat label="Dont Transport" value={formatEuro(totals.chargesTransport)} />
               {includeMarketing && <MiniStat label="Dont Marketing" value={formatEuro(totals.chargesMarketing)} />}
               {includeCatalogues && <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />}
               {includeImprimes && <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />}
-              <MiniStat label="CA produits (période)" value={formatEuro(totals.totalCAProduits)} />
+              <MiniStat label="CA produits (VolumeSale)" value={formatEuro(totals.totalCAProduits)} />
               <MiniStat label="Pots vendus" value={totals.totalPots.toLocaleString('fr-FR')} />
               <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
             </div>

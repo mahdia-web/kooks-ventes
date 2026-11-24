@@ -604,10 +604,20 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     return n;
   };
 
-  // Affiche les colis seulement si l'agent a des enseignes Centrale
-  // (BROCARD a des centrales → affiche ; SEBASTIEN n'en a pas → skip)
-  const hasCentraleEnseignes = targetEnseignes.some((e) => e.type === 'Centrale');
-  if (colisData.length > 0 && (!isAgentSpecific || hasCentraleEnseignes)) {
+  // Affiche les colis pour l'agent (filtré sur ses enseignes) ou en global.
+  // On ne saute plus la section pour les agents sans Centrale (ex: SEBASTIEN
+  // qui ne vend qu'en Direct à AUCHAN) — les colis Direct sont aussi pertinents.
+  // Pour un agent spécifique, on filtre colisData sur les enseignes de l'agent.
+  const targetEnseigneNames = isAgentSpecific
+    ? new Set(targetEnseignes.map((e) => e.enseigne))
+    : null;
+  const colisDataFiltered = isAgentSpecific && targetEnseigneNames
+    ? colisData.filter((c) => targetEnseigneNames.has(c.enseigne))
+    : colisData;
+  const totalColisFiltered = isAgentSpecific
+    ? colisDataFiltered.reduce((s, c) => s + c.totalColis, 0)
+    : totalColis;
+  if (colisDataFiltered.length > 0) {
     if (yPos > pageHeight - 50) {
       doc.addPage();
       yPos = 20;
@@ -615,17 +625,17 @@ export async function generateBilanPdf({ data, agentFilter = null }: BilanPdfOpt
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
-    doc.text(`Colis vendus (${totalColis})`, margin, yPos);
+    doc.text(`Colis vendus (${totalColisFiltered})`, margin, yPos);
     yPos += 8;
 
     autoTable(doc, {
       startY: yPos,
       head: [['#', 'Enseigne', 'Colis', '%']],
-      body: colisData.slice(0, 20).map((c, idx) => [
+      body: colisDataFiltered.slice(0, 20).map((c, idx) => [
         String(idx + 1),
         shortEnseigneName(c.enseigne),
         String(c.totalColis),
-        totalColis > 0 ? `${(c.totalColis / totalColis * 100).toFixed(1)}%` : '-',
+        totalColisFiltered > 0 ? `${(c.totalColis / totalColisFiltered * 100).toFixed(1)}%` : '-',
       ]),
       theme: 'striped',
       headStyles: { fillColor: [54, 116, 181], textColor: 255, fontSize: 8 },

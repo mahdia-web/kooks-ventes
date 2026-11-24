@@ -205,13 +205,13 @@ export function buildMessageText(data: DashboardData, agent: string | null, coli
     const agentStat = data.agents.find((a) => a.agent === agent);
     if (agentStat) {
       kpis = {
-        caHT: agentStat.caHT,
-        caDirect: agentStat.caDirect,
-        caCentrale: agentStat.caCentrale,
+        caHT: Math.max(0, agentStat.caHT),
+        caDirect: Math.max(0, agentStat.caDirect),
+        caCentrale: Math.max(0, agentStat.caCentrale),
         nbBl: agentStat.nbBl,
         nbBlDirect: agentStat.nbBlDirect,
         nbBlCentrale: agentStat.nbBlCentrale,
-        commission: agentStat.commission,
+        commission: Math.max(0, agentStat.commission),
       };
     } else {
       // Agent non trouvé dans les données du mois → message vide
@@ -224,13 +224,13 @@ Kooks`;
     }
   } else {
     kpis = {
-      caHT: data.kpis.current.caHT,
-      caDirect: data.kpis.current.caDirect,
-      caCentrale: data.kpis.current.caCentrale,
+      caHT: Math.max(0, data.kpis.current.caHT),
+      caDirect: Math.max(0, data.kpis.current.caDirect),
+      caCentrale: Math.max(0, data.kpis.current.caCentrale),
       nbBl: data.kpis.current.nbBl,
       nbBlDirect: data.kpis.current.nbBlDirect,
       nbBlCentrale: data.kpis.current.nbBlCentrale,
-      commission: data.kpis.current.commission,
+      commission: Math.max(0, data.kpis.current.commission),
     };
   }
 
@@ -309,8 +309,24 @@ Kooks`;
       }).join('\n')
     : '• (aucune vente Centrale ce mois-ci)';
 
+  // === Colis par agent (filtré par les enseignes de l'agent) ===
+  // colisByEnseigne contient les colis par enseigne pour le mois (global).
+  // Pour un agent spécifique, on ne somme que les colis des enseignes qui
+  // appartiennent à cet agent (via Enseigne.agent).
+  let colisParAgent: number | undefined = colisTotal;
+  if (isAgentSpecific && colisByEnseigne && data.enseignes) {
+    const enseignesAgent = new Set(
+      data.enseignes.filter(e => e.agent === agent).map(e => e.name)
+    );
+    let sum = 0;
+    for (const c of colisByEnseigne) {
+      if (enseignesAgent.has(c.enseigne)) sum += c.totalColis;
+    }
+    colisParAgent = sum > 0 ? sum : undefined;
+  }
+
   // === Petite analyse globale ===
-  const analysis = buildAnalysis(data, agent, kpis, centrales, colisTotal);
+  const analysis = buildAnalysis(data, agent, kpis, centrales, colisParAgent);
 
   // === Construction du message ===
   // Si agent spécifique : "Bonjour {agent},"
@@ -456,14 +472,22 @@ function buildAnalysis(
 
   // 5. Répartition Direct/Centrale (info complémentaire)
   if (kpis.caHT > 0) {
-    const partCentrale = (kpis.caCentrale / kpis.caHT) * 100;
+    const partCentrale = (Math.max(0, kpis.caCentrale) / kpis.caHT) * 100;
     const partDirect = 100 - partCentrale;
     lines.push(`📊 Répartition : ${partDirect.toFixed(0)}% Direct / ${partCentrale.toFixed(0)}% Centrale.`);
   }
 
-  // 6. Colis vendus (si données de volumes disponibles)
+  // 6. Colis vendus par l'agent (filtré sur ses enseignes) ce mois-ci.
+  //    Pour la vue globale, colisTotal = total toutes enseignes confondues.
+  //    Pour un agent spécifique, colisTotal est déjà filtré par les enseignes
+  //    de l'agent (cf. buildMessageText). On précise "par {agent}" pour éviter
+  //    toute confusion avec le total global.
   if (colisTotal && colisTotal > 0) {
-    lines.push(`📦 ${colisTotal} colis vendus ce mois-ci.`);
+    if (isAgentSpecific) {
+      lines.push(`📦 ${colisTotal} colis vendus par ${agent} ce mois-ci.`);
+    } else {
+      lines.push(`📦 ${colisTotal} colis vendus ce mois-ci.`);
+    }
   }
 
   return lines.length > 0

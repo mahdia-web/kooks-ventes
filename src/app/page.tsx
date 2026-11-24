@@ -47,7 +47,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
 import { generateBilanPdf } from '@/components/bilan-pdf';
 import { generateClientsPdf } from '@/components/clients-pdf';
-import { formatEuro, formatNumber, monthLabel } from '@/lib/dashboard-service';
+import { formatEuro, formatNumber, monthLabel, isKooksAgent } from '@/lib/dashboard-service';
 import type { DashboardData, SaleRow } from '@/lib/dashboard-types';
 
 export default function Home() {
@@ -544,7 +544,9 @@ export default function Home() {
               <TabsContent value="agents" className="space-y-4">
                 <div className="flex justify-end gap-2 flex-wrap items-center">
                   <span className="text-xs text-muted-foreground mr-1">Messages prêts à copier :</span>
-                  {(viewMode === 'global' ? data.agentPeriodTotals : data.agents).map((a: any) => (
+                  {(viewMode === 'global' ? data.agentPeriodTotals : data.agents)
+                    .filter((a: any) => !isKooksAgent(a.agent))
+                    .map((a: any) => (
                     <MessageSummary
                       key={`msg-${a.agent}`}
                       data={data}
@@ -554,7 +556,9 @@ export default function Home() {
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 flex-wrap">
-                  {(viewMode === 'global' ? data.agentPeriodTotals : data.agents).map((a: any) => (
+                  {(viewMode === 'global' ? data.agentPeriodTotals : data.agents)
+                    .filter((a: any) => !isKooksAgent(a.agent))
+                    .map((a: any) => (
                     <Button
                       key={`pdf-${a.agent}`}
                       variant="outline"

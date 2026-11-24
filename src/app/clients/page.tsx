@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart3, Store, FileText } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +12,7 @@ import type { DashboardData } from '@/lib/dashboard-types';
 import { formatEuro, formatNumber } from '@/lib/dashboard-service';
 
 export default function ClientsPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [tab, setTab] = useState('clients');
 
@@ -39,12 +40,10 @@ export default function ClientsPage() {
         <header className="border-b border-border bg-card sticky top-0 z-30">
           <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Retour
-                </Button>
-              </Link>
+              <Button variant="outline" size="sm" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour
+              </Button>
               <div className="hidden sm:flex items-center gap-2">
                 <Store className="h-5 w-5 text-primary" />
                 <h1 className="font-title text-lg font-bold">Clients</h1>
