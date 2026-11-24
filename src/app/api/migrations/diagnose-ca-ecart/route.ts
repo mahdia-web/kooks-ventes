@@ -21,18 +21,18 @@ export async function GET(req: NextRequest) {
     // 1. VolumeSale par enseigne (CA = quantity × unitPrice)
     const volumes = await db.volumeSale.findMany({
       where: { year, month },
-      select: { enseigne: true, quantity: true, unitPrice: true, productLabel: true, blNumber: true },
+      select: { enseigne: true, quantity: true, unitPrice: true, productLabel: true, factureRef: true },
     });
-    const volByEnseigne = new Map<string, { ca: number; colis: number; lignes: number; bls: Set<string> }>();
+    const volByEnseigne = new Map<string, { ca: number; colis: number; lignes: number; factures: Set<string> }>();
     let volTotal = 0;
-    const volBlSet = new Set<string>();
+    const volFactureSet = new Set<string>();
     for (const v of volumes) {
       const ca = v.quantity * (v.unitPrice ?? 0);
       volTotal += ca;
       const e = v.enseigne ?? '(null)';
-      const cur = volByEnseigne.get(e) ?? { ca: 0, colis: 0, lignes: 0, bls: new Set<string>() };
+      const cur = volByEnseigne.get(e) ?? { ca: 0, colis: 0, lignes: 0, factures: new Set<string>() };
       cur.ca += ca; cur.colis += v.quantity; cur.lignes++;
-      if (v.blNumber) { cur.bls.add(v.blNumber); volBlSet.add(v.blNumber); }
+      if (v.factureRef) { cur.factures.add(v.factureRef); volFactureSet.add(v.factureRef); }
       volByEnseigne.set(e, cur);
     }
 
@@ -72,13 +72,6 @@ export async function GET(req: NextRequest) {
     }
     ecartByEnseigne.sort((a, b) => Math.abs(b.ecart) - Math.abs(a.ecart));
 
-    // 4. BL présents dans VolumeSale mais pas dans Sale (et inversement)
-    const blOnlyInVol = Array.from(volBlSet).filter(bl => !saleBlSet.has(bl));
-    const blOnlyInSale = Array.from(saleBlSet).filter(bl => !volBlSet.has(bl));
-
-    // 5. Lignes VolumeSale sans blNumber
-    const volLinesNoBL = volumes.filter(v => !v.blNumber).length;
-
     return NextResponse.json({
       ok: true,
       year, month,
@@ -88,15 +81,10 @@ export async function GET(req: NextRequest) {
         ecart: volTotal - saleTotal,
         volumeSaleLines: volumes.length,
         saleLines: sales.length,
-        volumeSaleBLs: volBlSet.size,
+        volumeSaleFactures: volFactureSet.size,
         saleBLs: saleBlSet.size,
-        blOnlyInVolume: blOnlyInVol.length,
-        blOnlyInSale: blOnlyInSale.length,
-        volLinesNoBL,
       },
-      ecartByEnseigne: ecartByEnseigne.slice(0, 20),
-      blOnlyInVolumeSample: blOnlyInVol.slice(0, 20),
-      blOnlyInSaleSample: blOnlyInSale.slice(0, 20),
+      ecartByEnseigne: ecartByEnseigne.slice(0, 25),
     });
   } catch (e) {
     return NextResponse.json(
