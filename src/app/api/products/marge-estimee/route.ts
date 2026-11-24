@@ -137,6 +137,9 @@ export async function GET(req: NextRequest) {
       chargesParCategorie[cat] = (chargesParCategorie[cat] ?? 0) + c.amountTTC;
 
       // Charges directes (allocationMethod === 'DIRECT') — ventilées par catégorie
+      // Seules ces catégories sont allouées au prorata du CA pour la marge nette/pot
+      // (les achats matières premières sont déjà dans le prix d'achat, on ne les
+      //  ré-alloue pas pour éviter un double compte).
       if (c.allocationMethod === 'DIRECT') {
         if (isTransportCat(cat)) chargesTransport += c.amountTTC;
         else if (isMarketingCat(cat) && includeMarketing) chargesMarketing += c.amountTTC;
@@ -148,7 +151,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // chargesDirectesTTC = somme des charges directes allouables au prorata du CA
+    // (Transport + options). NB: les autres charges directes (achats, emballages)
+    // sont dans chargesParCategorie et totalChargesTTC mais ne sont PAS ré-allouées
+    // au pot pour éviter un double compte avec le prix d'achat.
     const chargesDirectesTTC = chargesTransport + chargesMarketing + chargesCatalogues + chargesImprimes;
+    // chargesDirectesTotalTTC = TOUTES les charges directes (y compris achats/emballages)
+    // pour l'affichage du total dans la synthèse.
+    const chargesDirectesTotalTTC = totalChargesTTC - chargesIndirectesTTC;
 
     // 3b. CA HT total de la période (depuis Sale.amountHT — source de vérité du dashboard)
     //     VolumeSale donne un CA partiel (lignes avec parfum+format uniquement) qui ne
@@ -215,6 +225,7 @@ export async function GET(req: NextRequest) {
       products: productResults.sort((a, b) => b.caProduct - a.caProduct),
       totals: {
         chargesDirectesTTC,
+        chargesDirectesTotalTTC,
         chargesTransport,
         chargesMarketing,
         chargesCatalogues,

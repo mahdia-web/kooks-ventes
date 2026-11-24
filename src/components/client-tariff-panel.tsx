@@ -37,7 +37,8 @@ interface MargeProduct {
   margeNetteParPot: number | null; margePct: number | null;
 }
 interface MargeTotals {
-  chargesDirectesTTC: number; chargesTransport: number; chargesMarketing: number;
+  chargesDirectesTTC: number; chargesDirectesTotalTTC: number;
+  chargesTransport: number; chargesMarketing: number;
   chargesCatalogues: number; chargesImprimes: number;
   chargesIndirectesTTC: number; totalChargesTTC: number;
   totalCAProduits: number; totalCaHTPeriode: number; totalPots: number;
@@ -675,13 +676,12 @@ function EstimatedMarginCard({
             <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 text-xs">
               <MiniStat label="CA HT période (officiel)" value={formatEuro(totals.totalCaHTPeriode)} accent="primary" />
               <MiniStat label="Total charges TTC" value={formatEuro(totals.totalChargesTTC)} accent="primary" />
-              <MiniStat label="Charges directes TTC" value={formatEuro(totals.chargesDirectesTTC)} />
+              <MiniStat label="Charges directes (total)" value={formatEuro(totals.chargesDirectesTotalTTC)} />
               <MiniStat label="Charges indirectes TTC" value={formatEuro(totals.chargesIndirectesTTC)} />
               <MiniStat label="Dont Transport" value={formatEuro(totals.chargesTransport)} />
               {includeMarketing && <MiniStat label="Dont Marketing" value={formatEuro(totals.chargesMarketing)} />}
               {includeCatalogues && <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />}
               {includeImprimes && <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />}
-              <MiniStat label="CA produits (VolumeSale)" value={formatEuro(totals.totalCAProduits)} />
               <MiniStat label="Pots vendus" value={totals.totalPots.toLocaleString('fr-FR')} />
               <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
             </div>
