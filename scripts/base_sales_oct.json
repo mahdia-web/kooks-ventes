@@ -1,0 +1,2326 @@
+{
+  "count": 290,
+  "totalHT": 170250.63999999998,
+  "bls": [
+    {
+      "bl": "26000315",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 364.88,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000293",
+      "enseigne": "Costco Wholesale Spain, S.L.U.",
+      "agent": "KOOK'S",
+      "ht": 5012,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000294",
+      "enseigne": "COSTCO FRANCE - MULHOUSE (5403)",
+      "agent": "KOOK'S",
+      "ht": 1774,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000306",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+      "agent": "KOOK'S",
+      "ht": 193.86,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000308",
+      "enseigne": "AUCHAN HYPERMARCHÉ (MAUREPAS)",
+      "agent": "KOOK'S",
+      "ht": 417.6,
+      "date": "2026-10-01",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000309",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 48.65,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000328",
+      "enseigne": "SEDIS ALIMENTAIRE",
+      "agent": "KOOK'S",
+      "ht": 556.4,
+      "date": "2026-10-01",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000327",
+      "enseigne": "PrimaPrix France",
+      "agent": "KOOK'S",
+      "ht": 764.64,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000324",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 404.96,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000323",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 267.09,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000322",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1735.23,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000321",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 721.06,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000320",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 410.26,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000319",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 170.35,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000318",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 24.33,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000317",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000316",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 401.37,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000314",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 279.75,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000313",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000312",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 158.12,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000311",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 121.63,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000310",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 60.81,
+      "date": "2026-10-01",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000330",
+      "enseigne": "Carrefour Belgium N.V. (ST KATELIJNE)",
+      "agent": "KOOK'S",
+      "ht": 1342.72,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000577",
+      "enseigne": "COOPERATIVE U ENSEIGNE ( IFS )",
+      "agent": "KOOK'S",
+      "ht": 915.17,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000336",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 267.68,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000335",
+      "enseigne": "CSF Aire sur la lys - MARKET",
+      "agent": "KOOK'S",
+      "ht": 323.23,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000334",
+      "enseigne": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+      "agent": "KOOK'S",
+      "ht": 298.37,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000333",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 374.81,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000332",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+      "agent": "KOOK'S",
+      "ht": 310.18,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000331",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 331.73,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000329",
+      "enseigne": "AUCHAN LAXOU",
+      "agent": "KOOK'S",
+      "ht": 440.8,
+      "date": "2026-10-02",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000325",
+      "enseigne": "SA U PROXIMITE France",
+      "agent": "KOOK'S",
+      "ht": 792.68,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000326",
+      "enseigne": "O'TERA EPAGNY",
+      "agent": "CAP FRAIS",
+      "ht": 510.4,
+      "date": "2026-10-02",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000340",
+      "enseigne": "COOPERATIVE U ENSEIGNE ( IFS )",
+      "agent": "KOOK'S",
+      "ht": 508.42,
+      "date": "2026-10-05",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000339",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 282.45,
+      "date": "2026-10-05",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000337",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST",
+      "agent": "CAP FRAIS",
+      "ht": 1486.3,
+      "date": "2026-10-05",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000348",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 72.98,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000347",
+      "enseigne": "Carrefour Belgium N.V. (BERINGEN)",
+      "agent": "KOOK'S",
+      "ht": 1259.84,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000346",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 422.69,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000368",
+      "enseigne": "H MARKET",
+      "agent": "KOOK'S",
+      "ht": 4291.68,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000366",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 400.66,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000365",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+      "agent": "KOOK'S",
+      "ht": 439.42,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000358",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 465.28,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000359",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 926.24,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000342",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 279.85,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000341",
+      "enseigne": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+      "agent": "KOOK'S",
+      "ht": 610.1,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000354",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 437.86,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000338",
+      "enseigne": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+      "agent": "KOOK'S",
+      "ht": 827.38,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000343",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1889.29,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000356",
+      "enseigne": "O'TERA MERIGNAC",
+      "agent": "CAP FRAIS",
+      "ht": 426.88,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000355",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 401.37,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000353",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 291.91,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000352",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 145.95,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000350",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 109.47,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000351",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 60.81,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000349",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 133.8,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000345",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 298.37,
+      "date": "2026-10-06",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000367",
+      "enseigne": "COSTCO FRANCE - VILLEBON",
+      "agent": "KOOK'S",
+      "ht": 1943.04,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000381",
+      "enseigne": "AUCHAN GRASSE",
+      "agent": "SEBASTIEN GASNIER",
+      "ht": 459.36,
+      "date": "2026-10-07",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000371",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 312.61,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000364",
+      "enseigne": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+      "agent": "KOOK'S",
+      "ht": 248.64,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000363",
+      "enseigne": "C.S.F. - CREPY EN VALOIS (584)",
+      "agent": "KOOK'S",
+      "ht": 323.23,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000362",
+      "enseigne": "CORA ATTON-HYPER",
+      "agent": "KOOK'S",
+      "ht": 1182.72,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000361",
+      "enseigne": "CSF BILLY BERCLAU - HYPER",
+      "agent": "KOOK'S",
+      "ht": 2232.38,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000360",
+      "enseigne": "CORA LESQUIN - HYPER",
+      "agent": "KOOK'S",
+      "ht": 532.23,
+      "date": "2026-10-07",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000357",
+      "enseigne": "U EXPRESS RENNES HOCHE ( SAS LES CONQUERANTS )",
+      "agent": "CAP FRAIS",
+      "ht": 428.73,
+      "date": "2026-10-07",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000370",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 323.23,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000373",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 145.96,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000372",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 778.41,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000369",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 509.7,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000380",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 693.28,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000385",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 361.89,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000384",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 560.06,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000383",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 185.26,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000382",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+      "agent": "KOOK'S",
+      "ht": 611.74,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000379",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 802.74,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000378",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 377.05,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000377",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 145.96,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000376",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000375",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 158.11,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000374",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 97.3,
+      "date": "2026-10-08",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000393",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 336.04,
+      "date": "2026-10-09",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000392",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+      "agent": "KOOK'S",
+      "ht": 374.8,
+      "date": "2026-10-09",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000389",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 323.11,
+      "date": "2026-10-09",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000391",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST",
+      "agent": "CAP FRAIS",
+      "ht": 1055.48,
+      "date": "2026-10-12",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000388",
+      "enseigne": "SA U PROXIMITE France",
+      "agent": "KOOK'S",
+      "ht": 637.59,
+      "date": "2026-10-12",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000386",
+      "enseigne": "COSTCO FRANCE - VILLEBON",
+      "agent": "KOOK'S",
+      "ht": 1774,
+      "date": "2026-10-12",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000387",
+      "enseigne": "AUCHAN FENOUILLET (TOULOUSE)",
+      "agent": "KOOK'S",
+      "ht": 739.2,
+      "date": "2026-10-12",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000417",
+      "enseigne": "AUCHAN HYPERMARCHÉ (CERGY)",
+      "agent": "KOOK'S",
+      "ht": 1057.92,
+      "date": "2026-10-12",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000395",
+      "enseigne": "COOPERATIVE U ENSEIGNE ( IFS )",
+      "agent": "KOOK'S",
+      "ht": 474.54,
+      "date": "2026-10-12",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000394",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 271.15,
+      "date": "2026-10-12",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000390",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+      "agent": "KOOK'S",
+      "ht": 383.42,
+      "date": "2026-10-12",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000397",
+      "enseigne": "Carrefour Belgium N.V. (ST KATELIJNE)",
+      "agent": "KOOK'S",
+      "ht": 1425.6,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000410",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 377.05,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000403",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 60.81,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000402",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 48.66,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000401",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 109.47,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000400",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 36.49,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000399",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 534.57,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000398",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 323.22,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000396",
+      "enseigne": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+      "agent": "KOOK'S",
+      "ht": 655.31,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000426",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 529.91,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000425",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+      "agent": "KOOK'S",
+      "ht": 697.91,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000424",
+      "enseigne": "LES HALLES MARCHE",
+      "agent": "KOOK'S",
+      "ht": 350.79,
+      "date": "2026-10-13",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000423",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 560.05,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000422",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 400.65,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000421",
+      "enseigne": "RENOUEST ( E.LECLERC RENNES )",
+      "agent": "CAP FRAIS",
+      "ht": 1215.68,
+      "date": "2026-10-13",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000420",
+      "enseigne": "COSTCO FRANCE - VILLEBON",
+      "agent": "KOOK'S",
+      "ht": 236.54,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000419",
+      "enseigne": "NOUS EPICERIES ANTI GASPI CENTRALE",
+      "agent": "KOOK'S",
+      "ht": 2238,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000418",
+      "enseigne": "SEDIS ALIMENTAIRE",
+      "agent": "KOOK'S",
+      "ht": 3434.3,
+      "date": "2026-10-13",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000416",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1654.14,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000415",
+      "enseigne": "AUCHAN OLIVET",
+      "agent": "KOOK'S",
+      "ht": 510.4,
+      "date": "2026-10-13",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000414",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 287.96,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000413",
+      "enseigne": "ALDOUEST",
+      "agent": "CAP FRAIS",
+      "ht": 430.81,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000412",
+      "enseigne": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+      "agent": "KOOK'S",
+      "ht": 713.81,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000411",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 462.18,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000409",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 109.47,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000408",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 243.26,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000407",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 24.32,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000406",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 170.28,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000405",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 97.31,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000404",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-13",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000430",
+      "enseigne": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+      "agent": "KOOK'S",
+      "ht": 606.15,
+      "date": "2026-10-14",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000431",
+      "enseigne": "CSF Aire sur la lys - MARKET",
+      "agent": "KOOK'S",
+      "ht": 298.36,
+      "date": "2026-10-14",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000429",
+      "enseigne": "CORA ATTON-HYPER",
+      "agent": "KOOK'S",
+      "ht": 870.22,
+      "date": "2026-10-14",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000434",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 361.56,
+      "date": "2026-10-14",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000435",
+      "enseigne": "AUCHAN MANDELIEU",
+      "agent": "SEBASTIEN GASNIER",
+      "ht": 723.84,
+      "date": "2026-10-14",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000427",
+      "enseigne": "CSF BILLY BERCLAU - HYPER",
+      "agent": "KOOK'S",
+      "ht": 634.02,
+      "date": "2026-10-14",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000428",
+      "enseigne": "CORA LESQUIN - HYPER",
+      "agent": "KOOK'S",
+      "ht": 410.25,
+      "date": "2026-10-14",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000443",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 72.98,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000452",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 608.14,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000453",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 437.86,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000432",
+      "enseigne": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+      "agent": "KOOK'S",
+      "ht": 4733.06,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000436",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 323.22,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000437",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 683.74,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000438",
+      "enseigne": "O'TERA - JB LEBAS",
+      "agent": "CAP FRAIS",
+      "ht": 324.8,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000439",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000440",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 328.4,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000441",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000442",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 231.09,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000444",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 279.74,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000445",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000446",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 145.95,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000447",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 36.49,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000448",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 498.67,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000449",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 267.58,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000450",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 60.81,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000451",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 851.39,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000454",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 559.49,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000455",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 340.56,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000456",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1816.32,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000459",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 1029.63,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000460",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 310.18,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000461",
+      "enseigne": "PÈRE & FISH PLAN DE CAMPAGNE - Succursale",
+      "agent": "KOOK'S",
+      "ht": 222.72,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000462",
+      "enseigne": "FISH ANNECY",
+      "agent": "KOOK'S",
+      "ht": 236.54,
+      "date": "2026-10-15",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000463",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 243.34,
+      "date": "2026-10-15",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000472",
+      "enseigne": "C.S.F. - CREPY EN VALOIS (584)",
+      "agent": "KOOK'S",
+      "ht": 285.93,
+      "date": "2026-10-16",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000471",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+      "agent": "KOOK'S",
+      "ht": 853,
+      "date": "2026-10-16",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000473",
+      "enseigne": "PrimaPrix France",
+      "agent": "KOOK'S",
+      "ht": 1137,
+      "date": "2026-10-16",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000474",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST",
+      "agent": "CAP FRAIS",
+      "ht": 1240.72,
+      "date": "2026-10-16",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000468",
+      "enseigne": "SA U PROXIMITE France",
+      "agent": "KOOK'S",
+      "ht": 861.61,
+      "date": "2026-10-16",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000469",
+      "enseigne": "O'TERA - ARRAS",
+      "agent": "CAP FRAIS",
+      "ht": 422.24,
+      "date": "2026-10-19",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000496",
+      "enseigne": "AUCHAN MANDELIEU",
+      "agent": "SEBASTIEN GASNIER",
+      "ht": 1447.68,
+      "date": "2026-10-19",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000497",
+      "enseigne": "COOPERATIVE U ENSEIGNE ( IFS )",
+      "agent": "KOOK'S",
+      "ht": 813.49,
+      "date": "2026-10-19",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000498",
+      "enseigne": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+      "agent": "KOOK'S",
+      "ht": 186.58,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000499",
+      "enseigne": "LES HALLES MARCHE",
+      "agent": "KOOK'S",
+      "ht": 464,
+      "date": "2026-10-20",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000495",
+      "enseigne": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+      "agent": "KOOK'S",
+      "ht": 451.95,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000494",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 1070.32,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000493",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 133.79,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000490",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 170.28,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000489",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 389.21,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000488",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 72.98,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000487",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 218.93,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000486",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000485",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 72.98,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000484",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 24.32,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000483",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000482",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000480",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 24.32,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000479",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 425.57,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000478",
+      "enseigne": "Carrefour Belgium N.V. (BERINGEN)",
+      "agent": "KOOK'S",
+      "ht": 1342.72,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000477",
+      "enseigne": "PÈRE & FISH MÉRIGNAC - Franchise",
+      "agent": "KOOK'S",
+      "ht": 295.68,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000476",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 223.77,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000475",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 596.73,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000481",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 133.79,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000492",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 1070.33,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000491",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 121.63,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000508",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 456.66,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000507",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 435.11,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000504",
+      "enseigne": "CORA TIGERY-FRAIS",
+      "agent": "KOOK'S",
+      "ht": 273.5,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000501",
+      "enseigne": "PERE & FISH",
+      "agent": "KOOK'S",
+      "ht": 278.4,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000500",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1994.7,
+      "date": "2026-10-20",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000510",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+      "agent": "KOOK'S",
+      "ht": 585.91,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000509",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 357.77,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000505",
+      "enseigne": "CORA ATTON-HYPER",
+      "agent": "KOOK'S",
+      "ht": 857.8,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000506",
+      "enseigne": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+      "agent": "KOOK'S",
+      "ht": 459.98,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000503",
+      "enseigne": "CSF BILLY BERCLAU - HYPER",
+      "agent": "KOOK'S",
+      "ht": 534.57,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000502",
+      "enseigne": "CORA LESQUIN - HYPER",
+      "agent": "KOOK'S",
+      "ht": 335.66,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000466",
+      "enseigne": "COSTCO FRANCE - MULHOUSE (5403)",
+      "agent": "KOOK'S",
+      "ht": 1774,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000465",
+      "enseigne": "COSTCO FRANCE - PONTAULT COMBAULT",
+      "agent": "KOOK'S",
+      "ht": 2128.8,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000464",
+      "enseigne": "COSTCO FRANCE - VILLEBON",
+      "agent": "KOOK'S",
+      "ht": 2483.6,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000531",
+      "enseigne": "NOUS EPICERIES ANTI GASPI CENTRALE",
+      "agent": "KOOK'S",
+      "ht": 1245.3,
+      "date": "2026-10-21",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000526",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 194.61,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000539",
+      "enseigne": "AUCHAN GRASSE",
+      "agent": "SEBASTIEN GASNIER",
+      "ht": 487.87,
+      "date": "2026-10-22",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000535",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 379.1,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000534",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 224.01,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000530",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1913.62,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000529",
+      "enseigne": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+      "agent": "KOOK'S",
+      "ht": 2299.6,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000528",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 292.02,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000527",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 778.42,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000523",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 401.37,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000522",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 462.18,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000525",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 936.53,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000524",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 170.28,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000521",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 121.63,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000520",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 109.47,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000519",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 109.46,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000517",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 36.49,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000518",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 170.28,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000516",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 97.31,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000515",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000514",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 218.93,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000513",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 24.33,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000512",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 236.21,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000511",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 372.95,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000467",
+      "enseigne": "Costco Wholesale Spain, S.L.U.",
+      "agent": "KOOK'S",
+      "ht": 5012,
+      "date": "2026-10-22",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000538",
+      "enseigne": "Carrefour Belgium N.V. (ST KATELIJNE)",
+      "agent": "KOOK'S",
+      "ht": 1259.84,
+      "date": "2026-10-23",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000537",
+      "enseigne": "O'TERA EPAGNY",
+      "agent": "CAP FRAIS",
+      "ht": 426.88,
+      "date": "2026-10-23",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000536",
+      "enseigne": "SA U PROXIMITE France",
+      "agent": "KOOK'S",
+      "ht": 482.5,
+      "date": "2026-10-23",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000540",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 366.2,
+      "date": "2026-10-23",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000541",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 297.25,
+      "date": "2026-10-23",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000542",
+      "enseigne": "AUCHAN SEMECOURT",
+      "agent": "BROCARD",
+      "ht": 450.08,
+      "date": "2026-10-26",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000545",
+      "enseigne": "SEDIS ALIMENTAIRE",
+      "agent": "KOOK'S",
+      "ht": 1061.86,
+      "date": "2026-10-26",
+      "type": "Direct"
+    },
+    {
+      "bl": "26000544",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST",
+      "agent": "CAP FRAIS",
+      "ht": 749.6,
+      "date": "2026-10-26",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000543",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+      "agent": "KOOK'S",
+      "ht": 413.57,
+      "date": "2026-10-26",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000558",
+      "enseigne": "COOPERATIVE U ENSEIGNE ( IFS )",
+      "agent": "KOOK'S",
+      "ht": 395.45,
+      "date": "2026-10-26",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000556",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-26",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000557",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 12.16,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000551",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 24.33,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000550",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 121.63,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000549",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000547",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 397.82,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000546",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 708.62,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000553",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 377.05,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000552",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 182.44,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000548",
+      "enseigne": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+      "agent": "KOOK'S",
+      "ht": 511.03,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000572",
+      "enseigne": "PrimaPrix France",
+      "agent": "KOOK'S",
+      "ht": 593.64,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000566",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 323.11,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000565",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 512.65,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000564",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 491.12,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000563",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+      "agent": "KOOK'S",
+      "ht": 568.67,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000561",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 1329.8,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000560",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 206.84,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000559",
+      "enseigne": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+      "agent": "KOOK'S",
+      "ht": 564.9,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000555",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 182.45,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000554",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 194.61,
+      "date": "2026-10-27",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000570",
+      "enseigne": "C.S.F. - CREPY EN VALOIS (584)",
+      "agent": "KOOK'S",
+      "ht": 335.66,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000569",
+      "enseigne": "CORA ATTON-HYPER",
+      "agent": "KOOK'S",
+      "ht": 509.72,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000568",
+      "enseigne": "CORA LESQUIN - HYPER",
+      "agent": "KOOK'S",
+      "ht": 386.79,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000574",
+      "enseigne": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+      "agent": "CAP FRAIS",
+      "ht": 289.99,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000573",
+      "enseigne": "CSF Aire sur la lys - MARKET",
+      "agent": "KOOK'S",
+      "ht": 273.51,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000567",
+      "enseigne": "CSF BILLY BERCLAU - HYPER",
+      "agent": "KOOK'S",
+      "ht": 484.83,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000571",
+      "enseigne": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+      "agent": "KOOK'S",
+      "ht": 484.84,
+      "date": "2026-10-28",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000585",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+      "agent": "KOOK'S",
+      "ht": 109.47,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000599",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 301.57,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000598",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 672.06,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000590",
+      "enseigne": "O'TERA BREST",
+      "agent": "CAP FRAIS",
+      "ht": 422.24,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000589",
+      "enseigne": "DISTRIBUTION FRANPRIX",
+      "agent": "KOOK'S",
+      "ht": 2319.04,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000588",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+      "agent": "KOOK'S",
+      "ht": 328.4,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000586",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+      "agent": "KOOK'S",
+      "ht": 182.44,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000584",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+      "agent": "KOOK'S",
+      "ht": 72.97,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000583",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+      "agent": "KOOK'S",
+      "ht": 121.63,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000582",
+      "enseigne": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+      "agent": "KOOK'S",
+      "ht": 85.14,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000581",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+      "agent": "KOOK'S",
+      "ht": 223.78,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000580",
+      "enseigne": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+      "agent": "KOOK'S",
+      "ht": 328.52,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000587",
+      "enseigne": "SAS MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD 7709",
+      "agent": "KOOK'S",
+      "ht": 352.72,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000579",
+      "enseigne": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+      "agent": "KOOK'S",
+      "ht": 522.15,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000575",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+      "agent": "KOOK'S",
+      "ht": 275.72,
+      "date": "2026-10-29",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000603",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST _SCAPEST(TREMERY)",
+      "agent": "BROCARD",
+      "ht": 254.17,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000602",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (SCAPEST - CHALLON EN CHAMPAGNE)",
+      "agent": "BROCARD",
+      "ht": 271.41,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000233",
+      "enseigne": "DELEEV (PARIS)",
+      "agent": "KOOK'S",
+      "ht": 429.96,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000576",
+      "enseigne": "SA U PROXIMITE France",
+      "agent": "KOOK'S",
+      "ht": 637.59,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000591",
+      "enseigne": "COSTCO FRANCE - PONTAULT COMBAULT",
+      "agent": "KOOK'S",
+      "ht": 1774,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000597",
+      "enseigne": "Carrefour Belgium N.V. (BERINGEN)",
+      "agent": "KOOK'S",
+      "ht": 1259.84,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000596",
+      "enseigne": "Carrefour Belgium N.V. (ST KATELIJNE)",
+      "agent": "KOOK'S",
+      "ht": 1169.6,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000592",
+      "enseigne": "COSTCO FRANCE - VILLEBON",
+      "agent": "KOOK'S",
+      "ht": 1774,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000607",
+      "enseigne": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST",
+      "agent": "CAP FRAIS",
+      "ht": 1404.44,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000606",
+      "enseigne": "FISH BURGER AZUR COMPANY (FBAC)",
+      "agent": "KOOK'S",
+      "ht": 278.4,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000605",
+      "enseigne": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+      "agent": "KOOK'S",
+      "ht": 323.22,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    },
+    {
+      "bl": "26000604",
+      "enseigne": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+      "agent": "KOOK'S",
+      "ht": 323.11,
+      "date": "2026-10-30",
+      "type": "Centrale"
+    }
+  ]
+}

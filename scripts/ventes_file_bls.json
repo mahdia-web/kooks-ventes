@@ -1,0 +1,2081 @@
+[
+  {
+    "ref": "26000233",
+    "date": "30/10/2026",
+    "client": "DELEEV (PARIS)",
+    "ht": 429.96,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000576",
+    "date": "30/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 637.59,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000591",
+    "date": "30/10/2026",
+    "client": "COSTCO FRANCE - PONTAULT COMBAULT",
+    "ht": 1774.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000592",
+    "date": "30/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 1774.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000596",
+    "date": "30/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1169.6,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000597",
+    "date": "30/10/2026",
+    "client": "Carrefour Belgium N.V. (BERINGEN)",
+    "ht": 1259.84,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000602",
+    "date": "30/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 271.41,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000603",
+    "date": "30/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 254.17,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000604",
+    "date": "30/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 323.11,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000605",
+    "date": "30/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 323.22,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000606",
+    "date": "30/10/2026",
+    "client": "FISH BURGER AZUR COMPANY (FBAC)",
+    "ht": 278.4,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000607",
+    "date": "30/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1404.44,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000575",
+    "date": "29/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 275.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000579",
+    "date": "29/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 522.15,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000580",
+    "date": "29/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 328.52,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000581",
+    "date": "29/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 223.78,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000582",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000583",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 121.63,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000584",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 72.97,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000585",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 109.47,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000586",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 182.44,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000587",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 352.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000588",
+    "date": "29/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 328.4,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000589",
+    "date": "29/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 2319.04,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000590",
+    "date": "29/10/2026",
+    "client": "O'TERA BREST",
+    "ht": 422.24,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000598",
+    "date": "29/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 672.06,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000599",
+    "date": "29/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 301.57,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000567",
+    "date": "28/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 484.83,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000568",
+    "date": "28/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 459.97,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000569",
+    "date": "28/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 509.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000570",
+    "date": "28/10/2026",
+    "client": "C.S.F. - CREPY EN VALOIS (584)",
+    "ht": 335.66,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000571",
+    "date": "28/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 484.84,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000573",
+    "date": "28/10/2026",
+    "client": "CSF Aire sur la lys - MARKET",
+    "ht": 273.51,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000574",
+    "date": "28/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 331.72,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000546",
+    "date": "27/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 708.62,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000547",
+    "date": "27/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 397.82,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000548",
+    "date": "27/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 511.03,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000549",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000550",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 121.63,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000551",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 24.33,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000552",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 182.44,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000553",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 377.05,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000554",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 194.61,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000555",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 182.45,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000557",
+    "date": "27/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000559",
+    "date": "27/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 646.2,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000560",
+    "date": "27/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 206.84,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000561",
+    "date": "27/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1329.8,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000563",
+    "date": "27/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 568.67,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000564",
+    "date": "27/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 491.12,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000565",
+    "date": "27/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 512.65,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000566",
+    "date": "27/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 323.11,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000572",
+    "date": "27/10/2026",
+    "client": "PrimaPrix France",
+    "ht": 593.64,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000542",
+    "date": "26/10/2026",
+    "client": "AUCHAN SEMECOURT",
+    "ht": 450.08,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000543",
+    "date": "26/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 413.57,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000544",
+    "date": "26/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 749.6,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000545",
+    "date": "26/10/2026",
+    "client": "SEDIS ALIMENTAIRE",
+    "ht": 1061.86,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000556",
+    "date": "26/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000558",
+    "date": "26/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 452.35,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000536",
+    "date": "23/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 482.5,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000537",
+    "date": "23/10/2026",
+    "client": "O'TERA EPAGNY",
+    "ht": 426.88,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000538",
+    "date": "23/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1259.84,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000540",
+    "date": "23/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 366.2,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000541",
+    "date": "23/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 297.25,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000467",
+    "date": "22/10/2026",
+    "client": "Costco Wholesale Spain, S.L.U.",
+    "ht": 5012.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000511",
+    "date": "22/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 372.95,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000512",
+    "date": "22/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 236.21,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000513",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 24.33,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000514",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 218.93,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000515",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000516",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 97.31,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000518",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 170.28,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000517",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 36.49,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000519",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 109.46,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000520",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 109.47,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000521",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 121.63,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000522",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 462.18,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000523",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 401.37,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000524",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 170.28,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000525",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 936.53,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000527",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 778.42,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000526",
+    "date": "22/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 194.61,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000528",
+    "date": "22/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 292.02,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000529",
+    "date": "22/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 2299.6,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000530",
+    "date": "22/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1913.62,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000534",
+    "date": "22/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 224.01,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000535",
+    "date": "22/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 379.1,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000539",
+    "date": "22/10/2026",
+    "client": "AUCHAN GRASSE",
+    "ht": 487.87,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000464",
+    "date": "21/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 2483.6,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000465",
+    "date": "21/10/2026",
+    "client": "COSTCO FRANCE - PONTAULT COMBAULT",
+    "ht": 2128.8,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000466",
+    "date": "21/10/2026",
+    "client": "COSTCO FRANCE - MULHOUSE (5403)",
+    "ht": 1774.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000502",
+    "date": "21/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 335.66,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000503",
+    "date": "21/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 534.57,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000506",
+    "date": "21/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 459.98,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000505",
+    "date": "21/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 857.8,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000509",
+    "date": "21/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 409.26,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000510",
+    "date": "21/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 585.91,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000531",
+    "date": "21/10/2026",
+    "client": "NOUS EPICERIES ANTI GASPI CENTRALE",
+    "ht": 1245.3,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000475",
+    "date": "20/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 596.73,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000476",
+    "date": "20/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 223.77,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000477",
+    "date": "20/10/2026",
+    "client": "PÈRE & FISH MÉRIGNAC - Franchise",
+    "ht": 295.68,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000478",
+    "date": "20/10/2026",
+    "client": "Carrefour Belgium N.V. (BERINGEN)",
+    "ht": 1342.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000479",
+    "date": "20/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 486.83,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000480",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 24.32,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000481",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 133.79,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000482",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000483",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000484",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 24.32,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000485",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 72.98,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000486",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000487",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 218.93,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000488",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 72.98,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000489",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 389.21,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000490",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 170.28,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000491",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 121.63,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000492",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 1070.33,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000493",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 133.79,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000494",
+    "date": "20/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 1070.32,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000495",
+    "date": "20/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 516.98,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000499",
+    "date": "20/10/2026",
+    "client": "LES HALLES MARCHE",
+    "ht": 464.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000498",
+    "date": "20/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 186.58,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000500",
+    "date": "20/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1994.7,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000501",
+    "date": "20/10/2026",
+    "client": "PERE & FISH",
+    "ht": 278.4,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000504",
+    "date": "20/10/2026",
+    "client": "CORA TIGERY-FRAIS",
+    "ht": 273.5,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000507",
+    "date": "20/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 435.11,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000508",
+    "date": "20/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 456.66,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000469",
+    "date": "19/10/2026",
+    "client": "O'TERA - ARRAS",
+    "ht": 422.24,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000497",
+    "date": "19/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 930.55,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000496",
+    "date": "19/10/2026",
+    "client": "AUCHAN MANDELIEU",
+    "ht": 1447.68,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000468",
+    "date": "16/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 861.61,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000473",
+    "date": "16/10/2026",
+    "client": "PrimaPrix France",
+    "ht": 1137.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000471",
+    "date": "16/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 853.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000472",
+    "date": "16/10/2026",
+    "client": "C.S.F. - CREPY EN VALOIS (584)",
+    "ht": 285.93,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000474",
+    "date": "16/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1240.72,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000432",
+    "date": "15/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 4733.06,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000436",
+    "date": "15/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 323.22,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000437",
+    "date": "15/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 683.74,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000438",
+    "date": "15/10/2026",
+    "client": "O'TERA - JB LEBAS",
+    "ht": 324.8,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000439",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000440",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 328.4,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000441",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000442",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 231.09,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000443",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 72.98,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000444",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 279.74,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000445",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000446",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 145.95,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000447",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 36.49,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000448",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 498.67,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000449",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 267.58,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000450",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 60.81,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000451",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 851.39,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000452",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 608.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000453",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 437.86,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000454",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 559.49,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000455",
+    "date": "15/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 340.56,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000456",
+    "date": "15/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1816.32,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000459",
+    "date": "15/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 1029.63,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000460",
+    "date": "15/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 310.18,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000461",
+    "date": "15/10/2026",
+    "client": "PÈRE & FISH PLAN DE CAMPAGNE - Succursale",
+    "ht": 222.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000462",
+    "date": "15/10/2026",
+    "client": "FISH ANNECY",
+    "ht": 236.54,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000463",
+    "date": "15/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 243.34,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000657",
+    "date": "15/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": -96.41,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000427",
+    "date": "14/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 634.02,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000428",
+    "date": "14/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 410.25,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000429",
+    "date": "14/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 870.22,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000430",
+    "date": "14/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 606.15,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000431",
+    "date": "14/10/2026",
+    "client": "CSF Aire sur la lys - MARKET",
+    "ht": 298.36,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000434",
+    "date": "14/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 413.58,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000435",
+    "date": "14/10/2026",
+    "client": "AUCHAN MANDELIEU",
+    "ht": 723.84,
+    "commercial": "SEBASTIEN GASNIER"
+  },
+  {
+    "ref": "26000737",
+    "date": "14/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": -315.93,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000396",
+    "date": "13/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 749.61,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000397",
+    "date": "13/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1425.6,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000398",
+    "date": "13/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 323.22,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000399",
+    "date": "13/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 534.57,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000400",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 36.49,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000401",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 109.47,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000402",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 48.66,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000403",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 60.81,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000404",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000405",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 97.31,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000406",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 170.28,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000407",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 24.32,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000408",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 243.26,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000409",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 109.47,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000410",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 377.05,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000411",
+    "date": "13/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 462.18,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000412",
+    "date": "13/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 713.81,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000413",
+    "date": "13/10/2026",
+    "client": "ALDOUEST",
+    "ht": 430.81,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000414",
+    "date": "13/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 287.96,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000415",
+    "date": "13/10/2026",
+    "client": "AUCHAN OLIVET",
+    "ht": 510.4,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000416",
+    "date": "13/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1654.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000418",
+    "date": "13/10/2026",
+    "client": "SEDIS ALIMENTAIRE",
+    "ht": 3434.3,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000419",
+    "date": "13/10/2026",
+    "client": "NOUS EPICERIES ANTI GASPI CENTRALE",
+    "ht": 2238.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000420",
+    "date": "13/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 236.54,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000421",
+    "date": "13/10/2026",
+    "client": "RENOUEST ( E.LECLERC RENNES )",
+    "ht": 1215.68,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000422",
+    "date": "13/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 400.65,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000423",
+    "date": "13/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 560.05,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000424",
+    "date": "13/10/2026",
+    "client": "LES HALLES MARCHE",
+    "ht": 350.79,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000425",
+    "date": "13/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 697.91,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000426",
+    "date": "13/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 529.91,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000386",
+    "date": "12/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 1774.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000387",
+    "date": "12/10/2026",
+    "client": "AUCHAN FENOUILLET (TOULOUSE)",
+    "ht": 739.2,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000388",
+    "date": "12/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 637.59,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000390",
+    "date": "12/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 383.42,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000391",
+    "date": "12/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1055.48,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000394",
+    "date": "12/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 310.18,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000395",
+    "date": "12/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 542.82,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000417",
+    "date": "12/10/2026",
+    "client": "AUCHAN HYPERMARCHÉ (CERGY)",
+    "ht": 1057.92,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000389",
+    "date": "09/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 323.11,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000392",
+    "date": "09/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 374.8,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000393",
+    "date": "09/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 336.04,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000369",
+    "date": "08/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 509.7,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000370",
+    "date": "08/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 323.23,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000372",
+    "date": "08/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 778.41,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000373",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 145.96,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000374",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 97.3,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000375",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 158.11,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000376",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000377",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 145.96,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000378",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 377.05,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000379",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 802.74,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000380",
+    "date": "08/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 693.28,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000382",
+    "date": "08/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 611.74,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000383",
+    "date": "08/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 185.26,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000384",
+    "date": "08/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 560.06,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000385",
+    "date": "08/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 361.89,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000659",
+    "date": "08/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": -354.28,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000660",
+    "date": "08/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": -84.65,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000357",
+    "date": "07/10/2026",
+    "client": "U EXPRESS RENNES HOCHE ( SAS LES CONQUERANTS )",
+    "ht": 428.73,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000360",
+    "date": "07/10/2026",
+    "client": "CORA LESQUIN - HYPER",
+    "ht": 532.23,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000361",
+    "date": "07/10/2026",
+    "client": "CSF BILLY BERCLAU - HYPER",
+    "ht": 2232.38,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000362",
+    "date": "07/10/2026",
+    "client": "CORA ATTON-HYPER",
+    "ht": 1182.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000363",
+    "date": "07/10/2026",
+    "client": "C.S.F. - CREPY EN VALOIS (584)",
+    "ht": 323.23,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000364",
+    "date": "07/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 248.64,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000367",
+    "date": "07/10/2026",
+    "client": "COSTCO FRANCE - VILLEBON",
+    "ht": 1943.04,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000371",
+    "date": "07/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 357.58,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000381",
+    "date": "07/10/2026",
+    "client": "AUCHAN GRASSE",
+    "ht": 459.36,
+    "commercial": "SEBASTIEN GASNIER"
+  },
+  {
+    "ref": "26000338",
+    "date": "06/10/2026",
+    "client": "SOC COOP APPROVISIONNEMENT PARIS NORD (SCAPNOR)",
+    "ht": 827.38,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000341",
+    "date": "06/10/2026",
+    "client": "COOPERATIVE U ENSIENGE (NANTEUIL)",
+    "ht": 697.9,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000342",
+    "date": "06/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 279.85,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000343",
+    "date": "06/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1889.29,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000345",
+    "date": "06/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 298.37,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000346",
+    "date": "06/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 422.69,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000347",
+    "date": "06/10/2026",
+    "client": "Carrefour Belgium N.V. (BERINGEN)",
+    "ht": 1259.84,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000348",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 72.98,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000349",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 133.8,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000350",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 109.47,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000351",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 60.81,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000352",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 145.95,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000353",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 291.91,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000354",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 437.86,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000355",
+    "date": "06/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 401.37,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000356",
+    "date": "06/10/2026",
+    "client": "O'TERA MERIGNAC",
+    "ht": 426.88,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000359",
+    "date": "06/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 926.24,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000358",
+    "date": "06/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 465.28,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000365",
+    "date": "06/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 439.42,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000366",
+    "date": "06/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 400.66,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000368",
+    "date": "06/10/2026",
+    "client": "H MARKET",
+    "ht": 4291.68,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000337",
+    "date": "05/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT DE L'OUEST SCAOUEST",
+    "ht": 1486.3,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000339",
+    "date": "05/10/2026",
+    "client": "CENTRA APPROVI CHARENT POITOU ( SCACHAP )",
+    "ht": 323.1,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000340",
+    "date": "05/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 581.59,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000326",
+    "date": "02/10/2026",
+    "client": "O'TERA EPAGNY",
+    "ht": 510.4,
+    "commercial": "CAP FRAIS"
+  },
+  {
+    "ref": "26000325",
+    "date": "02/10/2026",
+    "client": "SA U PROXIMITE France",
+    "ht": 792.68,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000329",
+    "date": "02/10/2026",
+    "client": "AUCHAN LAXOU",
+    "ht": 440.8,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000330",
+    "date": "02/10/2026",
+    "client": "Carrefour Belgium N.V. (ST KATELIJNE)",
+    "ht": 1342.72,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000331",
+    "date": "02/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 331.73,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000332",
+    "date": "02/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) LE LUC",
+    "ht": 310.18,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000333",
+    "date": "02/10/2026",
+    "client": "LECLERC APPROVISIONNEMENT SUD (LECASUD) CABANNES",
+    "ht": 374.81,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000334",
+    "date": "02/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 298.37,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000335",
+    "date": "02/10/2026",
+    "client": "CSF Aire sur la lys - MARKET",
+    "ht": 323.23,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000336",
+    "date": "02/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 267.68,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000577",
+    "date": "02/10/2026",
+    "client": "COOPERATIVE U ENSEIGNE ( IFS )",
+    "ht": 1046.86,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000792",
+    "date": "02/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": -404.96,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000293",
+    "date": "01/10/2026",
+    "client": "Costco Wholesale Spain, S.L.U.",
+    "ht": 5012.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000294",
+    "date": "01/10/2026",
+    "client": "COSTCO FRANCE - MULHOUSE (5403)",
+    "ht": 1774.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000306",
+    "date": "01/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT RHONE ALPE SOCARA",
+    "ht": 193.86,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000308",
+    "date": "01/10/2026",
+    "client": "AUCHAN HYPERMARCHÉ (MAUREPAS)",
+    "ht": 417.6,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000309",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - ARRAS 7718",
+    "ht": 48.65,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000310",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - TOURS 7716",
+    "ht": 60.81,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000311",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - BORDEAUX 7741",
+    "ht": 121.63,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000312",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NANCY 7717",
+    "ht": 158.12,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000313",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - NEUVILLE 7712",
+    "ht": 85.14,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000314",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - CLESUD 7713",
+    "ht": 279.75,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000315",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - WISSOUS / GAROSUD",
+    "ht": 364.88,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000316",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 401.37,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000317",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 12.16,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000318",
+    "date": "01/10/2026",
+    "client": "MONOPRIX EXPLOITATION (MPX) - GARONOR/ AULNAY /s B",
+    "ht": 24.33,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000319",
+    "date": "01/10/2026",
+    "client": "SCADIF - SOCIETE COOPERATIVE D'APPROVISIONNEMENT D",
+    "ht": 170.35,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000320",
+    "date": "01/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - FLEURY   (ST GENEVIEV",
+    "ht": 410.26,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000321",
+    "date": "01/10/2026",
+    "client": "CARREFOUR HYPERMARCHES SAS - DAMMARTIN EN GEOLE  (",
+    "ht": 721.06,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000322",
+    "date": "01/10/2026",
+    "client": "DISTRIBUTION FRANPRIX",
+    "ht": 1735.23,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000323",
+    "date": "01/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (CHALONS)",
+    "ht": 267.09,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000324",
+    "date": "01/10/2026",
+    "client": "SOCIETE COOPERATIVE D'APPROVISIONNEMENT PARIS-EST (TREMERY)",
+    "ht": 404.96,
+    "commercial": "BROCARD"
+  },
+  {
+    "ref": "26000327",
+    "date": "01/10/2026",
+    "client": "PrimaPrix France",
+    "ht": 764.64,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000328",
+    "date": "01/10/2026",
+    "client": "SEDIS ALIMENTAIRE",
+    "ht": 556.4,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000344",
+    "date": "01/10/2026",
+    "client": "COSTCO FRANCE - PONTAULT COMBAULT",
+    "ht": 0.0,
+    "commercial": "KOOK'S"
+  },
+  {
+    "ref": "26000533",
+    "date": "01/10/2026",
+    "client": "CARREFOUR SUPPLY CHAIN - COMBS LA VILLE (065)",
+    "ht": 0.0,
+    "commercial": "KOOK'S"
+  }
+]
