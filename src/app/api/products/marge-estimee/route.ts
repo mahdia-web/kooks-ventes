@@ -78,13 +78,35 @@ export async function GET(req: NextRequest) {
     // 2. VolumeSale (CA par parfum×format) sur la période
     const volumeSales = await db.volumeSale.findMany({
       where: { date: { gte: start, lte: end } },
-      select: { parfum: true, format: true, quantity: true, unitPrice: true },
+      select: { parfum: true, format: true, quantity: true, unitPrice: true, productLabel: true },
     });
 
     // Agrège CA + pots par (parfum, format)
     // On normalise les libellés pour matcher avec Product.parfum.name / format.name
     const norm = (s: string | null | undefined) =>
-      (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[''`]/g, '').trim();
+
+    // Helper: extrait parfum + format depuis le productLabel quand VolumeSale.parfum
+    // ou VolumeSale.format sont null. Les règles d'extraction couvrent les libellés
+    // ERP observés (COOKIE DOUGH PEANUT X2 BQ F, PAV 8*75G - PEANUT, etc.)
+    const extractFromLabel = (label: string): { parfum: string | null; format: string | null } => {
+      const l = (label || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      // Parfum
+      let parfum: string | null = null;
+      if (l.includes('PEANUT') || l.includes('Peanut Butter'.toUpperCase())) parfum = 'Peanut Butter';
+      else if (l.includes('CRISPY') || l.includes('CRY CHOC') || l.includes('CHOCO')) parfum = 'Crispy Choco';
+      else if (l.includes('CARAMEL') || l.includes('CARA')) parfum = 'Caramel Pecan';
+      else if (l.includes('SPECUL') || l.includes('SPEC')) parfum = 'Speculoos';
+      else if (l.includes('COCO') || l.includes('NOIX DE COCO')) parfum = 'Coco';
+      else if (l.includes('ORIGINAL')) parfum = 'Original';
+      // Format
+      let format: string | null = null;
+      if (l.includes('BOX 9') || l.includes('BOX DE 9') || l.includes('BOITE 9')) format = 'Box de 9';
+      else if (l.includes('PAV 8') || l.includes('PAV*8') || l.includes('PAV 8*75G') || l.includes('INDIV') || l.includes('120 GR') || l.includes('75G')) format = 'Indiv PAV 8';
+      else if (l.includes('X2') || l.includes('LOT 2') || l.includes('LOT DE 2') || l.includes('BQ F') || l.includes('SAC 5 KG')) format = 'Lot de 2';
+      else if (l.includes('FOURO')) format = 'Indiv Fouro';
+      return { parfum, format };
+    };
 
     // Map key = `${normParfum}__${normFormat}` → { ca, pots }
     const caByProduct = new Map<string, { ca: number; pots: number }>();
@@ -92,20 +114,23 @@ export async function GET(req: NextRequest) {
     let totalPots = 0;
 
     for (const vs of volumeSales) {
-      if (!vs.parfum || !vs.format) continue;
+      // Récupère parfum/format: priorité aux champs extraits, fallback sur productLabel
+      let parfum = vs.parfum;
+      let format = vs.format;
+      if ((!parfum || !format) && vs.productLabel) {
+        const ext = extractFromLabel(vs.productLabel);
+        if (!parfum) parfum = ext.parfum;
+        if (!format) parfum = ext.format;
+      }
+      if (!parfum || !format) continue; // toujours pas de match → on saute
       const unit = vs.unitPrice ?? 0;
       const ca = vs.quantity * unit;
-      // potsPerColis dépend du format — on l'estime depuis le format du produit
-      // (sera affiné ci-dessous via product.format.potsPerColis)
-      const key = `${norm(vs.parfum)}__${norm(vs.format)}`;
+      const key = `${norm(parfum)}__${norm(format)}`;
       const cur = caByProduct.get(key) ?? { ca: 0, pots: 0 };
       cur.ca += ca;
-      // pots: on additionne la quantité de colis ici, on divisera plus tard
-      // par potsPerColis une fois le produit identifié
       cur.pots += vs.quantity;
       caByProduct.set(key, cur);
       totalCAProduits += ca;
-      // (totalPots calculé après matching, car dépend de potsPerColis)
     }
 
     // 3. Charges sur la période — directes ET indirectes
