@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
 
     const charges = await db.charge.findMany({
       where: { date: { gte: start, lte: end } },
-      select: { category: true, amountTTC: true, amountHT: true, allocationMethod: true, enseigne: true },
+      select: {
+        id: true, category: true, subLabel: true, vendor: true, date: true,
+        amountTTC: true, amountHT: true, vatRate: true,
+        allocationMethod: true, enseigne: true, excludedFromMargin: true,
+      },
     });
 
     // Agrège par catégorie
@@ -65,10 +69,41 @@ export async function GET(req: NextRequest) {
       };
     }).sort((a, b) => b.amountTTC - a.amountTTC);
 
+    // Lignes de salaires individuelles (pour toggle + édition dans l'UI).
+    // Détecte les catégories "Salaires" / "Rémunération" / "Paie".
+    const isSalairesCat = (cat: string) => /salaire|rémunération|paie/i.test(cat || '');
+    const salaireLines = charges
+      .filter(c => isSalairesCat(c.category))
+      .map(c => ({
+        id: c.id,
+        category: c.category,
+        subLabel: c.subLabel,
+        vendor: c.vendor,
+        date: c.date,
+        amountHT: c.amountHT,
+        amountTTC: c.amountTTC,
+        vatRate: c.vatRate,
+        allocationMethod: c.allocationMethod,
+        excludedFromMargin: c.excludedFromMargin,
+      }))
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    const salairesIncludedTTC = salaireLines
+      .filter(s => !s.excludedFromMargin)
+      .reduce((s, l) => s + l.amountTTC, 0);
+    const salairesExcludedTTC = salaireLines
+      .filter(s => s.excludedFromMargin)
+      .reduce((s, l) => s + l.amountTTC, 0);
+
     return NextResponse.json({
       ok: true,
       charges: result,
       total: result.reduce((s, r) => s + r.amountTTC, 0),
+      // Détail des lignes de salaires (toggle + édition individuelle)
+      salaireLines,
+      salairesIncludedTTC,
+      salairesExcludedTTC,
+      salairesTotalTTC: salairesIncludedTTC + salairesExcludedTTC,
     });
   } catch (e) {
     return NextResponse.json(

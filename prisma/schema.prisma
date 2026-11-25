@@ -209,6 +209,7 @@ model Charge {
   allocationMethod String   @default("GLOBAL") // 'DIRECT' (client spécifique) | 'PROPORTIONAL' (au prorata CA) | 'GLOBAL' (non ventilé)
   source           String   @default("IMPORT") // 'IMPORT' ou 'MANUAL'
   filePath         String?  // nom du fichier source (traçabilité)
+  excludedFromMargin Boolean @default(false) // si true, la ligne est ignorée du calcul de marge (toggle individuel, ex: salaire retiré)
   deduplicationKey String   @unique // évite les ré-imports (hash date+montant+catégorie+libellé)
   createdAt        DateTime @default(now())
 

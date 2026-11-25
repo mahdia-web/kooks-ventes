@@ -154,7 +154,7 @@ export async function GET(req: NextRequest) {
     // On calcule aussi les charges indirectes (allocationMethod !== 'DIRECT') et le total.
     const charges = await db.charge.findMany({
       where: { date: { gte: start, lte: end } },
-      select: { category: true, amountTTC: true, allocationMethod: true, enseigne: true },
+      select: { category: true, amountTTC: true, allocationMethod: true, enseigne: true, excludedFromMargin: true },
     });
 
     // Catégories de charges directes sélectionnables
@@ -178,7 +178,8 @@ export async function GET(req: NextRequest) {
     let chargesMarketing = 0;        // compteur affichage (DIRECT)
     let chargesCatalogues = 0;       // compteur affichage (DIRECT)
     let chargesImprimes = 0;         // compteur affichage (DIRECT)
-    let chargesSalaires = 0;         // compteur affichage (DIRECT + INDIRECT)
+    let chargesSalaires = 0;         // compteur affichage (DIRECT + INDIRECT, toutes lignes)
+    let salairesExcludedTTC = 0;     // salaires retirés individuellement de la marge
     let chargesDirectesAutresTTC = 0; // compteur affichage (Honoraires, Loyer, Logiciels DIRECT)
     let chargesDirectesExcluesTTC = 0; // achats matières + emballages (déjà dans prix d'achat)
     let chargesIndirectesTTC = 0;    // compteur affichage (allocationMethod !== 'DIRECT')
@@ -207,6 +208,7 @@ export async function GET(req: NextRequest) {
       // 1) Compteurs d'affichage (indépendants des toggles) pour la synthèse
       if (isSalaires) {
         chargesSalaires += c.amountTTC;
+        if (c.excludedFromMargin === true) salairesExcludedTTC += c.amountTTC;
       } else if (isDirect) {
         if (isExclu) {
           chargesDirectesExcluesTTC += c.amountTTC;
@@ -221,15 +223,18 @@ export async function GET(req: NextRequest) {
 
       // 2) Allocation effective au prorata du CA selon les toggles
       //    - Salaires : toggle includeSalaires (poste séparé pour la double visibilité)
+      //      + toggle individuel excludedFromMargin (ligne retirée de la marge par l'utilisateur)
       //    - Charges directes (hors salaires, hors achats/emballages exclus) : toggle includeDirectes
       //    - Charges indirectes (hors salaires) : toggle includeIndirectes
       //    Les achats matières + emballages directs ne sont JAMAIS alloués (déjà dans prix d'achat).
+      //    Une ligne marquée excludedFromMargin=true n'est jamais allouée (retrait individuel).
+      const isManuallyExcluded = c.excludedFromMargin === true;
       if (isSalaires) {
-        if (includeSalaires) salairesAllouablesTTC += c.amountTTC;
+        if (includeSalaires && !isManuallyExcluded) salairesAllouablesTTC += c.amountTTC;
       } else if (isDirect) {
-        if (!isExclu && includeDirectes) chargesHorsSalairesTTC += c.amountTTC;
+        if (!isExclu && includeDirectes && !isManuallyExcluded) chargesHorsSalairesTTC += c.amountTTC;
       } else {
-        if (includeIndirectes) chargesHorsSalairesTTC += c.amountTTC;
+        if (includeIndirectes && !isManuallyExcluded) chargesHorsSalairesTTC += c.amountTTC;
       }
     }
 
@@ -395,6 +400,8 @@ export async function GET(req: NextRequest) {
         chargesCatalogues,
         chargesImprimes,
         chargesSalaires,
+        salairesExcludedTTC,
+        salairesAllouablesTTC,
         chargesDirectesAutresTTC,
         chargesIndirectesTTC,
         totalChargesTTC,
