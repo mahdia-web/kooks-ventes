@@ -10,10 +10,9 @@ export const maxDuration = 60;
  * en incluant une part des charges directes (TTC) allouée au prorata du CA.
  *
  * Query params:
- *   includeTransport=true   (toujours true, ignoré)
- *   includeMarketing=true|false  (default true)
- *   includeCatalogues=true|false (default false)
- *   includeImprimes=true|false   (default false)
+ *   includeDirectes=true|false   (default true)  — toutes les charges classées DIRECT
+ *   includeIndirectes=true|false (default false) — toutes les charges classées INDIRECT
+ *   includeSalaires=true|false   (default true)  — les salaires (poste lourd, géré à part)
  *   startDate=JJ/MM/AAAA    (default: 1er VolumeSale disponible)
  *   endDate=JJ/MM/AAAA      (default: dernier VolumeSale disponible)
  *
@@ -27,9 +26,8 @@ export const maxDuration = 60;
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const includeMarketing = searchParams.get('includeMarketing') !== 'false';
-    const includeCatalogues = searchParams.get('includeCatalogues') === 'true';
-    const includeImprimes = searchParams.get('includeImprimes') === 'true';
+    const includeDirectes = searchParams.get('includeDirectes') !== 'false';
+    const includeIndirectes = searchParams.get('includeIndirectes') === 'true';
     const includeSalaires = searchParams.get('includeSalaires') !== 'false';
 
     const startDateStr = searchParams.get('startDate');
@@ -164,61 +162,63 @@ export async function GET(req: NextRequest) {
     const isEmballageCat = (cat: string) =>
       /emballage|conditionnement/i.test(cat);
 
-    let chargesTransport = 0;
-    let chargesMarketing = 0;
-    let chargesCatalogues = 0;
-    let chargesImprimes = 0;
-    let chargesSalaires = 0;
-    let chargesDirectesAutresTTC = 0; // autres charges directes (Honoraires, Loyer, Logiciels...)
+    let chargesTransport = 0;        // compteur affichage (DIRECT)
+    let chargesMarketing = 0;        // compteur affichage (DIRECT)
+    let chargesCatalogues = 0;       // compteur affichage (DIRECT)
+    let chargesImprimes = 0;         // compteur affichage (DIRECT)
+    let chargesSalaires = 0;         // compteur affichage (DIRECT + INDIRECT)
+    let chargesDirectesAutresTTC = 0; // compteur affichage (Honoraires, Loyer, Logiciels DIRECT)
     let chargesDirectesExcluesTTC = 0; // achats matières + emballages (déjà dans prix d'achat)
-    let chargesIndirectesTTC = 0;      // allocationMethod !== 'DIRECT' (GLOBAL + PROPORTIONAL)
-    let totalChargesTTC = 0;           // somme de TOUTES les charges (directes + indirectes)
+    let chargesIndirectesTTC = 0;    // compteur affichage (allocationMethod !== 'DIRECT')
+    let totalChargesTTC = 0;         // somme de TOUTES les charges
     const chargesParCategorie: Record<string, number> = {};
+
+    // chargesAlloueesTTC = montant total réellement alloué au prorata du CA,
+    // déterminé par les 3 toggles (includeDirectes, includeIndirectes, includeSalaires).
+    let chargesAlloueesTTC = 0;
 
     for (const c of charges) {
       totalChargesTTC += c.amountTTC;
       const cat = c.category;
       chargesParCategorie[cat] = (chargesParCategorie[cat] ?? 0) + c.amountTTC;
 
-      // Charges directes (allocationMethod === 'DIRECT') — ventilées par catégorie.
-      // Toutes les charges DIRECT sont allouées au prorata du CA (la classification
-      // se gère sur la page Charges), SAUF les achats matières premières et
-      // emballages (déjà dans le prix d'achat, pour éviter un double compte).
-      // Les compteurs par catégorie (Transport, Marketing, ...) servent uniquement
-      // à l'affichage détaillé dans la synthèse de la grille tarifaire.
-      if (c.allocationMethod === 'DIRECT') {
-        if (isAchatMatieresCat(cat) || isEmballageCat(cat)) {
-          // Exclu de l'allocation (déjà dans le prix d'achat)
+      const isDirect = c.allocationMethod === 'DIRECT';
+      const isSalaires = isSalairesCat(cat);
+      const isExclu = isAchatMatieresCat(cat) || isEmballageCat(cat); // déjà dans prix d'achat
+
+      // 1) Compteurs d'affichage (indépendants des toggles) pour la synthèse
+      if (isSalaires) {
+        chargesSalaires += c.amountTTC;
+      } else if (isDirect) {
+        if (isExclu) {
           chargesDirectesExcluesTTC += c.amountTTC;
-        } else if (isTransportCat(cat)) {
-          chargesTransport += c.amountTTC;
-        } else if (isMarketingCat(cat)) {
-          chargesMarketing += c.amountTTC;
-        } else if (isCatalogueCat(cat)) {
-          chargesCatalogues += c.amountTTC;
-        } else if (isImprimesCat(cat)) {
-          chargesImprimes += c.amountTTC;
-        } else if (isSalairesCat(cat)) {
-          chargesSalaires += c.amountTTC;
-        } else {
-          // Autre charge directe (Honoraires, Loyer, Logiciels, etc.) —
-          // toujours allouée au prorata du CA. Ainsi, reclasser une catégorie
-          // indirecte en DIRECT impacte immédiatement la marge par pot.
-          chargesDirectesAutresTTC += c.amountTTC;
-        }
+        } else if (isTransportCat(cat)) chargesTransport += c.amountTTC;
+        else if (isMarketingCat(cat)) chargesMarketing += c.amountTTC;
+        else if (isCatalogueCat(cat)) chargesCatalogues += c.amountTTC;
+        else if (isImprimesCat(cat)) chargesImprimes += c.amountTTC;
+        else chargesDirectesAutresTTC += c.amountTTC;
       } else {
-        // Charge indirecte (GLOBAL ou PROPORTIONAL)
         chargesIndirectesTTC += c.amountTTC;
+      }
+
+      // 2) Allocation effective au prorata du CA selon les toggles
+      //    - Salaires : gérés à part (toggle includeSalaires)
+      //    - Charges directes (hors salaires, hors achats/emballages exclus) : toggle includeDirectes
+      //    - Charges indirectes (hors salaires) : toggle includeIndirectes
+      //    Les achats matières + emballages directs ne sont JAMAIS alloués (déjà dans prix d'achat).
+      if (isSalaires) {
+        if (includeSalaires) chargesAlloueesTTC += c.amountTTC;
+      } else if (isDirect) {
+        if (!isExclu && includeDirectes) chargesAlloueesTTC += c.amountTTC;
+      } else {
+        if (includeIndirectes) chargesAlloueesTTC += c.amountTTC;
       }
     }
 
-    // chargesDirectesTTC = somme des charges directes allouables au prorata du CA
-    // (Transport + options + Salaires + autres charges directes).
+    // chargesDirectesTTC (rétro-compat nommage) = montant alloué au prorata du CA.
     // Les achats matières premières et emballages directs sont EXCLUS (déjà dans
     // le prix d'achat).
-    const chargesDirectesTTC =
-      chargesTransport + chargesMarketing + chargesCatalogues +
-      chargesImprimes + chargesSalaires + chargesDirectesAutresTTC;
+    const chargesDirectesTTC = chargesAlloueesTTC;
     // chargesDirectesTotalTTC = TOUTES les charges directes (y compris
     // achats/emballages) pour l'affichage du total dans la synthèse.
     const chargesDirectesTotalTTC = totalChargesTTC - chargesIndirectesTTC;
@@ -310,8 +310,7 @@ export async function GET(req: NextRequest) {
           end: end.toISOString().split('T')[0],
         },
         options: {
-          includeMarketing, includeCatalogues, includeImprimes,
-          includeTransport: true, // toujours
+          includeDirectes, includeIndirectes, includeSalaires,
         },
       },
     });

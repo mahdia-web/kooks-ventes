@@ -43,7 +43,7 @@ interface MargeTotals {
   chargesIndirectesTTC: number; totalChargesTTC: number;
   totalCAProduits: number; totalCaHTPeriode: number; totalPots: number;
   periode: { start: string; end: string };
-  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeSalaires: boolean; includeTransport: boolean; };
+  options: { includeDirectes: boolean; includeIndirectes: boolean; includeSalaires: boolean; };
 }
 
 export function ClientTariffPanel() {
@@ -62,7 +62,13 @@ export function ClientTariffPanel() {
   // et la colonne "Marge nette" de la grille tarifaire.
   const [margeProducts, setMargeProducts] = useState<MargeProduct[]>([]);
   const [margeTotals, setMargeTotals] = useState<MargeTotals | null>(null);
-  const [margeOptions, setMargeOptions] = useState({ includeMarketing: true, includeCatalogues: false, includeImprimes: false, includeSalaires: true });
+  // 3 toggles de charges à inclure dans la marge nette :
+  //  - includeDirectes   : toutes les charges classées DIRECT (Transport, Marketing,
+  //                        Catalogues, Imprimés, autres) — ON par défaut.
+  //  - includeIndirectes : toutes les charges classées INDIRECT — OFF par défaut.
+  //  - includeSalaires   : les salaires (gérés à part car poste lourd) — ON par défaut.
+  // Chaque bascule déclenche un recalcul automatique (useEffect sur margeOptions).
+  const [margeOptions, setMargeOptions] = useState({ includeDirectes: true, includeIndirectes: false, includeSalaires: true });
 
   // Map productId → chargesParPot pour lookup rapide dans la grille tarifaire
   const chargesParPotByProduct = useMemo(() => {
@@ -154,9 +160,8 @@ export function ClientTariffPanel() {
     setMargeLoading(true);
     try {
       const params = new URLSearchParams({
-        includeMarketing: String(margeOptions.includeMarketing),
-        includeCatalogues: String(margeOptions.includeCatalogues),
-        includeImprimes: String(margeOptions.includeImprimes),
+        includeDirectes: String(margeOptions.includeDirectes),
+        includeIndirectes: String(margeOptions.includeIndirectes),
         includeSalaires: String(margeOptions.includeSalaires),
       });
       if (margePeriodParams.startDate) params.set('startDate', margePeriodParams.startDate);
@@ -566,13 +571,13 @@ function EstimatedMarginCard({
 }: {
   products: MargeProduct[];
   totals: MargeTotals | null;
-  options: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeSalaires: boolean };
+  options: { includeDirectes: boolean; includeIndirectes: boolean; includeSalaires: boolean };
   expanded: boolean;
   expandedProduct: string | null;
   loading: boolean;
   setExpanded: (v: boolean) => void;
   setExpandedProduct: (v: string | null) => void;
-  setOptions: (v: { includeMarketing: boolean; includeCatalogues: boolean; includeImprimes: boolean; includeSalaires: boolean }) => void;
+  setOptions: (v: { includeDirectes: boolean; includeIndirectes: boolean; includeSalaires: boolean }) => void;
   load: () => void;
   filterMode: 'month' | 'range';
   setFilterMode: (v: 'month' | 'range') => void;
@@ -586,7 +591,7 @@ function EstimatedMarginCard({
   setRangeEnd: (v: string) => void;
   periodLabel: string;
 }) {
-  const { includeMarketing, includeCatalogues, includeImprimes, includeSalaires } = options;
+  const { includeDirectes, includeIndirectes, includeSalaires } = options;
   const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
   return (
@@ -655,15 +660,31 @@ function EstimatedMarginCard({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Les volumes (CA, pots) et les charges directes TTC sont calculés sur cette période.
-              Les marges nettes par pot s'adaptent automatiquement à la classification
-              des charges (directe / indirecte) définie sur la page Charges.
+              Les volumes (CA, pots) et les charges TTC sont calculés sur cette période.
+              La marge nette par pot se recalcule automatiquement à chaque bascule de toggle
+              ci-dessous. La classification des charges (directe / indirecte) se gère sur la page Charges.
             </p>
           </div>
 
-          {/* Note : la classification des charges (directe / indirecte) se gère
-              sur la page Charges. Ici, toutes les charges marquées DIRECT sont
-              automatiquement allouées au prorata du CA dans le calcul de la marge. */}
+          {/* Toggles : charges à inclure dans le calcul de la marge nette.
+              Chaque bascule déclenche un recalcul automatique (pas de bouton Recalculer). */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Charges incluses :</span>
+            <Toggle on={includeDirectes} onChange={(v) => setOptions({ ...options, includeDirectes: v })} label="Charges directes" />
+            <Toggle on={includeIndirectes} onChange={(v) => setOptions({ ...options, includeIndirectes: v })} label="Charges indirectes" />
+            <Toggle on={includeSalaires} onChange={(v) => setOptions({ ...options, includeSalaires: v })} label="Salaires" />
+            {loading && <span className="text-[11px] text-muted-foreground ml-1">Recalcul…</span>}
+          </div>
+
+          {/* Explication de la méthode de répartition des charges par pot */}
+          <p className="text-[11px] text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
+            <span className="font-medium">Méthode de répartition :</span> les charges incluses
+            (cochées ci-dessus) sont allouées à chaque produit <strong>au prorata de son CA</strong>{' '}
+            (CA produit ÷ CA total des produits), puis divisées par le nombre de pots du produit
+            pour obtenir les <em>charges par pot</em>. Les achats matières premières et emballages
+            directs sont exclus (déjà dans le prix d'achat).{' '}
+            <span className="font-medium">Prix de vente moyen/pot</span> = CA produit ÷ nombre de pots.
+          </p>
 
           {/* Synthèse */}
           {totals && (
