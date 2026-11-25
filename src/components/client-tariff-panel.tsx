@@ -33,7 +33,7 @@ interface MargeProduct {
   productId: string; name: string; parfum: string; format: string;
   potsPerColis: number; nbColis: number; nbPots: number; caProduct: number;
   prixVenteMoyenParColis: number; prixVenteMoyenParPot: number;
-  achatParPot: number | null; achatParColis: number | null;
+  achatParPot: number | null; achatParFormat: number | null; achatParColis: number | null;
   margeBruteParPot: number | null; margeBruteParColis: number | null;
   chargesParPot: number; chargesParColis: number;
   margeNetteParPot: number | null; margeNetteParColis: number | null;
@@ -744,7 +744,7 @@ function EstimatedMarginCard({
                           </TableCell>
                           <TableCell className="text-right text-sm font-mono">{formatEuro(p.caProduct)}</TableCell>
                           <TableCell className="text-right text-sm font-mono">{formatEuro(p.prixVenteMoyenParColis)}</TableCell>
-                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">{p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'}</TableCell>
+                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">{p.achatParFormat !== null ? formatEuro(p.achatParFormat) : '—'}</TableCell>
                           <TableCell className="text-right text-sm font-mono text-muted-foreground hidden md:table-cell">{formatEuro(p.chargesParColis)}</TableCell>
                           <TableCell className="text-right text-sm font-mono font-semibold">
                             {p.margeNetteParColis !== null ? (
@@ -770,7 +770,8 @@ function EstimatedMarginCard({
                                   <DetailRow label="CA période (somme quantity × PU)" value={formatEuro(p.caProduct)} />
                                   <DetailRow label="Prix vente moyen / format (moy. PU HT)" value={formatEuro(p.prixVenteMoyenParColis)} highlight />
                                   <DetailRow label="Prix vente moyen / pot" value={formatEuro(p.prixVenteMoyenParPot)} />
-                                  <DetailRow label="Prix d'achat / format (colis)" value={p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'} />
+                                  <DetailRow label="Prix d'achat / format (lot, boîte...)" value={p.achatParFormat !== null ? formatEuro(p.achatParFormat) : '—'} />
+                                  <DetailRow label="Prix d'achat / colis logistique (info)" value={p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'} />
                                   <DetailRow label="Prix d'achat / pot" value={p.achatParPot !== null ? formatEuro(p.achatParPot) : '—'} />
                                   <DetailRow label="Marge brute / format (avant charges)" value={p.margeBruteParColis !== null ? formatEuro(p.margeBruteParColis) : '—'} highlight />
                                   <DetailRow label="Charges allouées / format" value={formatEuro(p.chargesParColis)} highlight />

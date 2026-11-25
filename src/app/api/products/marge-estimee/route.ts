@@ -70,7 +70,11 @@ export async function GET(req: NextRequest) {
       include: {
         parfum: true,
         format: true,
-        purchasePrices: { where: { endDate: null }, take: 1 },
+        // pricePerFormat = prix d'achat d'UN format (lot de 2, boîte de 9...).
+        // C'est l'unité comparable au PU de vente (qui est aussi par format).
+        // pricePerColis = prix d'achat d'un colis logistique (peut contenir plusieurs
+        // formats) — NON comparable au PU de vente ; gardé pour info seulement.
+        purchasePrices: { where: { endDate: null }, take: 1, select: { pricePerPot: true, pricePerFormat: true, pricePerColis: true } },
       },
     });
 
@@ -261,10 +265,17 @@ export async function GET(req: NextRequest) {
         : (nbColis > 0 ? caProduct / nbColis : 0);
       const prixVenteMoyenParPot = potsPerColis > 0 ? prixVenteMoyenParColis / potsPerColis : 0;
       const achatParPot = p.purchasePrices[0]?.pricePerPot ?? null;
-      const achatParColis = p.purchasePrices[0]?.pricePerColis ?? null;
+      // achatParFormat = prix d'achat d'un format (lot de 2, boîte de 9...).
+      // Fallback : pricePerPot × potsPerColis (cohérent avec l'achat au pot).
+      // NB : pricePerColis est un colis LOGISTIQUE (≠ format) — on ne l'utilise PAS
+      // comme achat par format pour éviter des marges négatives erronées.
+      const pp = p.purchasePrices[0];
+      const achatParFormat = pp?.pricePerFormat ?? (pp?.pricePerPot != null ? pp.pricePerPot * potsPerColis : null);
+      const achatParColis = pp?.pricePerColis ?? null; // gardé pour info (colis logistique)
 
       const margeBruteParPot = achatParPot !== null ? prixVenteMoyenParPot - achatParPot : null;
-      const margeBruteParColis = achatParColis !== null ? prixVenteMoyenParColis - achatParColis : null;
+      // marge brute par FORMAT (colis vendu) = prix vente moy/format − achat/format
+      const margeBruteParColis = achatParFormat !== null ? prixVenteMoyenParColis - achatParFormat : null;
 
       // Allocation des charges incluses au prorata du CA du produit
       const partCA = totalCAProduits > 0 ? caProduct / totalCAProduits : 0;
@@ -288,17 +299,18 @@ export async function GET(req: NextRequest) {
         nbPots,
         caProduct,
         // Prix de vente moyen = moyenne arithmétique des PU HT importés
-        // (par colis/format, et par pot = colis / potsPerColis)
-        prixVenteMoyenParColis,
+        // (par format/colis vendu, et par pot = format / potsPerColis)
+        prixVenteMoyenParColis,   // = par format (colis vendu à l'unité d'import)
         prixVenteMoyenParPot,
         achatParPot,
-        achatParColis,
+        achatParFormat,           // prix d'achat d'un format (lot/boîte) — comparable au PU de vente
+        achatParColis,            // prix d'achat d'un colis logistique (info, ≠ format)
         margeBruteParPot,
-        margeBruteParColis,
+        margeBruteParColis,       // = marge brute par FORMAT
         chargesParPot,
-        chargesParColis,
+        chargesParColis,          // = charges par FORMAT
         margeNetteParPot,
-        margeNetteParColis,
+        margeNetteParColis,       // = marge nette par FORMAT
         margePct,
       };
     });
