@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
     };
 
     // Map key = `${normParfum}__${normFormat}` → { ca, pots }
-    const caByProduct = new Map<string, { ca: number; pots: number }>();
+    const caByProduct = new Map<string, { ca: number; pots: number; puSum: number; puCount: number }>();
     let totalCAProduits = 0;
     let totalPots = 0;
 
@@ -130,9 +130,17 @@ export async function GET(req: NextRequest) {
       const unit = vs.unitPrice ?? 0;
       const ca = vs.quantity * unit;
       const key = `${norm(parfum)}__${norm(format)}`;
-      const cur = caByProduct.get(key) ?? { ca: 0, pots: 0 };
+      // ca  = somme des CA réels importés (quantity × PU HT)
+      // puSum / puCount = somme et nombre des PU renseignés (pour la MOYENNE
+      //   arithmétique des prix unitaires par produit, demandée par l'utilisateur)
+      // pots = somme des colis (quantity) — convertis en pots plus bas
+      const cur = caByProduct.get(key) ?? { ca: 0, pots: 0, puSum: 0, puCount: 0 };
       cur.ca += ca;
-      cur.pots += vs.quantity;
+      cur.pots += vs.quantity; // quantity = nombre de colis
+      if (vs.unitPrice != null && vs.unitPrice > 0) {
+        cur.puSum += vs.unitPrice;
+        cur.puCount += 1;
+      }
       caByProduct.set(key, cur);
       totalCAProduits += ca;
     }
@@ -240,23 +248,32 @@ export async function GET(req: NextRequest) {
       const parfumName = p.parfum?.name ?? '';
       const formatName = p.format?.name ?? '';
       const key = `${norm(parfumName)}__${norm(formatName)}`;
-      const agg = caByProduct.get(key) ?? { ca: 0, pots: 0 };
+      const agg = caByProduct.get(key) ?? { ca: 0, pots: 0, puSum: 0, puCount: 0 };
       const potsPerColis = p.format?.potsPerColis ?? 1;
       const nbColis = agg.pots; // agg.pots contient les colis (cf. boucle ci-dessus)
       const nbPots = nbColis * potsPerColis;
       const caProduct = agg.ca;
-      const prixVenteMoyenParPot = nbPots > 0 ? caProduct / nbPots : 0;
+      // Prix de vente moyen = MOYENNE ARITHMÉTIQUE des PU HT importés (par colis/format).
+      // Conforme à la demande : "la moyenne par du PU au niveau de chaque produit".
+      // Fallback : si aucun PU renseigné, on déduit du CA / nbColis.
+      const prixVenteMoyenParColis = agg.puCount > 0
+        ? agg.puSum / agg.puCount
+        : (nbColis > 0 ? caProduct / nbColis : 0);
+      const prixVenteMoyenParPot = potsPerColis > 0 ? prixVenteMoyenParColis / potsPerColis : 0;
       const achatParPot = p.purchasePrices[0]?.pricePerPot ?? null;
       const achatParColis = p.purchasePrices[0]?.pricePerColis ?? null;
 
       const margeBruteParPot = achatParPot !== null ? prixVenteMoyenParPot - achatParPot : null;
+      const margeBruteParColis = achatParColis !== null ? prixVenteMoyenParColis - achatParColis : null;
 
-      // Allocation des charges directes au prorata du CA du produit
+      // Allocation des charges incluses au prorata du CA du produit
       const partCA = totalCAProduits > 0 ? caProduct / totalCAProduits : 0;
       const chargesAllouees = chargesDirectesTTC * partCA;
       const chargesParPot = nbPots > 0 ? chargesAllouees / nbPots : 0;
+      const chargesParColis = nbColis > 0 ? chargesAllouees / nbColis : 0;
 
       const margeNetteParPot = margeBruteParPot !== null ? margeBruteParPot - chargesParPot : null;
+      const margeNetteParColis = margeBruteParColis !== null ? margeBruteParColis - chargesParColis : null;
       const margePct = prixVenteMoyenParPot > 0 && margeNetteParPot !== null
         ? (margeNetteParPot / prixVenteMoyenParPot) * 100
         : null;
@@ -270,12 +287,18 @@ export async function GET(req: NextRequest) {
         nbColis,
         nbPots,
         caProduct,
+        // Prix de vente moyen = moyenne arithmétique des PU HT importés
+        // (par colis/format, et par pot = colis / potsPerColis)
+        prixVenteMoyenParColis,
         prixVenteMoyenParPot,
         achatParPot,
         achatParColis,
         margeBruteParPot,
+        margeBruteParColis,
         chargesParPot,
+        chargesParColis,
         margeNetteParPot,
+        margeNetteParColis,
         margePct,
       };
     });

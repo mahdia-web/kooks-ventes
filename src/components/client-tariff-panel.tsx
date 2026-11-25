@@ -32,9 +32,12 @@ interface ClientWithTariffs {
 interface MargeProduct {
   productId: string; name: string; parfum: string; format: string;
   potsPerColis: number; nbColis: number; nbPots: number; caProduct: number;
-  prixVenteMoyenParPot: number; achatParPot: number | null; achatParColis: number | null;
-  margeBruteParPot: number | null; chargesParPot: number;
-  margeNetteParPot: number | null; margePct: number | null;
+  prixVenteMoyenParColis: number; prixVenteMoyenParPot: number;
+  achatParPot: number | null; achatParColis: number | null;
+  margeBruteParPot: number | null; margeBruteParColis: number | null;
+  chargesParPot: number; chargesParColis: number;
+  margeNetteParPot: number | null; margeNetteParColis: number | null;
+  margePct: number | null;
 }
 interface MargeTotals {
   chargesDirectesTTC: number; chargesDirectesTotalTTC: number;
@@ -606,7 +609,8 @@ function EstimatedMarginCard({
           <div className="min-w-0">
             <p className="font-medium text-sm text-primary">Marge estimée par pot (avec charges directes)</p>
             <p className="text-xs text-muted-foreground">
-              Calcule la marge nette par pot en allouant les charges directes (Transport + options) au prorata du CA.
+              Calcule la marge nette par format (colis) en allouant les charges incluses au prorata du CA.
+              Le CA et le prix de vente moyen proviennent des ventes réelles importées.
             </p>
           </div>
         </div>
@@ -660,8 +664,8 @@ function EstimatedMarginCard({
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Les volumes (CA, pots) et les charges TTC sont calculés sur cette période.
-              La marge nette par pot se recalcule automatiquement à chaque bascule de toggle
+              Les volumes (CA, colis) et les charges TTC sont calculés sur cette période.
+              La marge nette par format se recalcule automatiquement à chaque bascule de toggle
               ci-dessous. La classification des charges (directe / indirecte) se gère sur la page Charges.
             </p>
           </div>
@@ -676,14 +680,14 @@ function EstimatedMarginCard({
             {loading && <span className="text-[11px] text-muted-foreground ml-1">Recalcul…</span>}
           </div>
 
-          {/* Explication de la méthode de répartition des charges par pot */}
+          {/* Explication de la méthode de répartition des charges par format */}
           <p className="text-[11px] text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
-            <span className="font-medium">Méthode de répartition :</span> les charges incluses
-            (cochées ci-dessus) sont allouées à chaque produit <strong>au prorata de son CA</strong>{' '}
-            (CA produit ÷ CA total des produits), puis divisées par le nombre de pots du produit
-            pour obtenir les <em>charges par pot</em>. Les achats matières premières et emballages
-            directs sont exclus (déjà dans le prix d'achat).{' '}
-            <span className="font-medium">Prix de vente moyen/pot</span> = CA produit ÷ nombre de pots.
+            <span className="font-medium">Méthode :</span> le CA période d'un produit = somme des (quantité × PU HT)
+            des ventes réelles importées. Le <span className="font-medium">prix de vente moyen par format</span> ={' '}
+            moyenne arithmétique des PU HT des lignes du produit (l'unité d'import est le colis/format).
+            Les charges incluses (cochées ci-dessus) sont allouées à chaque produit{' '}
+            <strong>au prorata de son CA</strong> (CA produit ÷ CA total), puis ramenées par format (colis).
+            Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
           </p>
 
           {/* Synthèse */}
@@ -716,11 +720,10 @@ function EstimatedMarginCard({
                   <TableRow>
                     <TableHead className="cursor-pointer">Référence (parfum × format)</TableHead>
                     <TableHead className="text-right">CA période</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Pots</TableHead>
-                    <TableHead className="text-right">Prix vente moy./pot</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Achat/pot</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Charges/pot</TableHead>
-                    <TableHead className="text-right">Marge nette/pot</TableHead>
+                    <TableHead className="text-right">Prix vente moy./format</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Achat/format</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Charges/format</TableHead>
+                    <TableHead className="text-right">Marge nette/format</TableHead>
                     <TableHead className="text-right">Marge %</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -740,13 +743,12 @@ function EstimatedMarginCard({
                             </div>
                           </TableCell>
                           <TableCell className="text-right text-sm font-mono">{formatEuro(p.caProduct)}</TableCell>
-                          <TableCell className="text-right text-sm font-mono hidden sm:table-cell">{p.nbPots.toLocaleString('fr-FR')}</TableCell>
-                          <TableCell className="text-right text-sm font-mono">{formatEuro(p.prixVenteMoyenParPot)}</TableCell>
-                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">{p.achatParPot !== null ? formatEuro(p.achatParPot) : '—'}</TableCell>
-                          <TableCell className="text-right text-sm font-mono text-muted-foreground hidden md:table-cell">{formatEuro(p.chargesParPot)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono">{formatEuro(p.prixVenteMoyenParColis)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">{p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'}</TableCell>
+                          <TableCell className="text-right text-sm font-mono text-muted-foreground hidden md:table-cell">{formatEuro(p.chargesParColis)}</TableCell>
                           <TableCell className="text-right text-sm font-mono font-semibold">
-                            {p.margeNetteParPot !== null ? (
-                              <span className={p.margeNetteParPot >= 0 ? 'text-emerald-600' : 'text-destructive'}>{formatEuro(p.margeNetteParPot)}</span>
+                            {p.margeNetteParColis !== null ? (
+                              <span className={p.margeNetteParColis >= 0 ? 'text-emerald-600' : 'text-destructive'}>{formatEuro(p.margeNetteParColis)}</span>
                             ) : '—'}
                           </TableCell>
                           <TableCell className="text-right text-sm font-mono">
@@ -757,25 +759,29 @@ function EstimatedMarginCard({
                         </TableRow>
                         {isOpen && (
                           <TableRow className="bg-muted/20">
-                            <TableCell colSpan={8} className="p-3">
+                            <TableCell colSpan={7} className="p-3">
                               <div className="rounded-md border border-border bg-card p-3 space-y-2">
                                 <p className="text-xs font-medium text-muted-foreground">Détail du calcul — {p.name}</p>
                                 <div className="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 text-xs">
                                   <DetailRow label="Format" value={p.format} />
                                   <DetailRow label="Pots par colis" value={String(p.potsPerColis)} />
-                                  <DetailRow label="Colis vendus (période)" value={p.nbColis.toLocaleString('fr-FR')} />
+                                  <DetailRow label="Colis (formats) vendus" value={p.nbColis.toLocaleString('fr-FR')} />
                                   <DetailRow label="Pots vendus" value={p.nbPots.toLocaleString('fr-FR')} />
-                                  <DetailRow label="CA période" value={formatEuro(p.caProduct)} />
+                                  <DetailRow label="CA période (somme quantity × PU)" value={formatEuro(p.caProduct)} />
+                                  <DetailRow label="Prix vente moyen / format (moy. PU HT)" value={formatEuro(p.prixVenteMoyenParColis)} highlight />
                                   <DetailRow label="Prix vente moyen / pot" value={formatEuro(p.prixVenteMoyenParPot)} />
+                                  <DetailRow label="Prix d'achat / format (colis)" value={p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'} />
                                   <DetailRow label="Prix d'achat / pot" value={p.achatParPot !== null ? formatEuro(p.achatParPot) : '—'} />
-                                  <DetailRow label="Prix d'achat / colis" value={p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'} />
-                                  <DetailRow label="Marge brute / pot (avant charges)" value={p.margeBruteParPot !== null ? formatEuro(p.margeBruteParPot) : '—'} highlight />
-                                  <DetailRow label="Charges directes allouées / pot" value={formatEuro(p.chargesParPot)} highlight />
-                                  <DetailRow label="Marge nette / pot (après charges)" value={p.margeNetteParPot !== null ? formatEuro(p.margeNetteParPot) : '—'} highlight />
+                                  <DetailRow label="Marge brute / format (avant charges)" value={p.margeBruteParColis !== null ? formatEuro(p.margeBruteParColis) : '—'} highlight />
+                                  <DetailRow label="Charges allouées / format" value={formatEuro(p.chargesParColis)} highlight />
+                                  <DetailRow label="Marge nette / format (après charges)" value={p.margeNetteParColis !== null ? formatEuro(p.margeNetteParColis) : '—'} highlight />
                                   <DetailRow label="Marge nette %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
-                                  Méthode : toutes les charges directes TTC (classification définie sur la page Charges) sont allouées au prorata du CA du produit sur la période, puis ramenées au pot. Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
+                                  <strong>Méthode :</strong> le CA période = somme des (quantité × PU HT) des ventes réelles importées.
+                                  Le prix de vente moyen par format = <strong>moyenne arithmétique des PU HT</strong> des lignes du produit (l'unité de l'import est le colis/format).
+                                  Les charges incluses (toggles ci-dessus) sont allouées au prorata du CA du produit, puis ramenées par format (colis).
+                                  Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
                                 </p>
                               </div>
                             </TableCell>
