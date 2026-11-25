@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
       // pots = somme des colis (quantity) — convertis en pots plus bas
       const cur = caByProduct.get(key) ?? { ca: 0, pots: 0, puSum: 0, puCount: 0 };
       cur.ca += ca;
-      cur.pots += vs.quantity; // quantity = nombre de colis
+      cur.pots += vs.quantity; // quantity = nombre de FORMATS vendus (box, lot...)
       if (vs.unitPrice != null && vs.unitPrice > 0) {
         cur.puSum += vs.unitPrice;
         cur.puCount += 1;
@@ -236,8 +236,6 @@ export async function GET(req: NextRequest) {
     // Montants alloués au prorata du CA (les achats matières premières et
     // emballages directs restent exclus — déjà dans le prix d'achat).
     const chargesDirectesTTC = chargesHorsSalairesTTC + salairesAllouablesTTC; // rétro-compat
-    const chargesAvecSalairesTTC = chargesHorsSalairesTTC + salairesAllouablesTTC;
-    const totalSalairesAllouesTTC = salairesAllouablesTTC;
     // chargesDirectesTotalTTC = TOUTES les charges directes (y compris
     // achats/emballages) pour l'affichage du total dans la synthèse.
     const chargesDirectesTotalTTC = totalChargesTTC - chargesIndirectesTTC;
@@ -260,55 +258,79 @@ export async function GET(req: NextRequest) {
       const formatName = p.format?.name ?? '';
       const key = `${norm(parfumName)}__${norm(formatName)}`;
       const agg = caByProduct.get(key) ?? { ca: 0, pots: 0, puSum: 0, puCount: 0 };
-      const potsPerColis = p.format?.potsPerColis ?? 1;
-      const nbColis = agg.pots; // agg.pots contient les colis (cf. boucle ci-dessus)
-      const nbPots = nbColis * potsPerColis;
+
+      // === Nomenclature (ne plus confondre format et colis) ===
+      // VolumeSale.quantity  = nombre de FORMATS vendus (box, lot...)  ← unité d'import
+      // VolumeSale.unitPrice = PU HT d'UN FORMAT (prix de vente d'une box/lot)
+      // Format.potsPerFormat           = nb de pots dans 1 format (Lot2=2, Box9=9)
+      // Format.unitesFormatPerColis    = nb de formats dans 1 colis logistique (Lot2=6, Box9=4)
+      // Format.potsPerColis            = nb de pots dans 1 colis logistique (Lot2=12, Box9=36)
+      const potsPerFormat = p.format?.potsPerFormat ?? 1;
+      const formatsPerColis = p.format?.unitesFormatPerColis ?? 1; // formats par colis logistique
+      const potsPerColis = p.format?.potsPerColis ?? potsPerFormat * formatsPerColis;
+
+      const nbFormats = agg.pots;             // VolumeSale.quantity agrégé (= nb formats vendus)
+      const nbColis = formatsPerColis > 0 ? nbFormats / formatsPerColis : nbFormats; // colis logistiques
+      const nbPots = nbFormats * potsPerFormat;
       const caProduct = agg.ca;
-      // Prix de vente moyen = MOYENNE ARITHMÉTIQUE des PU HT importés (par colis/format).
-      // Conforme à la demande : "la moyenne par du PU au niveau de chaque produit".
-      // Fallback : si aucun PU renseigné, on déduit du CA / nbColis.
-      const prixVenteMoyenParColis = agg.puCount > 0
+
+      // Prix de vente moyen par FORMAT = moyenne arithmétique des PU HT importés
+      // (l'unité d'import est le format : box, lot...).
+      // Fallback : CA / nbFormats si aucun PU renseigné.
+      const prixVenteMoyenParFormat = agg.puCount > 0
         ? agg.puSum / agg.puCount
-        : (nbColis > 0 ? caProduct / nbColis : 0);
-      const prixVenteMoyenParPot = potsPerColis > 0 ? prixVenteMoyenParColis / potsPerColis : 0;
-      const achatParPot = p.purchasePrices[0]?.pricePerPot ?? null;
-      // achatParFormat = prix d'achat d'un format (lot de 2, boîte de 9...).
-      // Fallback : pricePerPot × potsPerColis (cohérent avec l'achat au pot).
-      // NB : pricePerColis est un colis LOGISTIQUE (≠ format) — on ne l'utilise PAS
-      // comme achat par format pour éviter des marges négatives erronées.
+        : (nbFormats > 0 ? caProduct / nbFormats : 0);
+      // Prix de vente moyen par COLIS logistique = PU format × formats/colis
+      const prixVenteMoyenParColis = prixVenteMoyenParFormat * formatsPerColis;
+      const prixVenteMoyenParPot = potsPerFormat > 0 ? prixVenteMoyenParFormat / potsPerFormat : 0;
+
+      // === Prix d'achat ===
       const pp = p.purchasePrices[0];
-      const achatParFormat = pp?.pricePerFormat ?? (pp?.pricePerPot != null ? pp.pricePerPot * potsPerColis : null);
-      const achatParColis = pp?.pricePerColis ?? null; // gardé pour info (colis logistique)
+      const achatParPot = pp?.pricePerPot ?? null;
+      // achatParFormat = prix d'achat d'un format (lot de 2, box de 9).
+      // Fallback : pricePerPot × potsPerFormat.
+      const achatParFormat = pp?.pricePerFormat
+        ?? (pp?.pricePerPot != null ? pp.pricePerPot * potsPerFormat : null);
+      // achatParColis = prix d'achat d'un colis LOGISTIQUE (pricePerColis).
+      // Fallback : achatParFormat × formatsPerColis.
+      const achatParColis = pp?.pricePerColis
+        ?? (achatParFormat !== null ? achatParFormat * formatsPerColis : null);
 
+      // === Marges brutes (avant charges) ===
       const margeBruteParPot = achatParPot !== null ? prixVenteMoyenParPot - achatParPot : null;
-      // marge brute par FORMAT (colis vendu) = prix vente moy/format − achat/format
-      const margeBruteParColis = achatParFormat !== null ? prixVenteMoyenParColis - achatParFormat : null;
+      const margeBruteParFormat = achatParFormat !== null ? prixVenteMoyenParFormat - achatParFormat : null;
+      const margeBruteParColis = achatParColis !== null ? prixVenteMoyenParColis - achatParColis : null;
 
-      // Allocation des charges au prorata du CA du produit — DEUX scénarios :
+      // === Allocation des charges au prorata du CA du produit — 2 scénarios ===
       //   - hors salaire : charges directes (hors salaires/exclus) + indirectes
       //   - avec salaire : + salaires
       const partCA = totalCAProduits > 0 ? caProduct / totalCAProduits : 0;
       const chargesHorsSalairesAllouees = chargesHorsSalairesTTC * partCA;
       const salairesAlloues = salairesAllouablesTTC * partCA;
-      const chargesAvecSalairesAllouees = chargesHorsSalairesAllouees + salairesAlloues;
 
-      // --- Scénario 1 : HORS SALAIRE ---
-      const chargesHorsSalairesParPot = nbPots > 0 ? chargesHorsSalairesAllouees / nbPots : 0;
+      // --- Scénario 1 : HORS SALAIRE (par format, par colis, par pot) ---
+      const chargesHorsSalairesParFormat = nbFormats > 0 ? chargesHorsSalairesAllouees / nbFormats : 0;
       const chargesHorsSalairesParColis = nbColis > 0 ? chargesHorsSalairesAllouees / nbColis : 0;
-      const margeNetteHorsSalairesParPot = margeBruteParPot !== null ? margeBruteParPot - chargesHorsSalairesParPot : null;
+      const chargesHorsSalairesParPot = nbPots > 0 ? chargesHorsSalairesAllouees / nbPots : 0;
+      const margeNetteHorsSalairesParFormat = margeBruteParFormat !== null ? margeBruteParFormat - chargesHorsSalairesParFormat : null;
       const margeNetteHorsSalairesParColis = margeBruteParColis !== null ? margeBruteParColis - chargesHorsSalairesParColis : null;
-      const margeHorsSalairesPct = prixVenteMoyenParPot > 0 && margeNetteHorsSalairesParPot !== null
-        ? (margeNetteHorsSalairesParPot / prixVenteMoyenParPot) * 100 : null;
+      const margeNetteHorsSalairesParPot = margeBruteParPot !== null ? margeBruteParPot - chargesHorsSalairesParPot : null;
+      // Marge % calculée sur le FORMAT (unité de vente de l'import)
+      const margeHorsSalairesPct = prixVenteMoyenParFormat > 0 && margeNetteHorsSalairesParFormat !== null
+        ? (margeNetteHorsSalairesParFormat / prixVenteMoyenParFormat) * 100 : null;
 
       // --- Scénario 2 : AVEC SALAIRE ---
-      const salairesParPot = nbPots > 0 ? salairesAlloues / nbPots : 0;
+      const salairesParFormat = nbFormats > 0 ? salairesAlloues / nbFormats : 0;
       const salairesParColis = nbColis > 0 ? salairesAlloues / nbColis : 0;
-      const chargesParPot = chargesHorsSalairesParPot + salairesParPot;
+      const salairesParPot = nbPots > 0 ? salairesAlloues / nbPots : 0;
+      const chargesParFormat = chargesHorsSalairesParFormat + salairesParFormat;
       const chargesParColis = chargesHorsSalairesParColis + salairesParColis;
-      const margeNetteParPot = margeBruteParPot !== null ? margeBruteParPot - chargesParPot : null;
+      const chargesParPot = chargesHorsSalairesParPot + salairesParPot;
+      const margeNetteParFormat = margeBruteParFormat !== null ? margeBruteParFormat - chargesParFormat : null;
       const margeNetteParColis = margeBruteParColis !== null ? margeBruteParColis - chargesParColis : null;
-      const margePct = prixVenteMoyenParPot > 0 && margeNetteParPot !== null
-        ? (margeNetteParPot / prixVenteMoyenParPot) * 100
+      const margeNetteParPot = margeBruteParPot !== null ? margeBruteParPot - chargesParPot : null;
+      const margePct = prixVenteMoyenParFormat > 0 && margeNetteParFormat !== null
+        ? (margeNetteParFormat / prixVenteMoyenParFormat) * 100
         : null;
 
       return {
@@ -316,32 +338,45 @@ export async function GET(req: NextRequest) {
         name: p.name,
         parfum: parfumName,
         format: formatName,
+        // Caractéristiques du format
+        potsPerFormat,
+        formatsPerColis,
         potsPerColis,
-        nbColis,
-        nbPots,
-        caProduct,
-        // Prix de vente moyen = moyenne arithmétique des PU HT importés
-        // (par format/colis vendu, et par pot = format / potsPerColis)
-        prixVenteMoyenParColis,   // = par format (colis vendu à l'unité d'import)
+        // Volumes (période)
+        nbFormats,            // formats vendus (= VolumeSale.quantity agrégé)
+        nbColis,              // colis logistiques (= nbFormats / formatsPerColis)
+        nbPots,               // pots (= nbFormats × potsPerFormat)
+        caProduct,            // CA = somme(quantity × PU HT)
+        // Prix de vente moyen (moyenne arithmétique des PU HT importés)
+        prixVenteMoyenParFormat,  // PU moyen d'un format (box, lot) — unité d'import
+        prixVenteMoyenParColis,   // PU moyen d'un colis logistique (= PU format × formats/colis)
         prixVenteMoyenParPot,
+        // Prix d'achat
         achatParPot,
-        achatParFormat,           // prix d'achat d'un format (lot/boîte) — comparable au PU de vente
-        achatParColis,            // prix d'achat d'un colis logistique (info, ≠ format)
+        achatParFormat,           // prix d'achat d'un format (lot, box)
+        achatParColis,            // prix d'achat d'un colis logistique
+        // Marges brutes (avant charges)
         margeBruteParPot,
-        margeBruteParColis,       // = marge brute par FORMAT
-        // Scénario "hors salaire" — visibilité indépendante des salaires
-        chargesHorsSalairesParPot,
+        margeBruteParFormat,
+        margeBruteParColis,
+        // Scénario HORS salaire
+        chargesHorsSalairesParFormat,
         chargesHorsSalairesParColis,
-        margeNetteHorsSalairesParPot,
+        chargesHorsSalairesParPot,
+        margeNetteHorsSalairesParFormat,
         margeNetteHorsSalairesParColis,
+        margeNetteHorsSalairesParPot,
         margeHorsSalairesPct,
-        // Scénario "avec salaire" — charges totales incluant les salaires
-        salairesParPot,
+        // Scénario AVEC salaire
+        salairesParFormat,
         salairesParColis,
+        salairesParPot,
+        chargesParFormat,
+        chargesParColis,
         chargesParPot,
-        chargesParColis,          // = charges par FORMAT (avec salaires)
+        margeNetteParFormat,
+        margeNetteParColis,
         margeNetteParPot,
-        margeNetteParColis,       // = marge nette par FORMAT (avec salaires)
         margePct,
       };
     });
