@@ -39,7 +39,7 @@ interface MargeProduct {
 interface MargeTotals {
   chargesDirectesTTC: number; chargesDirectesTotalTTC: number;
   chargesTransport: number; chargesMarketing: number;
-  chargesCatalogues: number; chargesImprimes: number; chargesSalaires: number;
+  chargesCatalogues: number; chargesImprimes: number; chargesSalaires: number; chargesDirectesAutresTTC: number;
   chargesIndirectesTTC: number; totalChargesTTC: number;
   totalCAProduits: number; totalCaHTPeriode: number; totalPots: number;
   periode: { start: string; end: string };
@@ -685,6 +685,7 @@ function EstimatedMarginCard({
               {includeCatalogues && <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />}
               {includeImprimes && <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />}
               {includeSalaires && <MiniStat label="Dont Salaires" value={formatEuro(totals.chargesSalaires)} />}
+              {totals.chargesDirectesAutresTTC > 0 && <MiniStat label="Dont Autres charges directes" value={formatEuro(totals.chargesDirectesAutresTTC)} />}
               <MiniStat label="Pots vendus" value={totals.totalPots.toLocaleString('fr-FR')} />
               <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
             </div>
@@ -761,7 +762,7 @@ function EstimatedMarginCard({
                                   <DetailRow label="Marge nette %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
-                                  Méthode : charges directes TTC (Transport{includeMarketing ? ' + Marketing' : ''}{includeCatalogues ? ' + Catalogues' : ''}{includeImprimes ? ' + Imprimés' : ''}{includeSalaires ? ' + Salaires' : ''}) allouées au prorata du CA du produit sur la période, puis ramenées au pot.
+                                  Méthode : charges directes TTC (Transport{includeMarketing ? ' + Marketing' : ''}{includeCatalogues ? ' + Catalogues' : ''}{includeImprimes ? ' + Imprimés' : ''}{includeSalaires ? ' + Salaires' : ''} + autres charges directes) allouées au prorata du CA du produit sur la période, puis ramenées au pot. Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
                                 </p>
                               </div>
                             </TableCell>

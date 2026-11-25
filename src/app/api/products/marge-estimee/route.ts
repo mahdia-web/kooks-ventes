@@ -154,14 +154,23 @@ export async function GET(req: NextRequest) {
     const isCatalogueCat = (cat: string) => /catalogue|imprim|impression|edition|édition/i.test(cat);
     const isImprimesCat = (cat: string) => /imprim|impression|papeterie|fourniture/i.test(cat);
     const isSalairesCat = (cat: string) => /salaire|rémunération|paie/i.test(cat);
+    // Charges directes EXCLUES de l'allocation aux pots car déjà dans le prix
+    // d'achat (achats matières premières, emballages & conditionnements).
+    // Tout autre catégorie marquée DIRECTE est allouée au prorata du CA.
+    const isAchatMatieresCat = (cat: string) =>
+      /achat.*matière|matière.*achat|matières premières/i.test(cat);
+    const isEmballageCat = (cat: string) =>
+      /emballage|conditionnement/i.test(cat);
 
     let chargesTransport = 0;
     let chargesMarketing = 0;
     let chargesCatalogues = 0;
     let chargesImprimes = 0;
     let chargesSalaires = 0;
-    let chargesIndirectesTTC = 0; // allocationMethod !== 'DIRECT' (GLOBAL + PROPORTIONAL)
-    let totalChargesTTC = 0;      // somme de TOUTES les charges (directes + indirectes)
+    let chargesDirectesAutresTTC = 0; // autres charges directes (Honoraires, Loyer, Logiciels...)
+    let chargesDirectesExcluesTTC = 0; // achats matières + emballages (déjà dans prix d'achat)
+    let chargesIndirectesTTC = 0;      // allocationMethod !== 'DIRECT' (GLOBAL + PROPORTIONAL)
+    let totalChargesTTC = 0;           // somme de TOUTES les charges (directes + indirectes)
     const chargesParCategorie: Record<string, number> = {};
 
     for (const c of charges) {
@@ -169,16 +178,34 @@ export async function GET(req: NextRequest) {
       const cat = c.category;
       chargesParCategorie[cat] = (chargesParCategorie[cat] ?? 0) + c.amountTTC;
 
-      // Charges directes (allocationMethod === 'DIRECT') — ventilées par catégorie
-      // Seules ces catégories sont allouées au prorata du CA pour la marge nette/pot
-      // (les achats matières premières sont déjà dans le prix d'achat, on ne les
-      //  ré-alloue pas pour éviter un double compte).
+      // Charges directes (allocationMethod === 'DIRECT') — ventilées par catégorie.
+      // On distingue :
+      //  - les catégories "toggleables" (Transport, Marketing, Catalogues,
+      //    Imprimés, Salaires) que l'utilisateur peut inclure/exclure,
+      //  - les "autres" charges directes (Honoraires, Loyer, Logiciels, etc.)
+      //    TOUJOURS allouées au prorata du CA dès qu'elles sont marquées DIRECT,
+      //  - les achats matières premières + emballages EXCLUS (déjà dans le prix
+      //    d'achat, pour éviter un double compte).
       if (c.allocationMethod === 'DIRECT') {
-        if (isTransportCat(cat)) chargesTransport += c.amountTTC;
-        else if (isMarketingCat(cat) && includeMarketing) chargesMarketing += c.amountTTC;
-        else if (isCatalogueCat(cat) && includeCatalogues) chargesCatalogues += c.amountTTC;
-        else if (isImprimesCat(cat) && includeImprimes) chargesImprimes += c.amountTTC;
-        else if (isSalairesCat(cat) && includeSalaires) chargesSalaires += c.amountTTC;
+        if (isTransportCat(cat)) {
+          chargesTransport += c.amountTTC;
+        } else if (isMarketingCat(cat) && includeMarketing) {
+          chargesMarketing += c.amountTTC;
+        } else if (isCatalogueCat(cat) && includeCatalogues) {
+          chargesCatalogues += c.amountTTC;
+        } else if (isImprimesCat(cat) && includeImprimes) {
+          chargesImprimes += c.amountTTC;
+        } else if (isSalairesCat(cat) && includeSalaires) {
+          chargesSalaires += c.amountTTC;
+        } else if (isAchatMatieresCat(cat) || isEmballageCat(cat)) {
+          // Exclu de l'allocation (déjà dans le prix d'achat)
+          chargesDirectesExcluesTTC += c.amountTTC;
+        } else {
+          // Autre charge directe (Honoraires, Loyer, Logiciels, etc.) —
+          // toujours allouée au prorata du CA. Ainsi, reclasser une catégorie
+          // indirecte en DIRECT impacte immédiatement la marge par pot.
+          chargesDirectesAutresTTC += c.amountTTC;
+        }
       } else {
         // Charge indirecte (GLOBAL ou PROPORTIONAL)
         chargesIndirectesTTC += c.amountTTC;
@@ -186,12 +213,14 @@ export async function GET(req: NextRequest) {
     }
 
     // chargesDirectesTTC = somme des charges directes allouables au prorata du CA
-    // (Transport + options + Salaires). NB: les autres charges directes (achats, emballages)
-    // sont dans chargesParCategorie et totalChargesTTC mais ne sont PAS ré-allouées
-    // au pot pour éviter un double compte avec le prix d'achat.
-    const chargesDirectesTTC = chargesTransport + chargesMarketing + chargesCatalogues + chargesImprimes + chargesSalaires;
-    // chargesDirectesTotalTTC = TOUTES les charges directes (y compris achats/emballages)
-    // pour l'affichage du total dans la synthèse.
+    // (Transport + options + Salaires + autres charges directes).
+    // Les achats matières premières et emballages directs sont EXCLUS (déjà dans
+    // le prix d'achat).
+    const chargesDirectesTTC =
+      chargesTransport + chargesMarketing + chargesCatalogues +
+      chargesImprimes + chargesSalaires + chargesDirectesAutresTTC;
+    // chargesDirectesTotalTTC = TOUTES les charges directes (y compris
+    // achats/emballages) pour l'affichage du total dans la synthèse.
     const chargesDirectesTotalTTC = totalChargesTTC - chargesIndirectesTTC;
 
     // 3b. CA HT total de la période (depuis Sale.amountHT — source de vérité du dashboard)
@@ -265,6 +294,7 @@ export async function GET(req: NextRequest) {
         chargesCatalogues,
         chargesImprimes,
         chargesSalaires,
+        chargesDirectesAutresTTC,
         chargesIndirectesTTC,
         totalChargesTTC,
         chargesParCategorie,
