@@ -20,6 +20,7 @@ import { exerciceEnCours, formatDMY } from '@/lib/exercice-comptable';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
+import { ChargesManager } from '@/components/charges-manager';
 import type { DashboardData } from '@/lib/dashboard-types';
 import { formatNumber, formatEuro, formatDate } from '@/lib/dashboard-service';
 import { toast } from 'sonner';
@@ -680,6 +681,16 @@ export default function ChargesPage() {
               </Card>
             </div>
           )}
+
+          {/* === Gestion des charges directes vs indirectes === */}
+          {/* Permet de basculer une catégorie de charge entre directe (allouée au
+              prorata du CA dans la marge) et indirecte (non ventilée). Après chaque
+              bascule, les charges et le dashboard (KPI marge brute) sont rechargés. */}
+          <ChargesManager
+            startDate={dateRange.start}
+            endDate={dateRange.end}
+            onReclassified={() => { loadCharges(); loadDashboard(); }}
+          />
 
           {/* === 6 KPI PRINCIPAUX === */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, ChevronDown, ChevronRight, Store, Search, Calculator, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatEuro } from '@/lib/dashboard-service';
-import { ChargesManager } from './charges-manager';
 
 interface Product {
   id: string; name: string;
@@ -330,7 +329,6 @@ export function ClientTariffPanel() {
         rangeEnd={margeRangeEnd}
         setRangeEnd={setMargeRangeEnd}
         periodLabel={margePeriodLabel}
-        periodParams={margePeriodParams}
       />
 
       {/* Liste des clients avec tarifs */}
@@ -564,7 +562,7 @@ function EstimatedMarginCard({
   products, totals, options, expanded, expandedProduct,
   loading, setExpanded, setExpandedProduct, setOptions, load,
   filterMode, setFilterMode, month, setMonth, year, setYear,
-  rangeStart, setRangeStart, rangeEnd, setRangeEnd, periodLabel, periodParams,
+  rangeStart, setRangeStart, rangeEnd, setRangeEnd, periodLabel,
 }: {
   products: MargeProduct[];
   totals: MargeTotals | null;
@@ -587,7 +585,6 @@ function EstimatedMarginCard({
   rangeEnd: string;
   setRangeEnd: (v: string) => void;
   periodLabel: string;
-  periodParams: { startDate: string; endDate: string };
 }) {
   const { includeMarketing, includeCatalogues, includeImprimes, includeSalaires } = options;
   const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -692,13 +689,6 @@ function EstimatedMarginCard({
               <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
             </div>
           )}
-
-          {/* Gestion des charges directes vs indirectes (drag-drop + recalcul auto) */}
-          <ChargesManager
-            startDate={periodParams.startDate}
-            endDate={periodParams.endDate}
-            onReclassified={load}
-          />
 
           {/* Tableau marge par produit */}
           {loading ? (
