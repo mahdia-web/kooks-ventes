@@ -457,6 +457,43 @@ export default function ChargesPage() {
     }
   };
 
+  // Édition du montant et du libellé d'une charge (depuis le panneau détail).
+  // Permet notamment d'ajuster manuellement les salaires saisis par affectation.
+  const [editingAmount, setEditingAmount] = useState(false);
+  const [pendingAmount, setPendingAmount] = useState('');
+  const [pendingSubLabel, setPendingSubLabel] = useState('');
+  const startEditAmount = (c: { amountHT: number; subLabel: string | null }) => {
+    setPendingAmount(String(c.amountHT ?? ''));
+    setPendingSubLabel(c.subLabel ?? '');
+    setEditingAmount(true);
+  };
+  const saveAmountOverride = async (id: string) => {
+    const ht = parseFloat(pendingAmount.replace(',', '.'));
+    if (isNaN(ht)) {
+      toast.error('Montant invalide', { description: 'Saisis un nombre (ex: 24200 ou 24200,50)' });
+      return;
+    }
+    try {
+      const res = await fetch(`/api/charges?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountHT: ht,
+          amountTTC: ht, // salaires et charges sans TVA : HT = TTC
+          subLabel: pendingSubLabel,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error);
+      toast.success('Montant mis à jour', { description: `→ ${ht.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €` });
+      setSelectedCharge(json.charge);
+      setEditingAmount(false);
+      loadCharges();
+    } catch (e: any) {
+      toast.error('Mise à jour impossible', { description: e.message });
+    }
+  };
+
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -1214,7 +1251,7 @@ export default function ChargesPage() {
         </main>
 
         {/* === PANNEAU LATÉRAL DE DÉTAIL (DRAWER) === */}
-        <Sheet open={!!selectedCharge} onOpenChange={(open) => { if (!open) { setSelectedCharge(null); setEditingCategory(false); } }}>
+        <Sheet open={!!selectedCharge} onOpenChange={(open) => { if (!open) { setSelectedCharge(null); setEditingCategory(false); setEditingAmount(false); } }}>
           <SheetContent className="w-full sm:max-w-md overflow-y-auto">
             {selectedCharge && (
               <>
@@ -1225,20 +1262,73 @@ export default function ChargesPage() {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-4 mt-6">
-                  {/* Montant principal — TTC (ce qu'on paie réellement) */}
+                  {/* Montant principal — TTC (ce qu'on paie réellement) + édition */}
                   <div className="rounded-xl bg-destructive/5 p-4 border border-destructive/20">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-1">Montant TTC (payé)</p>
-                    <p className="text-3xl font-title font-bold text-destructive">{formatEuro(selectedCharge.amountTTC)}</p>
-                    <div className="flex gap-4 mt-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">HT: </span>
-                        <span className="font-medium">{formatEuro(selectedCharge.amountHT)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">TVA: </span>
-                        <span className="font-medium">{formatEuro(selectedCharge.amountTTC - selectedCharge.amountHT)}</span>
-                      </div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Montant TTC (payé)</p>
+                      {!editingAmount && (
+                        <button
+                          onClick={() => startEditAmount(selectedCharge)}
+                          className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-[11px] font-medium"
+                          title="Modifier le montant (ex: ajuster un salaire)"
+                        >
+                          <Pencil className="h-3 w-3" /> Modifier
+                        </button>
+                      )}
                     </div>
+                    {editingAmount ? (
+                      <div className="space-y-2">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={pendingAmount}
+                          onChange={(e) => setPendingAmount(e.target.value)}
+                          placeholder="Montant (ex: 24200 ou 24200,50)"
+                          className="h-9 text-lg font-title font-bold"
+                        />
+                        <Input
+                          type="text"
+                          value={pendingSubLabel}
+                          onChange={(e) => setPendingSubLabel(e.target.value)}
+                          placeholder="Libellé / commentaire (optionnel)"
+                          className="h-9 text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => saveAmountOverride(selectedCharge.id)}
+                            className="h-8 rounded-lg"
+                          >
+                            <Check className="h-3.5 w-3.5 mr-1" /> Enregistrer
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingAmount(false)}
+                            className="h-8 rounded-lg"
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Pour les salaires et charges sans TVA, le montant HT = TTC.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-3xl font-title font-bold text-destructive">{formatEuro(selectedCharge.amountTTC)}</p>
+                        <div className="flex gap-4 mt-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">HT: </span>
+                            <span className="font-medium">{formatEuro(selectedCharge.amountHT)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">TVA: </span>
+                            <span className="font-medium">{formatEuro(selectedCharge.amountTTC - selectedCharge.amountHT)}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Détails */}

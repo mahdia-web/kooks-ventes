@@ -185,9 +185,15 @@ export async function GET(req: NextRequest) {
     let totalChargesTTC = 0;         // somme de TOUTES les charges
     const chargesParCategorie: Record<string, number> = {};
 
-    // chargesAlloueesTTC = montant total réellement alloué au prorata du CA,
-    // déterminé par les 3 toggles (includeDirectes, includeIndirectes, includeSalaires).
-    let chargesAlloueesTTC = 0;
+    // On calcule DEUX montants alloués au prorata du CA pour offrir une double
+    // visibilité dans la grille tarifaire :
+    //   - chargesHorsSalairesTTC : charges directes (hors salaires/exclus) + indirectes,
+    //     selon les toggles includeDirectes / includeIndirectes.
+    //   - chargesAvecSalairesTTC : chargesHorsSalairesTTC + salaires (toggle includeSalaires).
+    // La marge "hors salaire" et "avec salaire" sont ainsi toutes deux disponibles
+    // côté UI sans recharger l'API.
+    let chargesHorsSalairesTTC = 0; // directes (hors salaires) + indirectes selon toggles
+    let salairesAllouablesTTC = 0;  // salaires (toggles includeSalaires)
 
     for (const c of charges) {
       totalChargesTTC += c.amountTTC;
@@ -214,23 +220,24 @@ export async function GET(req: NextRequest) {
       }
 
       // 2) Allocation effective au prorata du CA selon les toggles
-      //    - Salaires : gérés à part (toggle includeSalaires)
+      //    - Salaires : toggle includeSalaires (poste séparé pour la double visibilité)
       //    - Charges directes (hors salaires, hors achats/emballages exclus) : toggle includeDirectes
       //    - Charges indirectes (hors salaires) : toggle includeIndirectes
       //    Les achats matières + emballages directs ne sont JAMAIS alloués (déjà dans prix d'achat).
       if (isSalaires) {
-        if (includeSalaires) chargesAlloueesTTC += c.amountTTC;
+        if (includeSalaires) salairesAllouablesTTC += c.amountTTC;
       } else if (isDirect) {
-        if (!isExclu && includeDirectes) chargesAlloueesTTC += c.amountTTC;
+        if (!isExclu && includeDirectes) chargesHorsSalairesTTC += c.amountTTC;
       } else {
-        if (includeIndirectes) chargesAlloueesTTC += c.amountTTC;
+        if (includeIndirectes) chargesHorsSalairesTTC += c.amountTTC;
       }
     }
 
-    // chargesDirectesTTC (rétro-compat nommage) = montant alloué au prorata du CA.
-    // Les achats matières premières et emballages directs sont EXCLUS (déjà dans
-    // le prix d'achat).
-    const chargesDirectesTTC = chargesAlloueesTTC;
+    // Montants alloués au prorata du CA (les achats matières premières et
+    // emballages directs restent exclus — déjà dans le prix d'achat).
+    const chargesDirectesTTC = chargesHorsSalairesTTC + salairesAllouablesTTC; // rétro-compat
+    const chargesAvecSalairesTTC = chargesHorsSalairesTTC + salairesAllouablesTTC;
+    const totalSalairesAllouesTTC = salairesAllouablesTTC;
     // chargesDirectesTotalTTC = TOUTES les charges directes (y compris
     // achats/emballages) pour l'affichage du total dans la synthèse.
     const chargesDirectesTotalTTC = totalChargesTTC - chargesIndirectesTTC;
@@ -277,12 +284,27 @@ export async function GET(req: NextRequest) {
       // marge brute par FORMAT (colis vendu) = prix vente moy/format − achat/format
       const margeBruteParColis = achatParFormat !== null ? prixVenteMoyenParColis - achatParFormat : null;
 
-      // Allocation des charges incluses au prorata du CA du produit
+      // Allocation des charges au prorata du CA du produit — DEUX scénarios :
+      //   - hors salaire : charges directes (hors salaires/exclus) + indirectes
+      //   - avec salaire : + salaires
       const partCA = totalCAProduits > 0 ? caProduct / totalCAProduits : 0;
-      const chargesAllouees = chargesDirectesTTC * partCA;
-      const chargesParPot = nbPots > 0 ? chargesAllouees / nbPots : 0;
-      const chargesParColis = nbColis > 0 ? chargesAllouees / nbColis : 0;
+      const chargesHorsSalairesAllouees = chargesHorsSalairesTTC * partCA;
+      const salairesAlloues = salairesAllouablesTTC * partCA;
+      const chargesAvecSalairesAllouees = chargesHorsSalairesAllouees + salairesAlloues;
 
+      // --- Scénario 1 : HORS SALAIRE ---
+      const chargesHorsSalairesParPot = nbPots > 0 ? chargesHorsSalairesAllouees / nbPots : 0;
+      const chargesHorsSalairesParColis = nbColis > 0 ? chargesHorsSalairesAllouees / nbColis : 0;
+      const margeNetteHorsSalairesParPot = margeBruteParPot !== null ? margeBruteParPot - chargesHorsSalairesParPot : null;
+      const margeNetteHorsSalairesParColis = margeBruteParColis !== null ? margeBruteParColis - chargesHorsSalairesParColis : null;
+      const margeHorsSalairesPct = prixVenteMoyenParPot > 0 && margeNetteHorsSalairesParPot !== null
+        ? (margeNetteHorsSalairesParPot / prixVenteMoyenParPot) * 100 : null;
+
+      // --- Scénario 2 : AVEC SALAIRE ---
+      const salairesParPot = nbPots > 0 ? salairesAlloues / nbPots : 0;
+      const salairesParColis = nbColis > 0 ? salairesAlloues / nbColis : 0;
+      const chargesParPot = chargesHorsSalairesParPot + salairesParPot;
+      const chargesParColis = chargesHorsSalairesParColis + salairesParColis;
       const margeNetteParPot = margeBruteParPot !== null ? margeBruteParPot - chargesParPot : null;
       const margeNetteParColis = margeBruteParColis !== null ? margeBruteParColis - chargesParColis : null;
       const margePct = prixVenteMoyenParPot > 0 && margeNetteParPot !== null
@@ -307,10 +329,19 @@ export async function GET(req: NextRequest) {
         achatParColis,            // prix d'achat d'un colis logistique (info, ≠ format)
         margeBruteParPot,
         margeBruteParColis,       // = marge brute par FORMAT
+        // Scénario "hors salaire" — visibilité indépendante des salaires
+        chargesHorsSalairesParPot,
+        chargesHorsSalairesParColis,
+        margeNetteHorsSalairesParPot,
+        margeNetteHorsSalairesParColis,
+        margeHorsSalairesPct,
+        // Scénario "avec salaire" — charges totales incluant les salaires
+        salairesParPot,
+        salairesParColis,
         chargesParPot,
-        chargesParColis,          // = charges par FORMAT
+        chargesParColis,          // = charges par FORMAT (avec salaires)
         margeNetteParPot,
-        margeNetteParColis,       // = marge nette par FORMAT
+        margeNetteParColis,       // = marge nette par FORMAT (avec salaires)
         margePct,
       };
     });

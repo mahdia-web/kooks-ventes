@@ -326,6 +326,27 @@ export async function PATCH(req: NextRequest) {
       data.allocationMethod = allocationMethod;
     }
     if (body.enseigne !== undefined) data.enseigne = body.enseigne || null;
+    // Édition du montant (utile pour ajuster manuellement les salaires saisie par saisie).
+    if (body.amountHT !== undefined) {
+      const ht = parseFloat(body.amountHT);
+      if (!isNaN(ht)) data.amountHT = ht;
+    }
+    if (body.amountTTC !== undefined) {
+      const ttc = parseFloat(body.amountTTC);
+      if (!isNaN(ttc)) data.amountTTC = ttc;
+    } else if (body.amountHT !== undefined && !isNaN(parseFloat(body.amountHT))) {
+      // Si seul amountHT est fourni, on aligne amountTTC (charges sans TVA, ex: salaires).
+      data.amountTTC = parseFloat(body.amountHT);
+    }
+    if (body.subLabel !== undefined) data.subLabel = body.subLabel || null;
+    if (body.date !== undefined) {
+      const d = new Date(body.date);
+      if (!isNaN(d.getTime())) {
+        data.date = d;
+        data.month = d.getMonth() + 1;
+        data.year = d.getFullYear();
+      }
+    }
 
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ ok: false, error: 'Rien à modifier' }, { status: 400 });

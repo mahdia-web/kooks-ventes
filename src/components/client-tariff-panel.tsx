@@ -35,6 +35,12 @@ interface MargeProduct {
   prixVenteMoyenParColis: number; prixVenteMoyenParPot: number;
   achatParPot: number | null; achatParFormat: number | null; achatParColis: number | null;
   margeBruteParPot: number | null; margeBruteParColis: number | null;
+  // Scénario "hors salaire"
+  chargesHorsSalairesParPot: number; chargesHorsSalairesParColis: number;
+  margeNetteHorsSalairesParPot: number | null; margeNetteHorsSalairesParColis: number | null;
+  margeHorsSalairesPct: number | null;
+  // Scénario "avec salaire"
+  salairesParPot: number; salairesParColis: number;
   chargesParPot: number; chargesParColis: number;
   margeNetteParPot: number | null; margeNetteParColis: number | null;
   margePct: number | null;
@@ -714,17 +720,23 @@ function EstimatedMarginCard({
           ) : products.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Aucune donnée de volume pour la période.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <div className="space-y-2">
+              <p className="text-[11px] text-muted-foreground">
+                <span className="font-medium">HS</span> = marge hors salaire &nbsp;•&nbsp;
+                <span className="font-medium">AS</span> = marge avec salaire. Cliquez sur une ligne pour le détail.
+              </p>
+              <div className="overflow-x-auto rounded-lg border border-border bg-card">
               <Table>
                 <TableHeader className="bg-muted">
                   <TableRow>
                     <TableHead className="cursor-pointer">Référence (parfum × format)</TableHead>
                     <TableHead className="text-right">CA période</TableHead>
-                    <TableHead className="text-right">Prix vente moy./format</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Prix vente moy./format</TableHead>
                     <TableHead className="text-right hidden md:table-cell">Achat/format</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Charges/format</TableHead>
-                    <TableHead className="text-right">Marge nette/format</TableHead>
-                    <TableHead className="text-right">Marge %</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Marge nette HS/format</TableHead>
+                    <TableHead className="text-right hidden md:table-cell">Marge HS %</TableHead>
+                    <TableHead className="text-right">Marge nette AS/format</TableHead>
+                    <TableHead className="text-right">Marge AS %</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -743,15 +755,26 @@ function EstimatedMarginCard({
                             </div>
                           </TableCell>
                           <TableCell className="text-right text-sm font-mono">{formatEuro(p.caProduct)}</TableCell>
-                          <TableCell className="text-right text-sm font-mono">{formatEuro(p.prixVenteMoyenParColis)}</TableCell>
+                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">{formatEuro(p.prixVenteMoyenParColis)}</TableCell>
                           <TableCell className="text-right text-sm font-mono hidden md:table-cell">{p.achatParFormat !== null ? formatEuro(p.achatParFormat) : '—'}</TableCell>
-                          <TableCell className="text-right text-sm font-mono text-muted-foreground hidden md:table-cell">{formatEuro(p.chargesParColis)}</TableCell>
+                          {/* Marge HORS salaire */}
+                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">
+                            {p.margeNetteHorsSalairesParColis !== null ? (
+                              <span className={p.margeNetteHorsSalairesParColis >= 0 ? 'text-emerald-600' : 'text-destructive'}>{formatEuro(p.margeNetteHorsSalairesParColis)}</span>
+                            ) : '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-mono hidden md:table-cell">
+                            {p.margeHorsSalairesPct !== null ? (
+                              <span className={p.margeHorsSalairesPct >= 0 ? 'text-emerald-600' : 'text-destructive'}>{p.margeHorsSalairesPct.toFixed(1)}%</span>
+                            ) : '—'}
+                          </TableCell>
+                          {/* Marge AVEC salaire */}
                           <TableCell className="text-right text-sm font-mono font-semibold">
                             {p.margeNetteParColis !== null ? (
                               <span className={p.margeNetteParColis >= 0 ? 'text-emerald-600' : 'text-destructive'}>{formatEuro(p.margeNetteParColis)}</span>
                             ) : '—'}
                           </TableCell>
-                          <TableCell className="text-right text-sm font-mono">
+                          <TableCell className="text-right text-sm font-mono font-semibold">
                             {p.margePct !== null ? (
                               <span className={p.margePct >= 0 ? 'text-emerald-600' : 'text-destructive'}>{p.margePct.toFixed(1)}%</span>
                             ) : '—'}
@@ -759,8 +782,8 @@ function EstimatedMarginCard({
                         </TableRow>
                         {isOpen && (
                           <TableRow className="bg-muted/20">
-                            <TableCell colSpan={7} className="p-3">
-                              <div className="rounded-md border border-border bg-card p-3 space-y-2">
+                            <TableCell colSpan={8} className="p-3">
+                              <div className="rounded-md border border-border bg-card p-3 space-y-3">
                                 <p className="text-xs font-medium text-muted-foreground">Détail du calcul — {p.name}</p>
                                 <div className="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 text-xs">
                                   <DetailRow label="Format" value={p.format} />
@@ -771,18 +794,38 @@ function EstimatedMarginCard({
                                   <DetailRow label="Prix vente moyen / format (moy. PU HT)" value={formatEuro(p.prixVenteMoyenParColis)} highlight />
                                   <DetailRow label="Prix vente moyen / pot" value={formatEuro(p.prixVenteMoyenParPot)} />
                                   <DetailRow label="Prix d'achat / format (lot, boîte...)" value={p.achatParFormat !== null ? formatEuro(p.achatParFormat) : '—'} />
-                                  <DetailRow label="Prix d'achat / colis logistique (info)" value={p.achatParColis !== null ? formatEuro(p.achatParColis) : '—'} />
                                   <DetailRow label="Prix d'achat / pot" value={p.achatParPot !== null ? formatEuro(p.achatParPot) : '—'} />
                                   <DetailRow label="Marge brute / format (avant charges)" value={p.margeBruteParColis !== null ? formatEuro(p.margeBruteParColis) : '—'} highlight />
-                                  <DetailRow label="Charges allouées / format" value={formatEuro(p.chargesParColis)} highlight />
-                                  <DetailRow label="Marge nette / format (après charges)" value={p.margeNetteParColis !== null ? formatEuro(p.margeNetteParColis) : '—'} highlight />
-                                  <DetailRow label="Marge nette %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
+                                </div>
+                                {/* Double visibilité : marge hors salaire vs avec salaire */}
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  <div className="rounded-md border border-emerald-200 bg-emerald-50/50 p-2.5 space-y-1.5">
+                                    <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">Marge HORS salaire</p>
+                                    <div className="grid gap-1 grid-cols-2 text-xs">
+                                      <DetailRow label="Charges/format (hors salaires)" value={formatEuro(p.chargesHorsSalairesParColis)} />
+                                      <DetailRow label="Salaires/format" value={formatEuro(0)} />
+                                      <DetailRow label="Marge nette HS / format" value={p.margeNetteHorsSalairesParColis !== null ? formatEuro(p.margeNetteHorsSalairesParColis) : '—'} highlight />
+                                      <DetailRow label="Marge nette HS %" value={p.margeHorsSalairesPct !== null ? `${p.margeHorsSalairesPct.toFixed(1)}%` : '—'} highlight />
+                                      <DetailRow label="Marge nette HS / pot" value={p.margeNetteHorsSalairesParPot !== null ? formatEuro(p.margeNetteHorsSalairesParPot) : '—'} />
+                                    </div>
+                                  </div>
+                                  <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+                                    <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">Marge AVEC salaire</p>
+                                    <div className="grid gap-1 grid-cols-2 text-xs">
+                                      <DetailRow label="Charges/format (hors salaires)" value={formatEuro(p.chargesHorsSalairesParColis)} />
+                                      <DetailRow label="Salaires/format" value={formatEuro(p.salairesParColis)} />
+                                      <DetailRow label="Marge nette AS / format" value={p.margeNetteParColis !== null ? formatEuro(p.margeNetteParColis) : '—'} highlight />
+                                      <DetailRow label="Marge nette AS %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
+                                      <DetailRow label="Marge nette AS / pot" value={p.margeNetteParPot !== null ? formatEuro(p.margeNetteParPot) : '—'} />
+                                    </div>
+                                  </div>
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
                                   <strong>Méthode :</strong> le CA période = somme des (quantité × PU HT) des ventes réelles importées.
                                   Le prix de vente moyen par format = <strong>moyenne arithmétique des PU HT</strong> des lignes du produit (l'unité de l'import est le colis/format).
                                   Les charges incluses (toggles ci-dessus) sont allouées au prorata du CA du produit, puis ramenées par format (colis).
                                   Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
+                                  HS = hors salaire, AS = avec salaire.
                                 </p>
                               </div>
                             </TableCell>
@@ -793,6 +836,7 @@ function EstimatedMarginCard({
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>
