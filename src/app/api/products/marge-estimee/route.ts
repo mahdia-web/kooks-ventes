@@ -150,7 +150,9 @@ export async function GET(req: NextRequest) {
     // Catégories de charges directes sélectionnables
     const isTransportCat = (cat: string) => /transport|logistique/i.test(cat);
     const isMarketingCat = (cat: string) =>
-      /marketing|publicit|annonce|catalogue|publication|concours|promotion/i.test(cat);
+      /marketing|publicit|annonce|publication|concours|promotion/i.test(cat);
+    // NB: "catalogue" est retire du pattern marketing car "Catalogues, imprimés &
+    // brochures" est une categorie distincte (captee par isCatalogueCat ci-dessous).
     const isCatalogueCat = (cat: string) => /catalogue|imprim|impression|edition|édition/i.test(cat);
     const isImprimesCat = (cat: string) => /imprim|impression|papeterie|fourniture/i.test(cat);
     const isSalairesCat = (cat: string) => /salaire|rémunération|paie/i.test(cat);
