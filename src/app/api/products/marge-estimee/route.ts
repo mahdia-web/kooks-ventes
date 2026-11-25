@@ -179,27 +179,25 @@ export async function GET(req: NextRequest) {
       chargesParCategorie[cat] = (chargesParCategorie[cat] ?? 0) + c.amountTTC;
 
       // Charges directes (allocationMethod === 'DIRECT') — ventilées par catégorie.
-      // On distingue :
-      //  - les catégories "toggleables" (Transport, Marketing, Catalogues,
-      //    Imprimés, Salaires) que l'utilisateur peut inclure/exclure,
-      //  - les "autres" charges directes (Honoraires, Loyer, Logiciels, etc.)
-      //    TOUJOURS allouées au prorata du CA dès qu'elles sont marquées DIRECT,
-      //  - les achats matières premières + emballages EXCLUS (déjà dans le prix
-      //    d'achat, pour éviter un double compte).
+      // Toutes les charges DIRECT sont allouées au prorata du CA (la classification
+      // se gère sur la page Charges), SAUF les achats matières premières et
+      // emballages (déjà dans le prix d'achat, pour éviter un double compte).
+      // Les compteurs par catégorie (Transport, Marketing, ...) servent uniquement
+      // à l'affichage détaillé dans la synthèse de la grille tarifaire.
       if (c.allocationMethod === 'DIRECT') {
-        if (isTransportCat(cat)) {
-          chargesTransport += c.amountTTC;
-        } else if (isMarketingCat(cat) && includeMarketing) {
-          chargesMarketing += c.amountTTC;
-        } else if (isCatalogueCat(cat) && includeCatalogues) {
-          chargesCatalogues += c.amountTTC;
-        } else if (isImprimesCat(cat) && includeImprimes) {
-          chargesImprimes += c.amountTTC;
-        } else if (isSalairesCat(cat) && includeSalaires) {
-          chargesSalaires += c.amountTTC;
-        } else if (isAchatMatieresCat(cat) || isEmballageCat(cat)) {
+        if (isAchatMatieresCat(cat) || isEmballageCat(cat)) {
           // Exclu de l'allocation (déjà dans le prix d'achat)
           chargesDirectesExcluesTTC += c.amountTTC;
+        } else if (isTransportCat(cat)) {
+          chargesTransport += c.amountTTC;
+        } else if (isMarketingCat(cat)) {
+          chargesMarketing += c.amountTTC;
+        } else if (isCatalogueCat(cat)) {
+          chargesCatalogues += c.amountTTC;
+        } else if (isImprimesCat(cat)) {
+          chargesImprimes += c.amountTTC;
+        } else if (isSalairesCat(cat)) {
+          chargesSalaires += c.amountTTC;
         } else {
           // Autre charge directe (Honoraires, Loyer, Logiciels, etc.) —
           // toujours allouée au prorata du CA. Ainsi, reclasser une catégorie

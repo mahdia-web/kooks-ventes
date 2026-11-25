@@ -656,22 +656,14 @@ function EstimatedMarginCard({
             </div>
             <p className="text-[11px] text-muted-foreground">
               Les volumes (CA, pots) et les charges directes TTC sont calculés sur cette période.
-              Les marges nettes par pot s'adaptent automatiquement.
+              Les marges nettes par pot s'adaptent automatiquement à la classification
+              des charges (directe / indirecte) définie sur la page Charges.
             </p>
           </div>
 
-          {/* Toggles charges directes à inclure */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Charges directes incluses :</span>
-            <Toggle on={true} disabled label="Transport (toujours)" />
-            <Toggle on={includeMarketing} onChange={(v) => setOptions({ ...options, includeMarketing: v })} label="Marketing & publicité" />
-            <Toggle on={includeCatalogues} onChange={(v) => setOptions({ ...options, includeCatalogues: v })} label="Catalogues & imprimés" />
-            <Toggle on={includeImprimes} onChange={(v) => setOptions({ ...options, includeImprimes: v })} label="Fournitures / papeterie" />
-            <Toggle on={includeSalaires} onChange={(v) => setOptions({ ...options, includeSalaires: v })} label="Salaires" />
-            <Button size="sm" variant="outline" onClick={load} disabled={loading} className="h-7 text-xs">
-              {loading ? 'Calcul…' : 'Recalculer'}
-            </Button>
-          </div>
+          {/* Note : la classification des charges (directe / indirecte) se gère
+              sur la page Charges. Ici, toutes les charges marquées DIRECT sont
+              automatiquement allouées au prorata du CA dans le calcul de la marge. */}
 
           {/* Synthèse */}
           {totals && (
@@ -681,10 +673,10 @@ function EstimatedMarginCard({
               <MiniStat label="Charges directes (total)" value={formatEuro(totals.chargesDirectesTotalTTC)} />
               <MiniStat label="Charges indirectes TTC" value={formatEuro(totals.chargesIndirectesTTC)} />
               <MiniStat label="Dont Transport" value={formatEuro(totals.chargesTransport)} />
-              {includeMarketing && <MiniStat label="Dont Marketing" value={formatEuro(totals.chargesMarketing)} />}
-              {includeCatalogues && <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />}
-              {includeImprimes && <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />}
-              {includeSalaires && <MiniStat label="Dont Salaires" value={formatEuro(totals.chargesSalaires)} />}
+              <MiniStat label="Dont Marketing" value={formatEuro(totals.chargesMarketing)} />
+              <MiniStat label="Dont Catalogues" value={formatEuro(totals.chargesCatalogues)} />
+              <MiniStat label="Dont Imprimés" value={formatEuro(totals.chargesImprimes)} />
+              <MiniStat label="Dont Salaires" value={formatEuro(totals.chargesSalaires)} />
               {totals.chargesDirectesAutresTTC > 0 && <MiniStat label="Dont Autres charges directes" value={formatEuro(totals.chargesDirectesAutresTTC)} />}
               <MiniStat label="Pots vendus" value={totals.totalPots.toLocaleString('fr-FR')} />
               <MiniStat label="Période" value={`${totals.periode.start} → ${totals.periode.end}`} small />
@@ -762,7 +754,7 @@ function EstimatedMarginCard({
                                   <DetailRow label="Marge nette %" value={p.margePct !== null ? `${p.margePct.toFixed(1)}%` : '—'} highlight />
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
-                                  Méthode : charges directes TTC (Transport{includeMarketing ? ' + Marketing' : ''}{includeCatalogues ? ' + Catalogues' : ''}{includeImprimes ? ' + Imprimés' : ''}{includeSalaires ? ' + Salaires' : ''} + autres charges directes) allouées au prorata du CA du produit sur la période, puis ramenées au pot. Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
+                                  Méthode : toutes les charges directes TTC (classification définie sur la page Charges) sont allouées au prorata du CA du produit sur la période, puis ramenées au pot. Les achats matières premières et emballages directs sont exclus (déjà dans le prix d'achat).
                                 </p>
                               </div>
                             </TableCell>
