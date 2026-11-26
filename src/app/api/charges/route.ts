@@ -92,12 +92,15 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.totalTTC - a.totalTTC)
       .slice(0, 15);
 
-    // Top catégories (avec pct et count) — TTC (ce qu'on paie réellement)
-    const categoryMap = new Map<string, { total: number; count: number }>();
+    // Top catégories (avec pct, count et nb de fournisseurs) — TTC (ce qu'on paie réellement).
+    // isDirecte indique si la catégorie est liée à la production/vente (directe)
+    // ou de structure (indirecte).
+    const categoryMap = new Map<string, { total: number; count: number; vendors: Set<string> }>();
     for (const c of charges) {
-      const cur = categoryMap.get(c.category) ?? { total: 0, count: 0 };
+      const cur = categoryMap.get(c.category) ?? { total: 0, count: 0, vendors: new Set<string>() };
       cur.total += c.amountTTC;
       cur.count += 1;
+      if (c.vendor) cur.vendors.add(c.vendor);
       categoryMap.set(c.category, cur);
     }
     const topCategories = Array.from(categoryMap.entries())
@@ -105,9 +108,8 @@ export async function GET(req: NextRequest) {
         category,
         total: d.total,
         count: d.count,
+        nbVendors: d.vendors.size,
         pct: totalTTCAll > 0 ? (d.total / totalTTCAll) * 100 : 0,
-        // Indique si cette catégorie est comptabilisée comme charge directe
-        // (liée à la production/vente) ou indirecte (charge de structure).
         isDirecte: isChargeDirecte(category),
       }))
       .sort((a, b) => b.total - a.total);

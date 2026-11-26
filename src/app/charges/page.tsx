@@ -12,7 +12,7 @@ import {
   ArrowLeft, Receipt, Upload, Loader2, Trash2, Euro, Truck, Search, Plus, Building2,
   TrendingUp, TrendingDown, Wallet, FileText, PieChart as PieIcon, Award, AlertTriangle,
   Lightbulb, Target, ArrowUpRight, ArrowDownRight, X, ChevronDown, ChevronUp,
-  Sparkles, Pencil, Check,
+  Sparkles, Pencil, Check, Scissors,
 } from 'lucide-react';
 import { AppSidebar } from '@/components/app-sidebar';
 import { DateRangeFilter } from '@/components/date-range-filter';
@@ -58,6 +58,7 @@ interface TopCategory {
   category: string;
   total: number;
   count: number;
+  nbVendors?: number;
   pct: number;
   isDirecte?: boolean;
 }
@@ -317,6 +318,44 @@ export default function ChargesPage() {
 
     return cards;
   }, [topCategories, topVendors, previousPeriod, marginPreview, kpis.totalHT]);
+
+  // Pistes d'économies sur les charges indirectes (postes de structure).
+  // Identifie les leviers d'optimisation par poste indirect :
+  //  - poste fragmenté (≥3 fournisseurs sur un même poste) → mutualisation
+  //  - poste récurrent à fort montant (abonnements, honoraires) → renégociation
+  //  - petits postes multi-lignes (déplacements, repas…) → rationalisation
+  const indirectOpportunities = useMemo(() => {
+    const opportunities: Array<{ category: string; total: number; count: number; nbVendors: number; lever: string; saving: number; pct: number; }> = [];
+    for (const c of topCategories) {
+      if (c.isDirecte) continue; // on ne touche que les indirectes (structure)
+      const total = c.total;
+      const count = c.count ?? 0;
+      const nbVendors = c.nbVendors ?? 0;
+      let lever: string | null = null;
+      let rate = 0;
+      // Poste fragmenté : ≥3 fournisseurs sur un même poste → mutualisation -10%
+      if (nbVendors >= 3 && total > 300) {
+        lever = `${nbVendors} fournisseurs → mutualiser les achats (-10%)`;
+        rate = 0.10;
+      }
+      // Poste récurrent à fort montant (abonnements/honoraires) → renégocier -5%
+      else if (total > 1000 && /logiciel|abonnement|honoraire/i.test(c.category)) {
+        lever = `Renégocier les conditions (-5%)`;
+        rate = 0.05;
+      }
+      // Petits postes multi-lignes (déplacements, repas, fournitures) → rationaliser -15%
+      else if (count >= 4 && total > 200 && total < 1500) {
+        lever = `${count} lignes → rationaliser / encadrer les dépenses (-15%)`;
+        rate = 0.15;
+      }
+      if (lever && rate > 0) {
+        opportunities.push({ category: c.category, total, count, nbVendors, lever, saving: total * rate, pct: rate * 100 });
+      }
+    }
+    return opportunities.sort((a, b) => b.saving - a.saving);
+  }, [topCategories]);
+
+  const totalIndirectSaving = indirectOpportunities.reduce((s, o) => s + o.saving, 0);
 
   // Export Excel (CSV)
   const handleExport = () => {
@@ -1001,17 +1040,17 @@ export default function ChargesPage() {
             );
           })()}
 
-          {/* === ANALYSE VISUELLE (2 COLONNES) === */}
+          {/* === ANALYSE VISUELLE === */}
           {topCategories.length > 0 && (
             <div className="grid gap-4 lg:grid-cols-2">
-              {/* Colonne gauche: Donut */}
+              {/* Colonne gauche: Donut pleine hauteur avec légende intégrée */}
               <Card className="rounded-2xl shadow-sm border-border">
                 <CardHeader>
                   <CardTitle className="font-title flex items-center gap-2"><PieIcon className="h-5 w-5 text-primary" /> Répartition des charges</CardTitle>
-                  <CardDescription>Ventilation HT — top 10 catégories + autres regroupés</CardDescription>
+                  <CardDescription>Ventilation TTC — top {pieData.length} postes</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-80 w-full">
+                  <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -1020,18 +1059,20 @@ export default function ChargesPage() {
                           nameKey="category"
                           cx="50%"
                           cy="50%"
-                          outerRadius={75}
-                          innerRadius={45}
-                          paddingAngle={2}
-                          label={({ percent }) => {
-                            // Étiquette compacte : % uniquement (évite le chevauchement
-                            // des noms longs). Le détail nom+montant reste dans le Tooltip
-                            // et la liste « Classement des catégories » à droite.
+                          outerRadius={95}
+                          innerRadius={55}
+                          paddingAngle={1.5}
+                          // Étiquette nom court + % : on garde le nom (tronqué) pour
+                          // que le donut reste lisible sans légende externe, et le %
+                          // pour la part. La position extérieure évite le chevauchement.
+                          label={({ category, percent }) => {
                             const pct = Math.round(((percent as number) ?? 0) * 100);
-                            return `${pct}%`;
+                            const short = (category || '').length > 14 ? (category || '').slice(0, 12) + '…' : (category || '');
+                            return `${short} ${pct}%`;
                           }}
-                          labelLine={{ stroke: '#94a3b8', strokeWidth: 1, length: 8, length2: 8 }}
-                          style={{ fontSize: 10, fill: '#5a4a36' }}
+                          labelLine={{ stroke: '#94a3b8', strokeWidth: 1, length: 10, length2: 12 }}
+                          style={{ fontSize: 11, fill: '#5a4a36', fontWeight: 500 }}
+                          minAngle={2}
                         >
                           {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
                         </Pie>
@@ -1045,49 +1086,85 @@ export default function ChargesPage() {
                 </CardContent>
               </Card>
 
-              {/* Colonne droite: Classement catégories */}
-              <Card className="rounded-2xl shadow-sm border-border">
+              {/* Colonne droite: Pistes d'économies sur charges indirectes */}
+              <Card className="rounded-2xl shadow-sm border-emerald-200/60 bg-emerald-50/20">
                 <CardHeader>
-                  <CardTitle className="font-title text-base">Classement des catégories</CardTitle>
-                  <CardDescription>Top {Math.min(10, topCategories.length)} postes de dépenses</CardDescription>
+                  <CardTitle className="font-title flex items-center gap-2 text-base"><Scissors className="h-5 w-5 text-emerald-600" /> Pistes d'économies — charges indirectes</CardTitle>
+                  <CardDescription>
+                    Postes de structure où une économie est réaliste. Total identifié :{' '}
+                    <span className="font-semibold text-emerald-700">{formatEuro(totalIndirectSaving)}</span>
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {topCategories.slice(0, 10).map((c, idx) => {
-                      const max = topCategories[0]?.total || 1;
-                      const color = COLORS[idx % COLORS.length];
-                      return (
-                        <div key={c.category} className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium truncate flex-1 flex items-center gap-2">
-                              <span className="text-muted-foreground mr-1">{idx + 1}.</span>
-                              <span className="truncate" title={c.category}>{c.category}</span>
-                              <span
-                                className="text-[9px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide shrink-0"
-                                style={{
-                                  color: c.isDirecte ? '#3674b5' : '#bb7e40',
-                                  backgroundColor: c.isDirecte ? 'rgba(54,116,181,0.1)' : 'rgba(187,126,64,0.1)',
-                                }}
-                                title={c.isDirecte ? 'Charge directe (liée à la production/vente)' : 'Charge indirecte (de structure)'}
-                              >
-                                {c.isDirecte ? 'Directe' : 'Indirecte'}
-                              </span>
-                            </span>
-                            <div className="flex gap-3 text-right shrink-0">
-                              <span className="font-semibold" style={{ color }}>{formatEuro(c.total)}</span>
-                              <span className="text-muted-foreground w-12 text-right">{c.pct.toFixed(1)}%</span>
+                  {indirectOpportunities.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-4 text-center">Aucune piste d'économie détectée sur les charges indirectes de la période.</p>
+                  ) : (
+                    <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                      {indirectOpportunities.map((o, idx) => (
+                        <div key={o.category} className="flex items-start gap-3 p-2.5 rounded-lg border border-emerald-100 bg-card">
+                          <div className="shrink-0 mt-0.5 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">{idx + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium truncate" title={o.category}>{o.category}</span>
+                              <span className="text-sm font-bold text-emerald-600 shrink-0">−{formatEuro(o.saving)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mt-0.5">
+                              <span className="text-[11px] text-muted-foreground">{formatEuro(o.total)} TTC</span>
+                              <span className="text-[11px] font-medium text-emerald-700">{o.lever}</span>
                             </div>
                           </div>
-                          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${(c.total / max) * 100}%`, backgroundColor: color }} />
-                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* === CLASSEMENT DES CATÉGORIES (pleine largeur) === */}
+          {topCategories.length > 0 && (
+            <Card className="rounded-2xl shadow-sm border-border">
+              <CardHeader>
+                <CardTitle className="font-title text-base">Classement des catégories</CardTitle>
+                <CardDescription>Top {Math.min(10, topCategories.length)} postes de dépenses</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {topCategories.slice(0, 10).map((c, idx) => {
+                    const max = topCategories[0]?.total || 1;
+                    const color = COLORS[idx % COLORS.length];
+                    return (
+                      <div key={c.category} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium truncate flex-1 flex items-center gap-2">
+                            <span className="text-muted-foreground mr-1">{idx + 1}.</span>
+                            <span className="truncate" title={c.category}>{c.category}</span>
+                            <span
+                              className="text-[9px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wide shrink-0"
+                              style={{
+                                color: c.isDirecte ? '#3674b5' : '#bb7e40',
+                                backgroundColor: c.isDirecte ? 'rgba(54,116,181,0.1)' : 'rgba(187,126,64,0.1)',
+                              }}
+                              title={c.isDirecte ? 'Charge directe (liée à la production/vente)' : 'Charge indirecte (de structure)'}
+                            >
+                              {c.isDirecte ? 'Directe' : 'Indirecte'}
+                            </span>
+                          </span>
+                          <div className="flex gap-3 text-right shrink-0">
+                            <span className="font-semibold" style={{ color }}>{formatEuro(c.total)}</span>
+                            <span className="text-muted-foreground w-12 text-right">{c.pct.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${(c.total / max) * 100}%`, backgroundColor: color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* === TOP FOURNISSEURS === */}
