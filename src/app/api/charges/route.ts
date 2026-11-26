@@ -157,12 +157,18 @@ export async function GET(req: NextRequest) {
         select: { amountHT: true },
       });
       const caHT = sales.reduce((s, s2) => s + s2.amountHT, 0);
+      // Pour l'aperçu marge, on n'inclut que les charges effectivement affectées
+      // (excludedFromMargin=false). Les lignes retirées individuellement (ex: un
+      // salaire décoché) ne doivent pas gonfler le total des charges.
+      const includedCharges = charges.filter(c => !c.excludedFromMargin);
+      const chargesHT = includedCharges.reduce((s, c) => s + c.amountHT, 0);
+      const chargesTTC = includedCharges.reduce((s, c) => s + c.amountTTC, 0);
       marginPreview = {
         caHT,
-        chargesHT: totalHTAll,
-        chargesTTC: totalTTCAll,
-        margeBrute: caHT - totalHTAll,
-        margePct: caHT > 0 ? ((caHT - totalHTAll) / caHT) * 100 : 0,
+        chargesHT,
+        chargesTTC,
+        margeBrute: caHT - chargesHT,
+        margePct: caHT > 0 ? ((caHT - chargesHT) / caHT) * 100 : 0,
         nbVentes: sales.length,
       };
     }

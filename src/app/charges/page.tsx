@@ -840,18 +840,19 @@ export default function ChargesPage() {
               <CardContent>
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlySeries} margin={{ top: 5, right: 20, left: 5, bottom: 5 }}>
+                    <BarChart data={monthlySeries} margin={{ top: 10, right: 20, left: 5, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" />
                       <XAxis
                         dataKey="label"
-                        tick={{ fontSize: 10, fill: '#7a654a' }}
+                        tick={{ fontSize: 10, fill: '#5a4a36' }}
                         stroke="#e8d6a4"
-                        angle={-45}
+                        angle={-35}
                         textAnchor="end"
-                        height={50}
+                        height={60}
+                        interval={0}
                       />
                       <YAxis
-                        tick={{ fontSize: 10, fill: '#7a654a' }}
+                        tick={{ fontSize: 10, fill: '#5a4a36' }}
                         stroke="#e8d6a4"
                         tickFormatter={(v) => formatNumber(Math.round(v / 1000)) + 'k€'}
                       />
@@ -1019,18 +1020,18 @@ export default function ChargesPage() {
                           nameKey="category"
                           cx="50%"
                           cy="50%"
-                          outerRadius={90}
+                          outerRadius={75}
                           innerRadius={45}
                           paddingAngle={2}
-                          label={({ category, total }) => {
-                            // Étiquette extérieure avec nom + % (toujours visible)
-                            const sum = pieData.reduce((s: number, p: any) => s + p.total, 0);
-                            const pct = sum > 0 ? Math.round((total / sum) * 100) : 0;
-                            // Raccourcit le nom si trop long
-                            const short = category.length > 18 ? category.slice(0, 16) + '…' : category;
-                            return `${short} (${pct}%)`;
+                          label={({ percent }) => {
+                            // Étiquette compacte : % uniquement (évite le chevauchement
+                            // des noms longs). Le détail nom+montant reste dans le Tooltip
+                            // et la liste « Classement des catégories » à droite.
+                            const pct = Math.round(((percent as number) ?? 0) * 100);
+                            return `${pct}%`;
                           }}
-                          labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
+                          labelLine={{ stroke: '#94a3b8', strokeWidth: 1, length: 8, length2: 8 }}
+                          style={{ fontSize: 10, fill: '#5a4a36' }}
                         >
                           {pieData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
                         </Pie>
@@ -1127,12 +1128,12 @@ export default function ChargesPage() {
                   <CardDescription>Coût total HT par fournisseur</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[420px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={topVendors} layout="vertical" margin={{ top: 5, right: 40, left: 5, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e8d6a4" horizontal={false} />
                         <XAxis type="number" tickFormatter={(v) => formatNumber(Math.round(v / 1000)) + 'k€'} tick={{ fontSize: 10, fill: '#7a654a' }} stroke="#e8d6a4" />
-                        <YAxis type="category" dataKey="vendor" width={120} tick={{ fontSize: 9, fill: '#7a654a' }} stroke="#e8d6a4" tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 18) + '…' : v} />
+                        <YAxis type="category" dataKey="vendor" width={150} tick={{ fontSize: 10, fill: '#5a4a36' }} stroke="#e8d6a4" tickFormatter={(v: string) => v.length > 22 ? v.slice(0, 21) + '…' : v} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#fffaf0', border: '1px solid #e8d6a4', borderRadius: '8px', fontSize: '12px' }}
                           formatter={(value: number, _name: string, props) => {
