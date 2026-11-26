@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSalairesBase, nbMoisPeriode } from '@/lib/salaires-base';
 
 // Les totaux salaires (affectés/retirés) changent au toggle : ne jamais cacher.
 export const dynamic = 'force-dynamic';
@@ -74,40 +75,42 @@ export async function GET(req: NextRequest) {
     }).sort((a, b) => b.amountTTC - a.amountTTC);
 
     // Lignes de salaires individuelles (pour toggle + édition dans l'UI).
-    // Détecte les catégories "Salaires" / "Rémunération" / "Paie".
-    const isSalairesCat = (cat: string) => /salaire|rémunération|paie/i.test(cat || '');
-    const salaireLines = charges
-      .filter(c => isSalairesCat(c.category))
-      .map(c => ({
-        id: c.id,
-        category: c.category,
-        subLabel: c.subLabel,
-        vendor: c.vendor,
-        date: c.date,
-        amountHT: c.amountHT,
-        amountTTC: c.amountTTC,
-        vatRate: c.vatRate,
-        allocationMethod: c.allocationMethod,
-        excludedFromMargin: c.excludedFromMargin,
-      }))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+    // IMPORTANT : les salaires sont une BASE MENSUELLE récurrente (saisie une fois,
+    // ex: base d'octobre). On ne filtre PAS par date — on récupère la base de
+    // référence et on la projette sur chaque mois de la période (× nbMois).
+    // Le flag excludedFromMargin et le montant sont portés par la base →
+    // persistants sur tous les mois (changer de mois ne fait pas disparaître
+    // l'affectation, et une période multi-mois multiplie la base).
+    const salaireLines = await getSalairesBase();
+    const nbMonths = nbMoisPeriode(start, end);
 
-    const salairesIncludedTTC = salaireLines
+    // Base mensuelle (hors projection) — pour l'affichage et l'édition.
+    const salairesBaseIncludedTTC = salaireLines
       .filter(s => !s.excludedFromMargin)
       .reduce((s, l) => s + l.amountTTC, 0);
-    const salairesExcludedTTC = salaireLines
+    const salairesBaseExcludedTTC = salaireLines
       .filter(s => s.excludedFromMargin)
       .reduce((s, l) => s + l.amountTTC, 0);
+
+    // Totaux projetés sur la période (base mensuelle × nbMonths).
+    const salairesIncludedTTC = salairesBaseIncludedTTC * nbMonths;
+    const salairesExcludedTTC = salairesBaseExcludedTTC * nbMonths;
 
     return NextResponse.json({
       ok: true,
       charges: result,
       total: result.reduce((s, r) => s + r.amountTTC, 0),
-      // Détail des lignes de salaires (toggle + édition individuelle)
+      // Détail des lignes de salaires (toggle + édition individuelle).
+      // amountTTC = base MENSUELLE ; voir salairesMoisCount pour la projection.
       salaireLines,
       salairesIncludedTTC,
       salairesExcludedTTC,
       salairesTotalTTC: salairesIncludedTTC + salairesExcludedTTC,
+      // Nombre de mois couverts par la période (pour l'affichage « × N mois »).
+      salairesMoisCount: nbMonths,
+      // Base mensuelle incluse/exclue (hors projection) pour l'UI.
+      salairesBaseIncludedTTC,
+      salairesBaseExcludedTTC,
     });
   } catch (e) {
     return NextResponse.json(

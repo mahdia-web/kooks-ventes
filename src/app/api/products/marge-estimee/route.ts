@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getSalairesBase, nbMoisPeriode, isSalairesCat } from '@/lib/salaires-base';
 
 export const maxDuration = 60;
 // Les marges dépendent des toggles de charges (excludedFromMargin) qui changent
@@ -156,10 +157,31 @@ export async function GET(req: NextRequest) {
     // 3. Charges sur la période — directes ET indirectes
     // Le Transport est TOUJOURS inclus dans les directes. Marketing/Catalogues/Imprimés au choix.
     // On calcule aussi les charges indirectes (allocationMethod !== 'DIRECT') et le total.
-    const charges = await db.charge.findMany({
+    // NB: les SALAIRES ne sont PAS filtrés par date ici — ce sont des lignes de
+    // base mensuelle récurrentes (saisies une fois, ex: base d'octobre). On les
+    // retire du fetch filtré et on les réinjecte projetés sur chaque mois de la
+    // période (× nbMois) pour que changer de mois ne les fasse pas disparaître
+    // et qu'une période multi-mois multiplie bien la base.
+    const chargesFiltrees = await db.charge.findMany({
       where: { date: { gte: start, lte: end } },
-      select: { category: true, amountTTC: true, allocationMethod: true, enseigne: true, excludedFromMargin: true },
+      select: { category: true, subLabel: true, amountTTC: true, allocationMethod: true, enseigne: true, excludedFromMargin: true },
     });
+    const chargesHorsSalaires = chargesFiltrees.filter(c => !isSalairesCat(c.category));
+
+    // Base salariale mensuelle + projection sur la période.
+    const salairesBase = await getSalairesBase();
+    const nbMonths = nbMoisPeriode(start, end);
+    // Lignes virtuelles projetées : une entrée par ligne de base, montant × nbMois.
+    const salairesProjected = salairesBase.map(s => ({
+      category: s.category,
+      amountTTC: s.amountTTC * nbMonths,
+      allocationMethod: s.allocationMethod,
+      enseigne: s.enseigne,
+      excludedFromMargin: s.excludedFromMargin,
+    }));
+
+    // Charges finales = hors-salaires (filtrées par date) + salaires projetés.
+    const charges = [...chargesHorsSalaires, ...salairesProjected];
 
     // Catégories de charges directes sélectionnables
     const isTransportCat = (cat: string) => /transport|logistique/i.test(cat);
@@ -169,7 +191,7 @@ export async function GET(req: NextRequest) {
     // brochures" est une categorie distincte (captee par isCatalogueCat ci-dessous).
     const isCatalogueCat = (cat: string) => /catalogue|imprim|impression|edition|édition/i.test(cat);
     const isImprimesCat = (cat: string) => /imprim|impression|papeterie|fourniture/i.test(cat);
-    const isSalairesCat = (cat: string) => /salaire|rémunération|paie/i.test(cat);
+    // isSalairesCat est importé de @/lib/salaires-base (partagé avec charges-summary).
     // Charges directes EXCLUES de l'allocation aux pots car déjà dans le prix
     // d'achat (achats matières premières, emballages & conditionnements).
     // Tout autre catégorie marquée DIRECTE est allouée au prorata du CA.

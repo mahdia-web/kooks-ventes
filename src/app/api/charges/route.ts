@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isChargeDirecte } from '@/lib/compte-comptable';
+import { getSalairesBase, nbMoisPeriode, isSalairesCat } from '@/lib/salaires-base';
 
 // Cette route lit des données qui changent après un toggle/édition de salaire :
 // ne jamais la cacher côté Vercel/CDN.
@@ -167,9 +168,26 @@ export async function GET(req: NextRequest) {
       // Pour l'aperçu marge, on n'inclut que les charges effectivement affectées
       // (excludedFromMargin=false). Les lignes retirées individuellement (ex: un
       // salaire décoché) ne doivent pas gonfler le total des charges.
-      const includedCharges = charges.filter(c => !c.excludedFromMargin);
-      const chargesHT = includedCharges.reduce((s, c) => s + c.amountHT, 0);
-      const chargesTTC = includedCharges.reduce((s, c) => s + c.amountTTC, 0);
+      // NB: les SALAIRES sont une base mensuelle récurrente — on les retire du
+      // tableau filtré par date et on les réinjecte projetés sur la période
+      // (× nbMois) pour que changer de mois ne les fasse pas disparaître et
+      // qu'une période multi-mois multiplie bien la base.
+      const chargesHorsSalaires = charges.filter(c => !isSalairesCat(c.category));
+      const salairesBase = await getSalairesBase();
+      const nbMonths = nbMoisPeriode(currentStart, currentEnd);
+      // Base HT mensuelle projetée, en respectant excludedFromMargin.
+      const salairesHTIncluded = salairesBase
+        .filter(s => !s.excludedFromMargin)
+        .reduce((s, l) => s + l.amountHT, 0) * nbMonths;
+      const salairesTTCIncluded = salairesBase
+        .filter(s => !s.excludedFromMargin)
+        .reduce((s, l) => s + l.amountTTC, 0) * nbMonths;
+      const chargesHT = chargesHorsSalaires
+        .filter(c => !c.excludedFromMargin)
+        .reduce((s, c) => s + c.amountHT, 0) + salairesHTIncluded;
+      const chargesTTC = chargesHorsSalaires
+        .filter(c => !c.excludedFromMargin)
+        .reduce((s, c) => s + c.amountTTC, 0) + salairesTTCIncluded;
       marginPreview = {
         caHT,
         chargesHT,

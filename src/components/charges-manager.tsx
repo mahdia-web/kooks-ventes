@@ -53,6 +53,8 @@ export function ChargesManager({ startDate, endDate, onReclassified }: ChargesMa
   const [loading, setLoading] = useState(false);
   const [reclassifying, setReclassifying] = useState<string | null>(null);
   const [salaireLines, setSalaireLines] = useState<SalaireLine[]>([]);
+  // Nombre de mois couverts par la période (pour la projection de la base salaire).
+  const [salairesMoisCount, setSalairesMoisCount] = useState(1);
   // Édition inline d'un montant de salaire : { id, value }
   const [editing, setEditing] = useState<{ id: string; value: string } | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export function ChargesManager({ startDate, endDate, onReclassified }: ChargesMa
       if (json.ok) {
         setCharges(json.charges);
         setSalaireLines(json.salaireLines || []);
+        setSalairesMoisCount(json.salairesMoisCount ?? 1);
       } else {
         toast.error(json.error || 'Erreur chargement charges');
       }
@@ -171,10 +174,14 @@ export function ChargesManager({ startDate, endDate, onReclassified }: ChargesMa
   const totalIndirect = indirectCharges.reduce((s, c) => s + c.amountTTC, 0);
   const total = totalDirect + totalIndirect;
 
-  // Totaux salaires
-  const salairesTotal = salaireLines.reduce((s, l) => s + l.amountTTC, 0);
-  const salairesIncluded = salaireLines.filter(l => !l.excludedFromMargin).reduce((s, l) => s + l.amountTTC, 0);
-  const salairesExcluded = salairesTotal - salairesIncluded;
+  // Totaux salaires. Les montants des lignes sont la BASE MENSUELLE ; on projette
+  // le total sur la période (× nbMois) pour refléter ce qui est réellement alloué.
+  const salairesBaseTotal = salaireLines.reduce((s, l) => s + l.amountTTC, 0);
+  const salairesBaseIncluded = salaireLines.filter(l => !l.excludedFromMargin).reduce((s, l) => s + l.amountTTC, 0);
+  const salairesBaseExcluded = salairesBaseTotal - salairesBaseIncluded;
+  const salairesTotal = salairesBaseTotal * salairesMoisCount;
+  const salairesIncluded = salairesBaseIncluded * salairesMoisCount;
+  const salairesExcluded = salairesBaseExcluded * salairesMoisCount;
 
   return (
     <div className="border border-border rounded-lg bg-card p-3 space-y-3">
@@ -204,8 +211,14 @@ export function ChargesManager({ startDate, endDate, onReclassified }: ChargesMa
               </p>
             </div>
             <div className="text-right text-[11px]">
+              {salairesMoisCount > 1 && (
+                <div className="text-muted-foreground">
+                  Base mensuelle : <span className="font-medium text-foreground">{formatEuro(salairesBaseTotal)}</span>
+                </div>
+              )}
               <div className="text-muted-foreground">
-                Total : <span className="font-medium text-foreground">{formatEuro(salairesTotal)}</span>
+                Total{salairesMoisCount > 1 ? <span className="font-medium text-violet-700"> × {salairesMoisCount} mois</span> : null} :{' '}
+                <span className="font-medium text-foreground">{formatEuro(salairesTotal)}</span>
               </div>
               <div className="text-emerald-600">
                 Affectés : <span className="font-medium">{formatEuro(salairesIncluded)}</span>
