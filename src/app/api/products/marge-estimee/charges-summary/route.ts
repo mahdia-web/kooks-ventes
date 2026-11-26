@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+// Les totaux salaires (affectés/retirés) changent au toggle : ne jamais cacher.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/products/marge-estimee/charges-summary?startDate=JJ/MM/AAAA&endDate=JJ/MM/AAAA
  *

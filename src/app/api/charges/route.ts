@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { isChargeDirecte } from '@/lib/compte-comptable';
 
+// Cette route lit des données qui changent après un toggle/édition de salaire :
+// ne jamais la cacher côté Vercel/CDN.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/charges?category=Transport&startDate=01/01/2026&endDate=31/12/2026&enseigne=XXX&vendor=YYY
  *
@@ -221,6 +226,8 @@ export async function GET(req: NextRequest) {
       period: currentStart && currentEnd
         ? { start: currentStart.toISOString().split('T')[0], end: currentEnd.toISOString().split('T')[0] }
         : null,
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
     });
   } catch (e) {
     return NextResponse.json(

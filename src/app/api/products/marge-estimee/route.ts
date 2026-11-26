@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export const maxDuration = 60;
+// Les marges dépendent des toggles de charges (excludedFromMargin) qui changent
+// à l'édition : ne jamais cacher cette route.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 /**
  * GET /api/products/marge-estimee
