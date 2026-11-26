@@ -1,10 +1,17 @@
 import { db } from '@/lib/db';
 
 /**
- * Détection d'une catégorie "Salaires" (paie, rémunération, salaire).
+ * Détection d'une catégorie "Salaires" (paie interne, charges sociales).
+ *
+ * IMPORTANT : on cible les VRAIS salaires mensuels récurrents, PAS le personnel
+ * extérieur / intérim (qui sont des factures ponctuelles et ne doivent pas être
+ * projetés sur tous les mois). On exclut donc explicitement "personnel extérieur".
  */
-export const isSalairesCat = (cat: string) =>
-  /salaire|rémunération|paie/i.test(cat || '');
+export const isSalairesCat = (cat: string) => {
+  const c = cat || '';
+  if (/personnel extérieur|intérim|interim/i.test(c)) return false;
+  return /salaire|rémunération|paie/i.test(c);
+};
 
 export interface SalaireBaseLine {
   id: string;
